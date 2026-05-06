@@ -1,0 +1,74 @@
+[project]
+name = "panos-mcp"
+version = "0.1.0"
+description = "Token-efficient MCP server for Palo Alto Networks PAN-OS firewalls and Panorama"
+readme = "README.md"
+requires-python = ">=3.13"
+license = "ISC"
+dependencies = [
+    "mcp[cli]>=1.3.0",
+    "pydantic>=2.10.6",
+    "pan-os-python>=1.12.0",
+    "httpx>=0.28.1",
+    "keyring>=25.0",
+    "python-dotenv>=1.0.0",
+    # mcp-toolkit installed separately as editable from ../mcp-toolkit-py
+    # (not on PyPI yet; see README "Development" section). Once published,
+    # add: "mcp-toolkit>=0.1.0",
+]
+
+[[project.authors]]
+name = "Michael Pope"
+email = "me@michaelpope.cv"
+
+[project.urls]
+Homepage = "https://github.com/epopleachim/panos-mcp-py"
+Repository = "https://github.com/epopleachim/panos-mcp-py"
+Issues = "https://github.com/epopleachim/panos-mcp-py/issues"
+
+[project.scripts]
+panos-mcp = "panos_mcp.server:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+    "mypy>=1.10",
+    "tiktoken>=0.7",       # benchmark token counting
+]
+
+# When uv is available, this source resolves the toolkit from the sibling repo.
+# With plain pip, install ../mcp-toolkit-py separately first (see README).
+[tool.uv.sources]
+mcp-toolkit = { path = "../mcp-toolkit-py", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/panos_mcp"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "integration: requires a live PAN-OS firewall (skipped by default)",
+    "benchmark: token-cost measurement, requires tiktoken",
+]
