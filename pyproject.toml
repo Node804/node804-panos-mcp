@@ -9,6 +9,9 @@ dependencies = [
     "mcp[cli]>=1.3.0",
     "pydantic>=2.10.6",
     "pan-os-python>=1.12.0",
+    # pan-os-python 1.12.x still imports `distutils`, removed in Py 3.12.
+    # We shim it from setuptools._distutils in panos_mcp/__init__.py.
+    "setuptools>=68",
     "httpx>=0.28.1",
     "keyring>=25.0",
     "python-dotenv>=1.0.0",
@@ -57,13 +60,23 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
-ignore = ["E501"]
+# B008: Pydantic frozen models as default args are safe (immutable). The
+# Pagination()/Pattern()/etc. defaults from mcp_toolkit are intentional and
+# match the FastMCP idiom used across the suite.
+ignore = ["E501", "B008"]
 
 [tool.mypy]
 python_version = "3.13"
 strict = true
 warn_unused_ignores = true
 disallow_untyped_defs = true
+
+# pan-os-python and the MCP SDK don't ship type stubs. We don't want to
+# silence type errors in our own code, just stop mypy from complaining
+# that those imports are untyped.
+[[tool.mypy.overrides]]
+module = ["panos.*", "mcp.*", "setuptools", "setuptools.*", "keyring"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
