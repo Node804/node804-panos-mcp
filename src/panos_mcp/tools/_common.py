@@ -135,9 +135,36 @@ def panos_object_dicts(objects: list[Any]) -> list[dict[str, Any]]:
     return [obj.about() for obj in objects]
 
 
+# --- Write-tool response helpers --------------------------------------------
+# These wrap the success/error reporting shape every CRUD tool uses, so the
+# response shape stays consistent across object, rule, and admin tools.
+
+
+def write_success(operation: str, name: str, **extra: Any) -> dict[str, Any]:
+    """Lean success response for write tools.
+
+    Keep the shape boring on purpose — the AI doesn't need a verbose object
+    dump after a successful create/delete. The caller can read it back with
+    a follow-up get_X tool if the post-state matters.
+    """
+    return {"success": True, "operation": operation, "name": name, **extra}
+
+
+def wrap_panos_error(err: Exception, operation: str, name: str) -> dict[str, Any]:
+    """Convert a pan-os-python exception into our error response shape."""
+    return {
+        "success": False,
+        "operation": operation,
+        "name": name,
+        "error": str(err) or err.__class__.__name__,
+    }
+
+
 __all__ = [
     "ToolContext",
     "element_to_dict",
     "op_to_dict",
     "panos_object_dicts",
+    "wrap_panos_error",
+    "write_success",
 ]

@@ -35,7 +35,16 @@ from ..responses.schemas import (
     SHAPE_TAG,
 )
 from ..responses.shapers import apply_shape
-from ._common import ToolContext, panos_object_dicts
+from ._common import (
+    ToolContext,
+    panos_object_dicts,
+)
+from ._common import (
+    wrap_panos_error as _wrap_panos_error,
+)
+from ._common import (
+    write_success as _success,
+)
 from ._schemas import PanosDescription, PanosName, PanosTagName
 
 # Tag color values are an enumerated set in PAN-OS (color1..color16).
@@ -46,21 +55,6 @@ TagColor = Literal[
     "color9", "color10", "color11", "color12",
     "color13", "color14", "color15", "color16",
 ]
-
-
-def _success(operation: str, name: str) -> dict[str, Any]:
-    """Standard write-tool success response. Lean on purpose."""
-    return {"success": True, "operation": operation, "name": name}
-
-
-def _wrap_panos_error(err: Exception, op: str, name: str) -> dict[str, Any]:
-    """Convert a pan-os-python exception into our ``{"error": ...}`` response shape."""
-    return {
-        "success": False,
-        "operation": op,
-        "name": name,
-        "error": str(err) or err.__class__.__name__,
-    }
 
 
 def register_objects_tools(ctx: ToolContext) -> None:

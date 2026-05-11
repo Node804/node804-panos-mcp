@@ -11,9 +11,10 @@ results are just empty when the target doesn't manage anything.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
+from panos.errors import PanDeviceError
 from panos.objects import (
     AddressGroup,
     AddressObject,
@@ -52,7 +53,14 @@ from ..responses.schemas import (
     SHAPE_TEMPLATE_STACK,
 )
 from ..responses.shapers import apply_shape
-from ._common import ToolContext, op_to_dict, panos_object_dicts
+from ._common import (
+    ToolContext,
+    op_to_dict,
+    panos_object_dicts,
+    wrap_panos_error,
+    write_success,
+)
+from ._schemas import MemberList, MemberValue, PanosDescription, PanosName
 
 
 def _entries(result: Any, *keys: str) -> list[dict[str, Any]]:
@@ -504,6 +512,333 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         from ..responses.schemas import SHAPE_HA_STATUS
         from ..responses.shapers import shape_single
         return shape_single(result, shape=SHAPE_HA_STATUS, verbose=verbose, fields=fields)
+
+    # ── Panorama pre/post rule CRUD (Mode.FULL) ─────────────────────────────
+
+    def _resolve_dg_and_rulebase(
+        client: Any,
+        device_group: str,
+        which: str,
+    ) -> tuple[Any, Any] | dict[str, Any]:
+        """Find a device group and attach its pre or post rulebase. Returns
+        (device_group_obj, rulebase_obj) on success, or an error dict."""
+        from panos.panorama import DeviceGroup
+        from panos.policies import PostRulebase, PreRulebase
+
+        dg = next(
+            (d for d in DeviceGroup.refreshall(client) if d.name == device_group),
+            None,
+        )
+        if dg is None:
+            return {
+                "success": False,
+                "operation": "create",
+                "error": f"Device group '{device_group}' not found.",
+            }
+        rb = PreRulebase() if which == "pre" else PostRulebase()
+        dg.add(rb)
+        return dg, rb
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)
+    async def panorama_add_pre_rule(
+        device_group: PanosName,
+        name: PanosName,
+        from_zones: MemberList,
+        to_zones: MemberList,
+        source: MemberList,
+        destination: MemberList,
+        application: MemberList,
+        service: MemberList,
+        action: Literal["allow", "deny", "drop", "reset-client", "reset-server", "reset-both"],
+        description: PanosDescription | None = None,
+        disabled: bool | None = None,
+        log_start: bool | None = None,
+        log_end: bool | None = None,
+        profile_group: PanosName | None = None,
+        tag: list[PanosName] | None = None,
+        firewall: str | None = None,
+    ) -> dict[str, Any]:
+        """Create a security pre-rule in a Panorama device group.
+
+        Staged in Panorama's candidate config — requires ``panorama_commit``
+        then ``panorama_push_to_devices`` to deploy.
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        resolved = _resolve_dg_and_rulebase(client, device_group, "pre")
+        if isinstance(resolved, dict):
+            return resolved
+        _dg, rb = resolved
+        rule = SecurityRule(
+            name=name, fromzone=from_zones, tozone=to_zones, source=source,
+            destination=destination, application=application, service=service,
+            action=action, description=description, disabled=disabled,
+            log_start=log_start, log_end=log_end, group=profile_group, tag=tag,
+        )
+        rb.add(rule)
+        try:
+            rule.create()
+        except PanDeviceError as e:
+            return wrap_panos_error(e, "create", name)
+        return write_success("created", name, device_group=device_group, rulebase="pre")
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)
+    async def panorama_delete_pre_rule(
+        device_group: PanosName,
+        name: PanosName,
+        firewall: str | None = None,
+    ) -> dict[str, Any]:
+        """Delete a security pre-rule from a Panorama device group."""
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        resolved = _resolve_dg_and_rulebase(client, device_group, "pre")
+        if isinstance(resolved, dict):
+            return resolved
+        _dg, rb = resolved
+        rule = SecurityRule(name=name)
+        rb.add(rule)
+        try:
+            rule.delete()
+        except PanDeviceError as e:
+            return wrap_panos_error(e, "delete", name)
+        return write_success("deleted", name, device_group=device_group, rulebase="pre")
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)
+    async def panorama_move_pre_rule(
+        device_group: PanosName,
+        name: PanosName,
+        where: Literal["top", "bottom", "before", "after"],
+        destination: PanosName | None = None,
+        firewall: str | None = None,
+    ) -> dict[str, Any]:
+        """Move a security pre-rule in a Panorama device group."""
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        if where in ("before", "after") and not destination:
+            return {
+                "success": False, "operation": "moved", "name": name,
+                "error": "'destination' is required when 'where' is 'before' or 'after'.",
+            }
+        resolved = _resolve_dg_and_rulebase(client, device_group, "pre")
+        if isinstance(resolved, dict):
+            return resolved
+        _dg, rb = resolved
+        rule = SecurityRule(name=name)
+        rb.add(rule)
+        try:
+            if where in ("before", "after"):
+                rule.move(location=where, ref=destination)
+            else:
+                rule.move(location=where)
+        except PanDeviceError as e:
+            return wrap_panos_error(e, "move", name)
+        return write_success("moved", name, where=where, dst=destination, device_group=device_group)
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)
+    async def panorama_add_post_rule(
+        device_group: PanosName,
+        name: PanosName,
+        from_zones: MemberList,
+        to_zones: MemberList,
+        source: MemberList,
+        destination: MemberList,
+        application: MemberList,
+        service: MemberList,
+        action: Literal["allow", "deny", "drop", "reset-client", "reset-server", "reset-both"],
+        description: PanosDescription | None = None,
+        disabled: bool | None = None,
+        log_start: bool | None = None,
+        log_end: bool | None = None,
+        profile_group: PanosName | None = None,
+        tag: list[PanosName] | None = None,
+        firewall: str | None = None,
+    ) -> dict[str, Any]:
+        """Create a security post-rule in a Panorama device group."""
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        resolved = _resolve_dg_and_rulebase(client, device_group, "post")
+        if isinstance(resolved, dict):
+            return resolved
+        _dg, rb = resolved
+        rule = SecurityRule(
+            name=name, fromzone=from_zones, tozone=to_zones, source=source,
+            destination=destination, application=application, service=service,
+            action=action, description=description, disabled=disabled,
+            log_start=log_start, log_end=log_end, group=profile_group, tag=tag,
+        )
+        rb.add(rule)
+        try:
+            rule.create()
+        except PanDeviceError as e:
+            return wrap_panos_error(e, "create", name)
+        return write_success("created", name, device_group=device_group, rulebase="post")
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)
+    async def panorama_delete_post_rule(
+        device_group: PanosName,
+        name: PanosName,
+        firewall: str | None = None,
+    ) -> dict[str, Any]:
+        """Delete a security post-rule from a Panorama device group."""
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        resolved = _resolve_dg_and_rulebase(client, device_group, "post")
+        if isinstance(resolved, dict):
+            return resolved
+        _dg, rb = resolved
+        rule = SecurityRule(name=name)
+        rb.add(rule)
+        try:
+            rule.delete()
+        except PanDeviceError as e:
+            return wrap_panos_error(e, "delete", name)
+        return write_success("deleted", name, device_group=device_group, rulebase="post")
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)
+    async def panorama_move_post_rule(
+        device_group: PanosName,
+        name: PanosName,
+        where: Literal["top", "bottom", "before", "after"],
+        destination: PanosName | None = None,
+        firewall: str | None = None,
+    ) -> dict[str, Any]:
+        """Move a security post-rule in a Panorama device group."""
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        if where in ("before", "after") and not destination:
+            return {
+                "success": False, "operation": "moved", "name": name,
+                "error": "'destination' is required when 'where' is 'before' or 'after'.",
+            }
+        resolved = _resolve_dg_and_rulebase(client, device_group, "post")
+        if isinstance(resolved, dict):
+            return resolved
+        _dg, rb = resolved
+        rule = SecurityRule(name=name)
+        rb.add(rule)
+        try:
+            if where in ("before", "after"):
+                rule.move(location=where, ref=destination)
+            else:
+                rule.move(location=where)
+        except PanDeviceError as e:
+            return wrap_panos_error(e, "move", name)
+        return write_success("moved", name, where=where, dst=destination, device_group=device_group)
+
+    # ── Panorama device-group NAT rule CRUD ─────────────────────────────────
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)
+    async def panorama_add_device_group_nat_rule(
+        device_group: PanosName,
+        rulebase: Literal["pre", "post"],
+        name: PanosName,
+        from_zones: MemberList,
+        to_zones: MemberList,
+        source: MemberList,
+        destination: MemberList,
+        service: MemberValue = "any",
+        snat_type: Literal["dynamic-ip-and-port", "dynamic-ip", "static-ip"] | None = None,
+        snat_address: MemberValue | None = None,
+        snat_interface: PanosName | None = None,
+        dnat_address: MemberValue | None = None,
+        dnat_port: MemberValue | None = None,
+        description: PanosDescription | None = None,
+        disabled: bool | None = None,
+        firewall: str | None = None,
+    ) -> dict[str, Any]:
+        """Create a NAT rule in a Panorama device group (pre or post rulebase)."""
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        resolved = _resolve_dg_and_rulebase(client, device_group, rulebase)
+        if isinstance(resolved, dict):
+            return resolved
+        _dg, rb = resolved
+        kwargs: dict[str, Any] = {
+            "name": name, "fromzone": from_zones, "tozone": to_zones,
+            "source": source, "destination": destination, "service": service,
+            "description": description, "disabled": disabled,
+        }
+        if snat_type:
+            kwargs["source_translation_type"] = snat_type
+            if snat_address:
+                kwargs["source_translation_translated_addresses"] = [snat_address]
+            if snat_interface and snat_type == "dynamic-ip-and-port":
+                kwargs["source_translation_interface"] = snat_interface
+        if dnat_address:
+            kwargs["destination_translated_address"] = dnat_address
+            if dnat_port:
+                kwargs["destination_translated_port"] = dnat_port
+        rule = NatRule(**{k: v for k, v in kwargs.items() if v is not None or k == "name"})
+        rb.add(rule)
+        try:
+            rule.create()
+        except PanDeviceError as e:
+            return wrap_panos_error(e, "create", name)
+        return write_success("created", name, device_group=device_group, rulebase=rulebase)
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)
+    async def panorama_delete_device_group_nat_rule(
+        device_group: PanosName,
+        rulebase: Literal["pre", "post"],
+        name: PanosName,
+        firewall: str | None = None,
+    ) -> dict[str, Any]:
+        """Delete a NAT rule from a Panorama device group rulebase."""
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        resolved = _resolve_dg_and_rulebase(client, device_group, rulebase)
+        if isinstance(resolved, dict):
+            return resolved
+        _dg, rb = resolved
+        rule = NatRule(name=name)
+        rb.add(rule)
+        try:
+            rule.delete()
+        except PanDeviceError as e:
+            return wrap_panos_error(e, "delete", name)
+        return write_success("deleted", name, device_group=device_group, rulebase=rulebase)
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)
+    async def panorama_move_device_group_nat_rule(
+        device_group: PanosName,
+        rulebase: Literal["pre", "post"],
+        name: PanosName,
+        where: Literal["top", "bottom", "before", "after"],
+        destination: PanosName | None = None,
+        firewall: str | None = None,
+    ) -> dict[str, Any]:
+        """Move a NAT rule in a Panorama device group rulebase."""
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        if where in ("before", "after") and not destination:
+            return {
+                "success": False, "operation": "moved", "name": name,
+                "error": "'destination' is required when 'where' is 'before' or 'after'.",
+            }
+        resolved = _resolve_dg_and_rulebase(client, device_group, rulebase)
+        if isinstance(resolved, dict):
+            return resolved
+        _dg, rb = resolved
+        rule = NatRule(name=name)
+        rb.add(rule)
+        try:
+            if where in ("before", "after"):
+                rule.move(location=where, ref=destination)
+            else:
+                rule.move(location=where)
+        except PanDeviceError as e:
+            return wrap_panos_error(e, "move", name)
+        return write_success("moved", name, where=where, dst=destination,
+                             device_group=device_group, rulebase=rulebase)
 
 
 __all__ = ["register_panorama_tools"]
