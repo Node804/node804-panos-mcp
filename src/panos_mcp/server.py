@@ -32,6 +32,7 @@ from .config.firewalls import load_firewall_config
 from .tools._common import ToolContext
 from .tools.admin import register_admin_tools
 from .tools.admin_ops import register_admin_ops_tools
+from .tools.aggregations import register_aggregation_tools
 from .tools.certificates import register_certificates_tools
 from .tools.firewalls import register_firewall_tools
 from .tools.licenses import register_licenses_tools
@@ -88,6 +89,7 @@ register_certificates_tools(ctx)
 register_licenses_tools(ctx)
 register_utility_tools(ctx)
 register_admin_ops_tools(ctx)
+register_aggregation_tools(ctx)
 
 
 def main() -> None:
