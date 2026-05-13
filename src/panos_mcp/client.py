@@ -9,13 +9,11 @@ Built on ``pan-os-python``: config operations are object-method calls
 (``firewall.refresh_system_info()``, ``firewall.add(AddressObject(...))``)
 rather than hand-built XPath strings, so the MCP layer stays focused on
 response shaping and access control.
-
-Phase 2 only exposes the factory and a ``probe()`` helper used by the
-``server_status`` tool. Read/write tools come online in Phase 3+.
 """
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from typing import Any
 
@@ -41,33 +39,53 @@ _CLIENTS: dict[str, Firewall | Panorama] = {}
 """Cache of constructed clients keyed by entry name. Lifetime = server process."""
 
 
+def _tls_kwargs(tls: TlsConfig) -> dict[str, Any]:
+    """Build the ``verify`` kwarg for pan-os-python from our TLS config."""
+    if not tls.verify:
+        return {"verify": False}
+    if tls.ca_path is not None and tls.ca_bundle is not None:
+        return {"verify": str(tls.ca_path)}
+    return {}
+
+
 def _build_client(entry: FirewallEntry, tls: TlsConfig) -> Firewall | Panorama:
-    """Construct a ``pan-os-python`` Firewall (default) for the entry.
+    """Construct the correct ``pan-os-python`` client for the entry.
 
-    We start every target as a ``Firewall``; ``Panorama`` instances are
-    auto-detected by issuing ``show system info`` and inspecting the model
-    field once Phase 3 tools come online. For now Phase 2 doesn't need to
-    distinguish — both classes share the constructor signature we use here.
-
-    The ``verify`` and CA bundle flow into ``pan-os-python``'s underlying
-    ``requests`` session via the constructor's ``port``-adjacent kwargs.
-    Modern ``pan-os-python`` accepts ``verify`` directly.
+    Connects as a ``Firewall`` first, calls ``refresh_system_info()`` to
+    detect the device type, and rebuilds as ``Panorama`` when the model
+    indicates a Panorama appliance (model == "Panorama" or starts with
+    "M-").  The detected type is cached for the server lifetime.
     """
-    fw_kwargs: dict[str, Any] = {
+    base_kwargs: dict[str, Any] = {
         "hostname": entry.host,
         "api_key": entry.api_key,
+        **_tls_kwargs(tls),
     }
-    # pan-os-python forwards kwargs to its xapi.PanXapi which honors verify.
-    # When custom CA is provided, requests accepts a path string for verify;
-    # use the env var path because TlsConfig stores it on disk already.
-    if not tls.verify:
-        fw_kwargs["verify"] = False
-    elif tls.ca_path is not None and tls.ca_bundle is not None:
-        # requests accepts a path for verify to use a custom CA bundle.
-        fw_kwargs["verify"] = str(tls.ca_path)
-    # Default (verify=True, no custom CA): omit the kwarg so pan-os-python
-    # uses its default trust store.
-    return Firewall(**fw_kwargs)
+    client: Firewall | Panorama = Firewall(**base_kwargs)
+    try:
+        version, model, serial = client.refresh_system_info()
+    except Exception as exc:
+        print(
+            f"[panos-mcp] WARNING: system-info probe failed for '{entry.name}' "
+            f"({exc}); treating as Firewall.",
+            file=sys.stderr,
+        )
+        return client
+
+    if model == "Panorama" or (model and model.startswith("M-")):
+        client = Panorama(**base_kwargs)
+        client._set_version_and_version_info(version)
+        print(
+            f"[panos-mcp] Detected Panorama ({model}) for '{entry.name}'",
+            file=sys.stderr,
+        )
+    else:
+        client.serial = serial
+        print(
+            f"[panos-mcp] Detected Firewall ({model}) for '{entry.name}'",
+            file=sys.stderr,
+        )
+    return client
 
 
 def get_client(

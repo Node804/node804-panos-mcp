@@ -56,7 +56,7 @@ SHAPE_ACTIVE_SESSIONS = LeanShape(
 )
 
 SHAPE_SYSTEM_RESOURCES = LeanShape(
-    default_fields=("cpu-load-average", "memory", "disk", "load-average"),
+    default_fields=("cpu", "memory", "load-average"),
 )
 
 
@@ -394,8 +394,8 @@ SHAPE_COLLECTOR_GROUP = LeanShape(
 )
 
 SHAPE_PUSH_STATUS = LeanShape(
-    default_fields=("device-group", "device", "status", "result", "details"),
-    name_field="device-group",
+    default_fields=("id", "type", "status", "result", "tfin", "user", "devices"),
+    name_field="id",
 )
 
 SHAPE_COMMIT_JOB = LeanShape(

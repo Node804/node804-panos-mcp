@@ -118,7 +118,7 @@ def op_to_dict(client: Any, cmd: str) -> dict[str, Any]:
     Tests can mock ``client.op`` to return a dict directly; this function
     handles both real Element responses and pre-converted dicts.
     """
-    response = client.op(cmd)
+    response = client.op(cmd, cmd_xml=False)
     if isinstance(response, dict):
         return response
     if isinstance(response, Element):

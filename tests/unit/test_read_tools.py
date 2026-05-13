@@ -82,7 +82,7 @@ class TestGetFirewallInfo:
             def __init__(self, **kwargs: Any) -> None:
                 self.hostname = kwargs.get("hostname", "10.0.0.1")
 
-            def op(self, cmd: str) -> dict[str, Any]:
+            def op(self, cmd: str, **kwargs: Any) -> dict[str, Any]:
                 # op_to_dict accepts a dict directly when our converter sees one.
                 return {"system": {
                     "hostname": "fw1",
@@ -117,7 +117,7 @@ class TestGetFirewallInfo:
             def __init__(self, **kwargs: Any) -> None:
                 self.hostname = kwargs.get("hostname", "x")
 
-            def op(self, cmd: str) -> dict[str, Any]:
+            def op(self, cmd: str, **kwargs: Any) -> dict[str, Any]:
                 return {"system": {"hostname": "fw1", "av-version": "4321-1234"}}
 
         _patch_firewall_class(monkeypatch, FakeFw)

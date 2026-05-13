@@ -90,7 +90,7 @@ def _fake_fw_class(
             self.commit_all_calls.append(kwargs)
             return commit_all_return if commit_all_return is not None else {"id": "100"}
 
-        def op(self, cmd: str) -> Any:
+        def op(self, cmd: str, **kwargs: Any) -> Any:
             self.op_calls.append(cmd)
             return op_return if op_return is not None else {"system": {"hostname": "fw1"}}
 

@@ -19,6 +19,13 @@ def _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Any:
     monkeypatch.setenv("PANOS_FIREWALLS_CONFIG", str(tmp_path / "firewalls.json"))
     monkeypatch.delenv("PANOS_HOST", raising=False)
     monkeypatch.delenv("PANOS_API_KEY", raising=False)
+    # Stub out the network call that _build_client makes for auto-detection.
+    from panos.base import PanDevice
+    monkeypatch.setattr(
+        PanDevice,
+        "refresh_system_info",
+        lambda self: ("11.1.0", "PA-460", "0123456789"),
+    )
     fw_module._entries = []
     reset_client_cache()
     yield
@@ -79,6 +86,10 @@ class TestTlsPlumbing:
             def __init__(self, **kwargs: Any) -> None:
                 captured.update(kwargs)
                 self.hostname = kwargs.get("hostname")
+                self.api_key = kwargs.get("api_key")
+
+            def refresh_system_info(self) -> tuple[str, str, str]:
+                return ("11.1.0", "PA-460", "0123456789")
 
         monkeypatch.setattr(client_module, "Firewall", FakeFirewall)
         _seed("fw1", "10.0.0.1", "k")
@@ -92,6 +103,10 @@ class TestTlsPlumbing:
             def __init__(self, **kwargs: Any) -> None:
                 captured.update(kwargs)
                 self.hostname = kwargs.get("hostname")
+                self.api_key = kwargs.get("api_key")
+
+            def refresh_system_info(self) -> tuple[str, str, str]:
+                return ("11.1.0", "PA-460", "0123456789")
 
         monkeypatch.setattr(client_module, "Firewall", FakeFirewall)
         _seed("fw1", "10.0.0.1", "k")
@@ -107,11 +122,62 @@ class TestTlsPlumbing:
             def __init__(self, **kwargs: Any) -> None:
                 captured.update(kwargs)
                 self.hostname = kwargs.get("hostname")
+                self.api_key = kwargs.get("api_key")
+
+            def refresh_system_info(self) -> tuple[str, str, str]:
+                return ("11.1.0", "PA-460", "0123456789")
 
         monkeypatch.setattr(client_module, "Firewall", FakeFirewall)
         _seed("fw1", "10.0.0.1", "k")
         get_client("fw1", tls=TlsConfig(verify=True, ca_path=ca, ca_bundle=b"x"))
         assert captured["verify"] == str(ca)
+
+
+class TestAutoDetection:
+    """Verify that _build_client returns Panorama when the device model says so."""
+
+    def test_panorama_model_returns_panorama_instance(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from panos.base import PanDevice
+        from panos.panorama import Panorama as RealPanorama
+
+        monkeypatch.setattr(
+            PanDevice, "refresh_system_info",
+            lambda self: ("11.2.0", "Panorama", "0123456789"),
+        )
+        _seed("pan1", "10.0.0.1", "k")
+        c = get_client("pan1", tls=TlsConfig())
+        assert isinstance(c, RealPanorama)
+
+    def test_m_series_model_returns_panorama_instance(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from panos.base import PanDevice
+        from panos.panorama import Panorama as RealPanorama
+
+        monkeypatch.setattr(
+            PanDevice, "refresh_system_info",
+            lambda self: ("11.2.0", "M-200", "0123456789"),
+        )
+        _seed("pan2", "10.0.0.2", "k")
+        c = get_client("pan2", tls=TlsConfig())
+        assert isinstance(c, RealPanorama)
+
+    def test_firewall_model_returns_firewall_instance(self) -> None:
+        from panos.firewall import Firewall as RealFirewall
+
+        _seed("fw1", "10.0.0.1", "k")
+        c = get_client("fw1", tls=TlsConfig())
+        assert isinstance(c, RealFirewall)
+
+    def test_probe_failure_falls_back_to_firewall(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from panos.base import PanDevice
+        from panos.firewall import Firewall as RealFirewall
+
+        monkeypatch.setattr(
+            PanDevice, "refresh_system_info",
+            lambda self: (_ for _ in ()).throw(ConnectionError("unreachable")),
+        )
+        _seed("fw1", "10.0.0.1", "k")
+        c = get_client("fw1", tls=TlsConfig())
+        assert isinstance(c, RealFirewall)
 
 
 class TestProbeClient:
