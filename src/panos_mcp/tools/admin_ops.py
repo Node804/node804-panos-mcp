@@ -23,10 +23,12 @@ from pydantic import Field
 
 from ._common import (
     ToolContext,
+    emit_preflight_audit,
     run_blocking,
     wrap_panos_error,
     write_success,
 )
+from ._guards import check_raw_xpath, raw_config_enabled
 from ._schemas import PanosDescription, PanosName
 
 XPathParam = Annotated[
@@ -95,6 +97,10 @@ def register_admin_ops_tools(ctx: ToolContext) -> None:
             commit_kwargs["description"] = description
         if partial_admin:
             commit_kwargs["admins"] = [partial_admin]
+        emit_preflight_audit(
+            ctx, tool="commit", firewall=firewall,
+            args={"description": description, "partial_admin": partial_admin},
+        )
         try:
             raw = await run_blocking(client.commit, **commit_kwargs)
         except PanDeviceError as e:
@@ -121,6 +127,10 @@ def register_admin_ops_tools(ctx: ToolContext) -> None:
             commit_kwargs["description"] = description
         if partial_admin:
             commit_kwargs["admins"] = [partial_admin]
+        emit_preflight_audit(
+            ctx, tool="panorama_commit", firewall=firewall,
+            args={"description": description, "partial_admin": partial_admin},
+        )
         try:
             raw = await run_blocking(client.commit, **commit_kwargs)
         except PanDeviceError as e:
@@ -157,11 +167,31 @@ def register_admin_ops_tools(ctx: ToolContext) -> None:
         }
         if description:
             kwargs["description"] = description
+        emit_preflight_audit(
+            ctx, tool="panorama_push_to_devices", firewall=firewall,
+            args={
+                "device_group": device_group,
+                "include_template": include_template,
+                "description": description,
+            },
+        )
         try:
             raw = await run_blocking(client.commit_all, **kwargs)
         except PanDeviceError as e:
             return wrap_panos_error(e, "panorama_push", device_group)
         return _commit_result(raw, device_group, "panorama_push")
+
+    # ── Raw-config escape hatches (gated) ───────────────────────────────────
+    # set_config / delete_config accept arbitrary xpaths and can — at ADMIN
+    # mode — create a superuser admin, replace the trust certificate, or
+    # rip out HA configuration.  Default-off: only register when the operator
+    # has explicitly set PANOS_ENABLE_RAW_CONFIG=true.  Even when registered,
+    # an xpath denylist (see ``_guards.check_raw_xpath``) blocks the most
+    # dangerous subtrees, and an optional PANOS_RAW_XPATH_ALLOW lets the
+    # operator restrict the surface further.
+
+    if not raw_config_enabled():
+        return
 
     @ctx.gate.tool(ctx.mcp, required=Mode.ADMIN)
     async def set_config(
@@ -176,6 +206,10 @@ def register_admin_ops_tools(ctx: ToolContext) -> None:
         validates server-side; invalid xpaths or elements are surfaced as
         PanDeviceError responses.
 
+        Tool is only registered when ``PANOS_ENABLE_RAW_CONFIG=true``.
+        Calls against protected subtrees (``/mgt-config``, ``/shared/certificate``,
+        HA config, etc.) are rejected before reaching the firewall.
+
         Prefer a typed tool (add_security_rule, add_address_object, etc.)
         when one exists — this tool bypasses the response-shape and
         validation conventions used everywhere else.
@@ -183,6 +217,24 @@ def register_admin_ops_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
+        reason = check_raw_xpath(xpath)
+        if reason is not None:
+            return {
+                "success": False,
+                "operation": "set_config",
+                "name": xpath,
+                "error": reason,
+            }
+        # Truncate element to keep audit lines bounded; full XML is in the
+        # post-call toolkit record.  The xpath is small enough to log raw.
+        emit_preflight_audit(
+            ctx, tool="set_config", firewall=firewall,
+            args={
+                "xpath": xpath,
+                "element_head": element[:200] + ("…" if len(element) > 200 else ""),
+                "element_len": len(element),
+            },
+        )
         try:
             await run_blocking(client.xapi.set, xpath, element)
         except PanDeviceError as e:
@@ -199,10 +251,25 @@ def register_admin_ops_tools(ctx: ToolContext) -> None:
         Use with care — deleting the wrong subtree (e.g. an entire vsys or
         rulebase) removes everything beneath it. Prefer a typed
         delete_X tool when one exists.
+
+        Tool is only registered when ``PANOS_ENABLE_RAW_CONFIG=true``.
+        Calls against protected subtrees are rejected before reaching the
+        firewall.
         """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
+        reason = check_raw_xpath(xpath)
+        if reason is not None:
+            return {
+                "success": False,
+                "operation": "delete_config",
+                "name": xpath,
+                "error": reason,
+            }
+        emit_preflight_audit(
+            ctx, tool="delete_config", firewall=firewall, args={"xpath": xpath},
+        )
         try:
             await run_blocking(client.xapi.delete, xpath)
         except PanDeviceError as e:

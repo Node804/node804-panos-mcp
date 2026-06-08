@@ -8,15 +8,26 @@ pattern filtering.
 
 Environment variables:
 
-| Var                       | Purpose                                                |
-|---------------------------|--------------------------------------------------------|
-| ``PANOS_MODE``            | RBAC mode (read/standard/full/admin). Default: read.   |
-| ``PANOS_AUDIT_LOG``       | Path to JSON-lines audit log. Unset = audit disabled.  |
-| ``PANOS_TLS_VERIFY``      | true (default) / false / 1 / 0 / yes / no.             |
-| ``PANOS_TLS_CA``          | Optional path to a custom CA PEM bundle.               |
-| ``PANOS_FIREWALLS_CONFIG``| Override path for firewalls.json.                      |
-| ``PANOS_HOST``            | Single-firewall fallback hostname.                     |
-| ``PANOS_API_KEY``         | Single-firewall fallback API key.                      |
+| Var                          | Purpose                                                |
+|------------------------------|--------------------------------------------------------|
+| ``PANOS_MODE``               | RBAC mode (read/standard/full/admin). Default: read.   |
+| ``PANOS_AUDIT_LOG``          | Path to JSON-lines audit log. Unset = audit disabled.  |
+| ``PANOS_TLS_VERIFY``         | true (default) / false / 1 / 0 / yes / no.             |
+| ``PANOS_TLS_CA``             | Optional path to a custom CA PEM bundle.               |
+| ``PANOS_FIREWALLS_CONFIG``   | Override path for firewalls.json.                      |
+| ``PANOS_HOST``               | Single-firewall fallback hostname.                     |
+| ``PANOS_API_KEY``            | Single-firewall fallback API key.                      |
+| ``PANOS_ENABLE_RAW_CONFIG``  | Default-off opt-in for ``set_config``/``delete_config``|
+|                              | escape hatches.  Even when on, an xpath denylist still |
+|                              | blocks ``/mgt-config``, ``/shared/certificate``, HA.   |
+| ``PANOS_RAW_XPATH_ALLOW``    | Optional comma-separated xpath prefix allow-list.      |
+|                              | When set, raw-config calls outside these prefixes are  |
+|                              | rejected.                                              |
+| ``PANOS_ENABLE_RAW_OPS``     | Default-off opt-in for the generic ``run_op_command``  |
+|                              | tool.  ``run_show_command`` is always available; the   |
+|                              | gated variant additionally accepts non-show verbs,     |
+|                              | subject to a built-in denylist (reboot, software       |
+|                              | install, debug, credential mutation, etc.).            |
 """
 
 from __future__ import annotations
@@ -66,7 +77,7 @@ gate = ModeGate.from_env(
 
 mcp = FastMCP("panos-mcp")
 
-ctx = ToolContext(mcp=mcp, gate=gate, tls=tls_config)
+ctx = ToolContext(mcp=mcp, gate=gate, tls=tls_config, audit_sink=audit_sink)
 """Shared context every register_*_tools function consumes."""
 
 # Diagnostic tools (always available — both require READ).

@@ -5,9 +5,34 @@ All notable changes to this project will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.5]
 
-_Nothing yet._
+### Fixed
+
+- `panorama_summarize_security_policy` no longer pre-rejects legitimate
+  Panorama targets with a redundant `isinstance` gate that misfired when
+  the resolved client's class didn't identity-match the locally-imported
+  `Panorama` symbol. Sibling tools (`panorama_count_rules_per_device_group`,
+  `panorama_walk_all_rules`) trust resolution; this one now does too, and
+  surfaces a clean error if `DeviceGroup.refreshall` actually fails.
+
+### Changed (breaking)
+
+- Renamed the derived security-rule audit boolean **`has_profile` →
+  `has_inspection`** on every rule listing (lean default field) and the
+  matching aggregate **`rules_without_profiles` → `rules_without_inspection`**
+  in `summarize_security_policy` / `panorama_summarize_security_policy`. The
+  old flag computed `bool(group) or bool(profile_setting)`, but
+  `profile_setting` is never a top-level key on a `SecurityRule.about()`
+  dict — so the flag effectively meant "is there a profile *group*?" and
+  reported every individual-profile-attachment rule (a common Panorama
+  pattern: `virus`, `spyware`, `vulnerability`, `url_filtering`,
+  `file_blocking`, `data_filtering`, `wildfire_analysis` set directly)
+  as "no inspection". The new flag is true when any of those individual
+  fields is set OR a profile group is bound. Anyone who filtered with
+  `attrs={"has_profile": "false"}` to find rules missing inspection was
+  getting confidently wrong results in environments that don't use
+  profile groups; update such filters to `attrs={"has_inspection": "false"}`.
 
 ## [0.1.0] — 2026-05-13
 

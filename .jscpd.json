@@ -1,0 +1,12 @@
+{
+  "threshold": 100,
+  "reporters": ["html", "console"],
+  "minLines": 5,
+  "minTokens": 50,
+  "ignore": [
+    "**/migrations/**",
+    "**/static/**",
+    "**/venv/**",
+    "**/node_modules/**"
+  ]
+}

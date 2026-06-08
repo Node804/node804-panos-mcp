@@ -111,9 +111,20 @@ SHAPE_SECURITY_RULE = LeanShape(
         "service",
         "action",
         "disabled",
+        # Derived booleans added by ``enrich_security_rule_dicts``. They answer
+        # the two most common audit questions ("is a profile attached?",
+        # "is logging forwarded?") without forcing the caller to fetch
+        # ``profile_setting`` / ``group`` / ``log_setting`` per rule.
+        "has_inspection",
+        "has_log_setting",
     ),
 )
-"""Verbose adds: profile_setting, log_setting, log_start, log_end, tag, group, uuid, etc."""
+"""Verbose adds the raw fields ``has_inspection`` / ``has_log_setting`` are
+derived from — ``group``, the individual profile fields (``virus``,
+``spyware``, ``vulnerability``, ``url_filtering``, ``file_blocking``,
+``data_filtering``, ``wildfire_analysis``), ``log_setting`` — plus
+``log_start``, ``log_end``, ``tag``, ``uuid``, audit comments, and the rest
+of ``.about()``."""
 
 SHAPE_PROFILE = LeanShape(
     default_fields=("name", "description"),

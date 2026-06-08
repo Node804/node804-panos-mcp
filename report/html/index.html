@@ -1,0 +1,785 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Copy/Paste Detector Report</title><link href="styles/tailwind.css" rel="stylesheet"><link href="styles/prism.css" rel="stylesheet"></head><body class="bg-gray-100"><header class="bg-white shadow py-4"><div class="container mx-auto px-4"><h1 class="text-3xl font-semibold text-gray-800">jscpd - copy/paste report</h1></div></header><main class="container mx-auto my-8 p-4 bg-white shadow rounded"><section class="mb-8" id="dashboard"><h2 class="text-2xl font-semibold text-gray-700 mb-4">Dashboard</h2><div class="grid grid-cols-4 gap-4"><div class="bg-blue-200 p-4 rounded text-center"><h3 class="text-lg font-semibold text-blue-800 mb-2">Total Files</h3><span class="text-4xl font-bold text-blue-800">60</span></div><div class="bg-green-200 p-4 rounded text-center"><h3 class="text-lg font-semibold text-green-800 mb-2">Total Lines of Code</h3><span class="text-4xl font-bold text-green-800">12722</span></div><div class="bg-yellow-200 p-4 rounded text-center"><h3 class="text-lg font-semibold text-yellow-800 mb-2">Number of Clones</h3><span class="text-4xl font-bold text-yellow-800">66</span></div><div class="bg-red-200 p-4 rounded text-center"><h3 class="text-lg font-semibold text-red-800 mb-2">Duplicated Lines</h3><span class="text-4xl font-bold text-red-800">776 (6.10%)</span></div></div></section><section class="mb-8" id="formats"><h2 class="text-2xl font-semibold text-gray-700 mb-4">Formats with Duplications</h2><table class="w-full table-auto"><thead><tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal"><th class="py-3 px-6 text-left">Format</th><th class="py-3 px-6 text-left">Files</th><th class="py-3 px-6 text-left">Lines</th><th class="py-3 px-6 text-left">Clones</th><th class="py-3 px-6 text-left">Duplicated Lines</th><th class="py-3 px-6 text-left">Duplicated Tokens</th></tr></thead><tbody><tr class="bg-white border-b border-gray-200 text-gray-800 text-sm"><td class="py-3 px-6"><a class="text-blue-600 hover:underline" href="#python-clones">python</a></td><td class="py-3 px-6">47</td><td class="py-3 px-6">11133</td><td class="py-3 px-6">53</td><td class="py-3 px-6">586</td><td class="py-3 px-6">6297</td></tr><tr class="bg-white border-b border-gray-200 text-gray-800 text-sm"><td class="py-3 px-6"><a class="text-blue-600 hover:underline" href="#css-clones">css</a></td><td class="py-3 px-6">2</td><td class="py-3 px-6">7</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td></tr><tr class="bg-white border-b border-gray-200 text-gray-800 text-sm"><td class="py-3 px-6"><a class="text-blue-600 hover:underline" href="#javascript-clones">javascript</a></td><td class="py-3 px-6">2</td><td class="py-3 px-6">23</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td></tr><tr class="bg-white border-b border-gray-200 text-gray-800 text-sm"><td class="py-3 px-6"><a class="text-blue-600 hover:underline" href="#markup-clones">markup</a></td><td class="py-3 px-6">1</td><td class="py-3 px-6">594</td><td class="py-3 px-6">13</td><td class="py-3 px-6">190</td><td class="py-3 px-6">1541</td></tr><tr class="bg-white border-b border-gray-200 text-gray-800 text-sm"><td class="py-3 px-6"><a class="text-blue-600 hover:underline" href="#yaml-clones">yaml</a></td><td class="py-3 px-6">1</td><td class="py-3 px-6">35</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td></tr><tr class="bg-white border-b border-gray-200 text-gray-800 text-sm"><td class="py-3 px-6"><a class="text-blue-600 hover:underline" href="#json-clones">json</a></td><td class="py-3 px-6">3</td><td class="py-3 px-6">159</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td></tr><tr class="bg-white border-b border-gray-200 text-gray-800 text-sm"><td class="py-3 px-6"><a class="text-blue-600 hover:underline" href="#markdown-clones">markdown</a></td><td class="py-3 px-6">2</td><td class="py-3 px-6">426</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td></tr><tr class="bg-white border-b border-gray-200 text-gray-800 text-sm"><td class="py-3 px-6"><a class="text-blue-600 hover:underline" href="#bash-clones">bash</a></td><td class="py-3 px-6">1</td><td class="py-3 px-6">255</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td></tr><tr class="bg-white border-b border-gray-200 text-gray-800 text-sm"><td class="py-3 px-6"><a class="text-blue-600 hover:underline" href="#toml-clones">toml</a></td><td class="py-3 px-6">1</td><td class="py-3 px-6">90</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td><td class="py-3 px-6">0</td></tr></tbody></table></section><section class="mb-8" id="txt-clones"><a name="python-clones"></a><h2 class="text-2xl font-semibold text-gray-700 mb-4">python</h2><div class="divide-y divide-gray-200 border-b-2"><div class="py-4"><p class="text-gray-600">src\panos_mcp\tools\threat.py (Line 20:5 - Line 32:26), src\panos_mcp\tools\userid.py (Line 16:5 - Line 28:26)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn0" onclick="toggleCodeBlock('cloneGroup0', 'expandBtn0', 'collapseBtn0')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn0" onclick="toggleCodeBlock('cloneGroup0', 'expandBtn0', 'collapseBtn0')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup0"><code class="language-python text-sm text-gray-800">cursor: Any = result
+    for k in keys:
+        if not isinstance(cursor, dict):
+            return []
+        cursor = cursor.get(k, {})
+    if isinstance(cursor, list):
+        return [c for c in cursor if isinstance(c, dict)]
+    if isinstance(cursor, dict):
+        return [cursor]
+    return []
+
+
+def register_threat_tools</code></pre></div><div class="py-4"><p class="text-gray-600">src\panos_mcp\tools\security.py (Line 490:105 - Line 499:30), src\panos_mcp\tools\security.py (Line 383:9 - Line 392:35)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn1" onclick="toggleCodeBlock('cloneGroup1', 'expandBtn1', 'collapseBtn1')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn1" onclick="toggleCodeBlock('cloneGroup1', 'expandBtn1', 'collapseBtn1')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup1"><code class="language-python text-sm text-gray-800">)
+        rulebase.add(rule)
+        try:
+            rule.create()
+        except PanDeviceError as e:
+            return wrap_panos_error(e, &quot;create&quot;, name)
+        return write_success(&quot;created&quot;, name)
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)
+    async def delete_pbf_rule</code></pre></div><div class="py-4"><p class="text-gray-600">src\panos_mcp\tools\security.py (Line 509:37 - Line 518:28), src\panos_mcp\tools\security.py (Line 402:28 - Line 411:33)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn2" onclick="toggleCodeBlock('cloneGroup2', 'expandBtn2', 'collapseBtn2')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn2" onclick="toggleCodeBlock('cloneGroup2', 'expandBtn2', 'collapseBtn2')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup2"><code class="language-python text-sm text-gray-800">(name=name)
+        rulebase.add(rule)
+        try:
+            rule.delete()
+        except PanDeviceError as e:
+            return wrap_panos_error(e, &quot;delete&quot;, name)
+        return write_success(&quot;deleted&quot;, name)
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)
+    async def move_pbf_rule</code></pre></div><div class="py-4"><p class="text-gray-600">src\panos_mcp\tools\objects.py (Line 276:44 - Line 286:35), src\panos_mcp\tools\objects.py (Line 226:46 - Line 236:36)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn3" onclick="toggleCodeBlock('cloneGroup3', 'expandBtn3', 'collapseBtn3')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn3" onclick="toggleCodeBlock('cloneGroup3', 'expandBtn3', 'collapseBtn3')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup3"><code class="language-python text-sm text-gray-800">, description=description, tag=tag
+        )
+        client.add(obj)
+        try:
+            obj.create()
+        except PanDeviceError as e:
+            return _wrap_panos_error(e, &quot;create&quot;, name)
+        return _success(&quot;created&quot;, name)
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.STANDARD)
+    async def delete_address_group</code></pre></div><div class="py-4"><p class="text-gray-600">src\panos_mcp\tools\objects.py (Line 341:9 - Line 350:36), src\panos_mcp\tools\objects.py (Line 227:9 - Line 236:36)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn4" onclick="toggleCodeBlock('cloneGroup4', 'expandBtn4', 'collapseBtn4')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn4" onclick="toggleCodeBlock('cloneGroup4', 'expandBtn4', 'collapseBtn4')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup4"><code class="language-python text-sm text-gray-800">)
+        client.add(obj)
+        try:
+            obj.create()
+        except PanDeviceError as e:
+            return _wrap_panos_error(e, &quot;create&quot;, name)
+        return _success(&quot;created&quot;, name)
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.STANDARD)
+    async def delete_service_object</code></pre></div><div class="py-4"><p class="text-gray-600">src\panos_mcp\tools\objects.py (Line 382:52 - Line 391:35), src\panos_mcp\tools\objects.py (Line 226:71 - Line 236:36)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn5" onclick="toggleCodeBlock('cloneGroup5', 'expandBtn5', 'collapseBtn5')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn5" onclick="toggleCodeBlock('cloneGroup5', 'expandBtn5', 'collapseBtn5')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup5"><code class="language-python text-sm text-gray-800">, tag=tag)
+        client.add(obj)
+        try:
+            obj.create()
+        except PanDeviceError as e:
+            return _wrap_panos_error(e, &quot;create&quot;, name)
+        return _success(&quot;created&quot;, name)
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.STANDARD)
+    async def delete_service_group</code></pre></div><div class="py-4"><p class="text-gray-600">src\panos_mcp\tools\objects.py (Line 425:60 - Line 434:25), src\panos_mcp\tools\objects.py (Line 227:9 - Line 236:36)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn6" onclick="toggleCodeBlock('cloneGroup6', 'expandBtn6', 'collapseBtn6')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn6" onclick="toggleCodeBlock('cloneGroup6', 'expandBtn6', 'collapseBtn6')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup6"><code class="language-python text-sm text-gray-800">)
+        client.add(obj)
+        try:
+            obj.create()
+        except PanDeviceError as e:
+            return _wrap_panos_error(e, &quot;create&quot;, name)
+        return _success(&quot;created&quot;, name)
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.STANDARD)
+    async def delete_tag</code></pre></div><div class="py-4"><p class="text-gray-600">src\panos_mcp\tools\network.py (Line 309:9 - Line 317:38), src\panos_mcp\tools\network.py (Line 266:9 - Line 274:38)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn7" onclick="toggleCodeBlock('cloneGroup7', 'expandBtn7', 'collapseBtn7')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn7" onclick="toggleCodeBlock('cloneGroup7', 'expandBtn7', 'collapseBtn7')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup7"><code class="language-python text-sm text-gray-800">client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        vrs = VirtualRouter.refreshall(client)
+        target_vr = next((v for v in vrs if v.name == virtual_router), None)
+        if target_vr is None:
+            return {
+                &quot;success&quot;: False,
+                &quot;operation&quot;: &quot;delete&quot;</code></pre></div><div class="py-4"><p class="text-gray-600">src\panos_mcp\tools\nat.py (Line 90:23 - Line 99:30), src\panos_mcp\tools\security.py (Line 490:37 - Line 392:35)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn8" onclick="toggleCodeBlock('cloneGroup8', 'expandBtn8', 'collapseBtn8')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn8" onclick="toggleCodeBlock('cloneGroup8', 'expandBtn8', 'collapseBtn8')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup8"><code class="language-python text-sm text-gray-800">(**{k: v for k, v in kwargs.items() if v is not None or k == &quot;name&quot;})
+        rulebase.add(rule)
+        try:
+            rule.create()
+        except PanDeviceError as e:
+            return wrap_panos_error(e, &quot;create&quot;, name)
+        return write_success(&quot;created&quot;, name)
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)
+    async def delete_nat_rule</code></pre></div><div class="py-4"><p class="text-gray-600">src\panos_mcp\tools\nat.py (Line 109:23 - Line 118:28), src\panos_mcp\tools\security.py (Line 402:28 - Line 411:33)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn9" onclick="toggleCodeBlock('cloneGroup9', 'expandBtn9', 'collapseBtn9')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn9" onclick="toggleCodeBlock('cloneGroup9', 'expandBtn9', 'collapseBtn9')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup9"><code class="language-python text-sm text-gray-800">(name=name)
+        rulebase.add(rule)
+        try:
+            rule.delete()
+        except PanDeviceError as e:
+            return wrap_panos_error(e, &quot;delete&quot;, name)
+        return write_success(&quot;deleted&quot;, name)
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)
+    async def move_nat_rule</code></pre></div><div class="py-4"><p class="text-gray-600">src\panos_mcp\tools\licenses.py (Line 58:9 - Line 63:62), src\panos_mcp\tools\threat.py (Line 55:9 - Line 60:59)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn10" onclick="toggleCodeBlock('cloneGroup10', 'expandBtn10', 'collapseBtn10')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn10" onclick="toggleCodeBlock('cloneGroup10', 'expandBtn10', 'collapseBtn10')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup10"><code class="language-python text-sm text-gray-800">client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        result = op_to_dict(client, &quot;&lt;show&gt;&lt;system&gt;&lt;info&gt;&lt;/info&gt;&lt;/system&gt;&lt;/show&gt;&quot;)
+        system = result.get(&quot;system&quot;, result) if isinstance(result, dict) else result
+        return shape_single(system, shape=SHAPE_LICENSE_USAGE</code></pre></div><div class="py-4"><p class="text-gray-600">src\panos_mcp\tools\certificates.py (Line 146:30 - Line 155:37), src\panos_mcp\tools\security.py (Line 490:37 - Line 392:35)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn11" onclick="toggleCodeBlock('cloneGroup11', 'expandBtn11', 'collapseBtn11')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn11" onclick="toggleCodeBlock('cloneGroup11', 'expandBtn11', 'collapseBtn11')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup11"><code class="language-python text-sm text-gray-800">(**{k: v for k, v in kwargs.items() if v is not None or k == &quot;name&quot;})
+        rulebase.add(rule)
+        try:
+            rule.create()
+        except PanDeviceError as e:
+            return wrap_panos_error(e, &quot;create&quot;, name)
+        return write_success(&quot;created&quot;, name)
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)
+    async def delete_decryption_rule</code></pre></div><div class="py-4"><p class="text-gray-600">src\panos_mcp\tools\certificates.py (Line 166:30 - Line 175:35), src\panos_mcp\tools\security.py (Line 402:28 - Line 411:33)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn12" onclick="toggleCodeBlock('cloneGroup12', 'expandBtn12', 'collapseBtn12')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn12" onclick="toggleCodeBlock('cloneGroup12', 'expandBtn12', 'collapseBtn12')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup12"><code class="language-python text-sm text-gray-800">(name=name)
+        rulebase.add(rule)
+        try:
+            rule.delete()
+        except PanDeviceError as e:
+            return wrap_panos_error(e, &quot;delete&quot;, name)
+        return write_success(&quot;deleted&quot;, name)
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)
+    async def move_decryption_rule</code></pre></div><div class="py-4"><p class="text-gray-600">src\panos_mcp\tools\certificates.py (Line 183:9 - Line 195:30), src\panos_mcp\tools\nat.py (Line 125:9 - Line 137:23)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn13" onclick="toggleCodeBlock('cloneGroup13', 'expandBtn13', 'collapseBtn13')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn13" onclick="toggleCodeBlock('cloneGroup13', 'expandBtn13', 'collapseBtn13')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup13"><code class="language-python text-sm text-gray-800">client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        if where in (&quot;before&quot;, &quot;after&quot;) and not destination:
+            return {
+                &quot;success&quot;: False,
+                &quot;operation&quot;: &quot;moved&quot;,
+                &quot;name&quot;: name,
+                &quot;error&quot;: &quot;'destination' is required when 'where' is 'before' or 'after'.&quot;,
+            }
+        rulebase = Rulebase()
+        client.add(rulebase)
+        rule = DecryptionRule</code></pre></div><div class="py-4"><p class="text-gray-600">src\panos_mcp\tools\certificates.py (Line 195:30 - Line 207:43), src\panos_mcp\tools\nat.py (Line 137:23 - Line 149:36)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn14" onclick="toggleCodeBlock('cloneGroup14', 'expandBtn14', 'collapseBtn14')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn14" onclick="toggleCodeBlock('cloneGroup14', 'expandBtn14', 'collapseBtn14')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup14"><code class="language-python text-sm text-gray-800">(name=name)
+        rulebase.add(rule)
+        try:
+            if where in (&quot;before&quot;, &quot;after&quot;):
+                rule.move(location=where, ref=destination)
+            else:
+                rule.move(location=where)
+        except PanDeviceError as e:
+            return wrap_panos_error(e, &quot;move&quot;, name)
+        return write_success(&quot;moved&quot;, name, where=where, dst=destination)
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)
+    async def set_decryption_rule_disabled</code></pre></div><div class="py-4"><p class="text-gray-600">src\panos_mcp\tools\certificates.py (Line 219:30 - Line 228:41), src\panos_mcp\tools\nat.py (Line 160:23 - Line 169:32)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn15" onclick="toggleCodeBlock('cloneGroup15', 'expandBtn15', 'collapseBtn15')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn15" onclick="toggleCodeBlock('cloneGroup15', 'expandBtn15', 'collapseBtn15')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup15"><code class="language-python text-sm text-gray-800">(name=name, disabled=disabled)
+        rulebase.add(rule)
+        try:
+            rule.update(&quot;disabled&quot;)
+        except PanDeviceError as e:
+            return wrap_panos_error(e, &quot;set_disabled&quot;, name)
+        return write_success(&quot;set_disabled&quot;, name, disabled=disabled)
+
+
+__all__ = [&quot;register_certificates_tools&quot;</code></pre></div><div class="py-4"><p class="text-gray-600">src\panos_mcp\tools\admin_ops.py (Line 122:9 - Line 131:40), src\panos_mcp\tools\admin_ops.py (Line 92:9 - Line 101:31)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn16" onclick="toggleCodeBlock('cloneGroup16', 'expandBtn16', 'collapseBtn16')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn16" onclick="toggleCodeBlock('cloneGroup16', 'expandBtn16', 'collapseBtn16')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup16"><code class="language-python text-sm text-gray-800">client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        commit_kwargs: dict[str, Any] = {&quot;sync&quot;: False, &quot;exception&quot;: False}
+        if description:
+            commit_kwargs[&quot;description&quot;] = description
+        if partial_admin:
+            commit_kwargs[&quot;admins&quot;] = [partial_admin]
+        emit_preflight_audit(
+            ctx, tool=&quot;panorama_commit&quot;</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_rule_crud.py (Line 37:1 - Line 43:23), tests\unit\test_tools.py (Line 24:1 - Line 30:10)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn17" onclick="toggleCodeBlock('cloneGroup17', 'expandBtn17', 'collapseBtn17')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn17" onclick="toggleCodeBlock('cloneGroup17', 'expandBtn17', 'collapseBtn17')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup17"><code class="language-python text-sm text-gray-800">@pytest.fixture(autouse=True)
+def _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -&gt; Any:
+    monkeypatch.setenv(&quot;PANOS_FIREWALLS_CONFIG&quot;, str(tmp_path / &quot;firewalls.json&quot;))
+    monkeypatch.delenv(&quot;PANOS_HOST&quot;, raising=False)
+    monkeypatch.delenv(&quot;PANOS_API_KEY&quot;, raising=False)
+    fw_module._entries = []
+    reset_client_cache</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_read_tools.py (Line 31:1 - Line 37:84), tests\unit\test_tools.py (Line 24:1 - Line 44:10)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn18" onclick="toggleCodeBlock('cloneGroup18', 'expandBtn18', 'collapseBtn18')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn18" onclick="toggleCodeBlock('cloneGroup18', 'expandBtn18', 'collapseBtn18')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup18"><code class="language-python text-sm text-gray-800">@pytest.fixture(autouse=True)
+def _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -&gt; Any:
+    monkeypatch.setenv(&quot;PANOS_FIREWALLS_CONFIG&quot;, str(tmp_path / &quot;firewalls.json&quot;))
+    monkeypatch.delenv(&quot;PANOS_HOST&quot;, raising=False)
+    monkeypatch.delenv(&quot;PANOS_API_KEY&quot;, raising=False)
+    fw_module._entries = []
+    reset_client_cache()  # otherwise a Firewall from one test bleeds into the next</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_read_tools.py (Line 320:9 - Line 338:16), tests\unit\test_read_tools.py (Line 240:57 - Line 258:15)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn19" onclick="toggleCodeBlock('cloneGroup19', 'expandBtn19', 'collapseBtn19')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn19" onclick="toggleCodeBlock('cloneGroup19', 'expandBtn19', 'collapseBtn19')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup19"><code class="language-python text-sm text-gray-800">]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -&gt; None:
+                self.hostname = kwargs.get(&quot;hostname&quot;, &quot;x&quot;)
+            def add(self, child: Any) -&gt; Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, &quot;refreshall&quot;, staticmethod(lambda *a, **k: rules))
+
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        result = await _call(mcp, &quot;get_security_rules&quot;, firewall=&quot;fw1&quot;)
+        by_name</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_read_tools.py (Line 390:73 - Line 409:73), tests\unit\test_read_tools.py (Line 319:13 - Line 258:15)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn20" onclick="toggleCodeBlock('cloneGroup20', 'expandBtn20', 'collapseBtn20')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn20" onclick="toggleCodeBlock('cloneGroup20', 'expandBtn20', 'collapseBtn20')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup20"><code class="language-python text-sm text-gray-800">}),
+        ]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -&gt; None:
+                self.hostname = kwargs.get(&quot;hostname&quot;, &quot;x&quot;)
+            def add(self, child: Any) -&gt; Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, &quot;refreshall&quot;, staticmethod(lambda *a, **k: rules))
+
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        result = await _call(mcp, &quot;get_security_rules&quot;, firewall=&quot;fw1&quot;)
+        # Every rule must carry the field; the type must always be bool.</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_read_tools.py (Line 438:9 - Line 446:18), tests\unit\test_read_tools.py (Line 371:9 - Line 380:63)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn21" onclick="toggleCodeBlock('cloneGroup21', 'expandBtn21', 'collapseBtn21')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn21" onclick="toggleCodeBlock('cloneGroup21', 'expandBtn21', 'collapseBtn21')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup21"><code class="language-python text-sm text-gray-800">class _Rule:
+            def __init__(self, about: dict[str, Any]) -&gt; None:
+                self._about = about
+                self.name = about[&quot;name&quot;]
+            def about(self) -&gt; dict[str, Any]:
+                return dict(self._about)
+
+        rules = [
+            _Rule</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_read_tools.py (Line 452:42 - Line 470:55), tests\unit\test_read_tools.py (Line 319:13 - Line 257:72)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn22" onclick="toggleCodeBlock('cloneGroup22', 'expandBtn22', 'collapseBtn22')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn22" onclick="toggleCodeBlock('cloneGroup22', 'expandBtn22', 'collapseBtn22')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup22"><code class="language-python text-sm text-gray-800">}),
+        ]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -&gt; None:
+                self.hostname = kwargs.get(&quot;hostname&quot;, &quot;x&quot;)
+            def add(self, child: Any) -&gt; Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, &quot;refreshall&quot;, staticmethod(lambda *a, **k: rules))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        result = await _call(
+            mcp, &quot;get_security_rules&quot;, firewall=&quot;fw1&quot;,</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_read_tools.py (Line 484:9 - Line 492:39), tests\unit\test_read_tools.py (Line 371:9 - Line 446:37)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn23" onclick="toggleCodeBlock('cloneGroup23', 'expandBtn23', 'collapseBtn23')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn23" onclick="toggleCodeBlock('cloneGroup23', 'expandBtn23', 'collapseBtn23')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup23"><code class="language-python text-sm text-gray-800">class _Rule:
+            def __init__(self, about: dict[str, Any]) -&gt; None:
+                self._about = about
+                self.name = about[&quot;name&quot;]
+            def about(self) -&gt; dict[str, Any]:
+                return dict(self._about)
+
+        rules = [
+            _Rule({&quot;name&quot;: &quot;any-allow&quot;</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_read_tools.py (Line 497:69 - Line 516:33), tests\unit\test_read_tools.py (Line 452:41 - Line 471:28)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn24" onclick="toggleCodeBlock('cloneGroup24', 'expandBtn24', 'collapseBtn24')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn24" onclick="toggleCodeBlock('cloneGroup24', 'expandBtn24', 'collapseBtn24')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup24"><code class="language-python text-sm text-gray-800">]}),
+        ]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -&gt; None:
+                self.hostname = kwargs.get(&quot;hostname&quot;, &quot;x&quot;)
+            def add(self, child: Any) -&gt; Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, &quot;refreshall&quot;, staticmethod(lambda *a, **k: rules))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        result = await _call(
+            mcp, &quot;get_security_rules&quot;, firewall=&quot;fw1&quot;,
+            attrs={&quot;application&quot;</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_read_tools.py (Line 531:9 - Line 539:37), tests\unit\test_read_tools.py (Line 371:9 - Line 446:37)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn25" onclick="toggleCodeBlock('cloneGroup25', 'expandBtn25', 'collapseBtn25')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn25" onclick="toggleCodeBlock('cloneGroup25', 'expandBtn25', 'collapseBtn25')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup25"><code class="language-python text-sm text-gray-800">class _Rule:
+            def __init__(self, about: dict[str, Any]) -&gt; None:
+                self._about = about
+                self.name = about[&quot;name&quot;]
+            def about(self) -&gt; dict[str, Any]:
+                return dict(self._about)
+
+        rules = [
+            _Rule({&quot;name&quot;: &quot;guarded&quot;</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_read_tools.py (Line 541:54 - Line 560:36), tests\unit\test_read_tools.py (Line 319:13 - Line 471:28)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn26" onclick="toggleCodeBlock('cloneGroup26', 'expandBtn26', 'collapseBtn26')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn26" onclick="toggleCodeBlock('cloneGroup26', 'expandBtn26', 'collapseBtn26')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup26"><code class="language-python text-sm text-gray-800">}),
+        ]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -&gt; None:
+                self.hostname = kwargs.get(&quot;hostname&quot;, &quot;x&quot;)
+            def add(self, child: Any) -&gt; Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, &quot;refreshall&quot;, staticmethod(lambda *a, **k: rules))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        result = await _call(
+            mcp, &quot;get_security_rules&quot;, firewall=&quot;fw1&quot;,
+            attrs={&quot;has_inspection&quot;</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_read_tools.py (Line 576:9 - Line 585:34), tests\unit\test_read_tools.py (Line 371:9 - Line 540:36)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn27" onclick="toggleCodeBlock('cloneGroup27', 'expandBtn27', 'collapseBtn27')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn27" onclick="toggleCodeBlock('cloneGroup27', 'expandBtn27', 'collapseBtn27')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup27"><code class="language-python text-sm text-gray-800">class _Rule:
+            def __init__(self, about: dict[str, Any]) -&gt; None:
+                self._about = about
+                self.name = about[&quot;name&quot;]
+            def about(self) -&gt; dict[str, Any]:
+                return dict(self._about)
+
+        rules = [
+            _Rule({&quot;name&quot;: &quot;guarded&quot;, &quot;action&quot;: &quot;allow&quot;, &quot;group&quot;: &quot;strict&quot;}),
+            _Rule({&quot;name&quot;: &quot;bare&quot;</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_read_tools.py (Line 585:53 - Line 604:33), tests\unit\test_read_tools.py (Line 319:13 - Line 471:28)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn28" onclick="toggleCodeBlock('cloneGroup28', 'expandBtn28', 'collapseBtn28')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn28" onclick="toggleCodeBlock('cloneGroup28', 'expandBtn28', 'collapseBtn28')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup28"><code class="language-python text-sm text-gray-800">}),
+        ]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -&gt; None:
+                self.hostname = kwargs.get(&quot;hostname&quot;, &quot;x&quot;)
+            def add(self, child: Any) -&gt; Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, &quot;refreshall&quot;, staticmethod(lambda *a, **k: rules))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        result = await _call(
+            mcp, &quot;get_security_rules&quot;, firewall=&quot;fw1&quot;,
+            attrs={&quot;has_profile&quot;</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_read_tools.py (Line 622:9 - Line 630:38), tests\unit\test_read_tools.py (Line 371:9 - Line 446:37)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn29" onclick="toggleCodeBlock('cloneGroup29', 'expandBtn29', 'collapseBtn29')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn29" onclick="toggleCodeBlock('cloneGroup29', 'expandBtn29', 'collapseBtn29')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup29"><code class="language-python text-sm text-gray-800">class _Rule:
+            def __init__(self, about: dict[str, Any]) -&gt; None:
+                self._about = about
+                self.name = about[&quot;name&quot;]
+            def about(self) -&gt; dict[str, Any]:
+                return dict(self._about)
+
+        rules = [
+            _Rule({&quot;name&quot;: &quot;match-me&quot;</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_read_tools.py (Line 633:54 - Line 650:79), tests\unit\test_read_tools.py (Line 497:61 - Line 257:15)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn30" onclick="toggleCodeBlock('cloneGroup30', 'expandBtn30', 'collapseBtn30')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn30" onclick="toggleCodeBlock('cloneGroup30', 'expandBtn30', 'collapseBtn30')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup30"><code class="language-python text-sm text-gray-800">: [&quot;any&quot;]}),
+        ]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -&gt; None:
+                self.hostname = kwargs.get(&quot;hostname&quot;, &quot;x&quot;)
+            def add(self, child: Any) -&gt; Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, &quot;refreshall&quot;, staticmethod(lambda *a, **k: rules))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        # verbose=False is the default; ``source`` IS in the default whitelist</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_read_tools.py (Line 668:9 - Line 675:34), tests\unit\test_read_tools.py (Line 371:9 - Line 446:37)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn31" onclick="toggleCodeBlock('cloneGroup31', 'expandBtn31', 'collapseBtn31')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn31" onclick="toggleCodeBlock('cloneGroup31', 'expandBtn31', 'collapseBtn31')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup31"><code class="language-python text-sm text-gray-800">class _Rule:
+            def __init__(self, about: dict[str, Any]) -&gt; None:
+                self._about = about
+                self.name = about[&quot;name&quot;]
+            def about(self) -&gt; dict[str, Any]:
+                return dict(self._about)
+
+        rules = [_Rule({&quot;name&quot;: f</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_read_tools.py (Line 675:78 - Line 691:12), tests\unit\test_read_tools.py (Line 240:56 - Line 257:15)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn32" onclick="toggleCodeBlock('cloneGroup32', 'expandBtn32', 'collapseBtn32')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn32" onclick="toggleCodeBlock('cloneGroup32', 'expandBtn32', 'collapseBtn32')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup32"><code class="language-python text-sm text-gray-800">)]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -&gt; None:
+                self.hostname = kwargs.get(&quot;hostname&quot;, &quot;x&quot;)
+            def add(self, child: Any) -&gt; Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, &quot;refreshall&quot;, staticmethod(lambda *a, **k: rules))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        for</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_panorama_walkers.py (Line 41:1 - Line 53:4), tests\unit\test_tools.py (Line 24:1 - Line 47:9)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn33" onclick="toggleCodeBlock('cloneGroup33', 'expandBtn33', 'collapseBtn33')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn33" onclick="toggleCodeBlock('cloneGroup33', 'expandBtn33', 'collapseBtn33')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup33"><code class="language-python text-sm text-gray-800">@pytest.fixture(autouse=True)
+def _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -&gt; Any:
+    monkeypatch.setenv(&quot;PANOS_FIREWALLS_CONFIG&quot;, str(tmp_path / &quot;firewalls.json&quot;))
+    monkeypatch.delenv(&quot;PANOS_HOST&quot;, raising=False)
+    monkeypatch.delenv(&quot;PANOS_API_KEY&quot;, raising=False)
+    fw_module._entries = []
+    reset_client_cache()
+    yield
+    fw_module._entries = []
+    reset_client_cache()
+
+
+def</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_panorama_walkers.py (Line 54:86 - Line 63:6), tests\unit\test_read_tools.py (Line 47:78 - Line 56:4)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn34" onclick="toggleCodeBlock('cloneGroup34', 'expandBtn34', 'collapseBtn34')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn34" onclick="toggleCodeBlock('cloneGroup34', 'expandBtn34', 'collapseBtn34')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup34"><code class="language-python text-sm text-gray-800">))
+
+
+def _make_ctx() -&gt; tuple[ToolContext, FastMCP]:
+    mcp = FastMCP(&quot;test&quot;)
+    gate = ModeGate(mode=Mode.READ, env_var=&quot;PANOS_MODE&quot;, audit_sink=open_sink({}))
+    return ToolContext(mcp=mcp, gate=gate, tls=TlsConfig()), mcp
+
+
+async</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_panorama_walkers.py (Line 63:1 - Line 70:6), tests\unit\test_rule_crud.py (Line 65:1 - Line 72:4)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn35" onclick="toggleCodeBlock('cloneGroup35', 'expandBtn35', 'collapseBtn35')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn35" onclick="toggleCodeBlock('cloneGroup35', 'expandBtn35', 'collapseBtn35')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup35"><code class="language-python text-sm text-gray-800">async def _call(mcp: FastMCP, tool: str, **kwargs: Any) -&gt; Any:
+    entry = (mcp._tool_manager._tools or {}).get(tool)  # type: ignore[attr-defined]
+    if entry is None:
+        raise AssertionError(f&quot;tool '{tool}' not registered&quot;)
+    return await entry.fn(**kwargs)
+
+
+class</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_firewalls.py (Line 129:62 - Line 135:48), tests\unit\test_firewalls.py (Line 116:39 - Line 121:86)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn36" onclick="toggleCodeBlock('cloneGroup36', 'expandBtn36', 'collapseBtn36')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn36" onclick="toggleCodeBlock('cloneGroup36', 'expandBtn36', 'collapseBtn36')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup36"><code class="language-python text-sm text-gray-800">(
+        self, fake_keyring: dict[str, str], capsys: pytest.CaptureFixture[str]
+    ) -&gt; None:
+        path = get_config_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({&quot;firewalls&quot;: [
+            {&quot;name&quot;: &quot;fw1&quot;, &quot;host&quot;: &quot;10.0.0.1&quot;,</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_firewalls.py (Line 155:78 - Line 160:10), tests\unit\test_firewalls.py (Line 131:5 - Line 136:14)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn37" onclick="toggleCodeBlock('cloneGroup37', 'expandBtn37', 'collapseBtn37')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn37" onclick="toggleCodeBlock('cloneGroup37', 'expandBtn37', 'collapseBtn37')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup37"><code class="language-python text-sm text-gray-800">) -&gt; None:
+        path = get_config_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({&quot;firewalls&quot;: [
+            {&quot;name&quot;: &quot;fw1&quot;, &quot;host&quot;: &quot;10.0.0.1&quot;, &quot;api_key&quot;: &quot;key-1&quot;},
+        ]</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_firewalls.py (Line 203:48 - Line 210:55), tests\unit\test_firewalls.py (Line 101:45 - Line 108:58)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn38" onclick="toggleCodeBlock('cloneGroup38', 'expandBtn38', 'collapseBtn38')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn38" onclick="toggleCodeBlock('cloneGroup38', 'expandBtn38', 'collapseBtn38')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup38"><code class="language-python text-sm text-gray-800">(self, fake_keyring: dict[str, str]) -&gt; None:
+        path = get_config_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({&quot;firewalls&quot;: [
+            {&quot;name&quot;: &quot;fw1&quot;, &quot;host&quot;: &quot;10.0.0.1&quot;},
+            {&quot;name&quot;: &quot;fw2&quot;, &quot;host&quot;: &quot;10.0.0.2&quot;},
+        ]}))
+        fake_keyring[f&quot;{KEYRING_SERVICE}::fw1&quot;] = &quot;k1&quot;</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_crud_tools.py (Line 11:1 - Line 27:29), tests\unit\test_rule_crud.py (Line 14:1 - Line 30:34)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn39" onclick="toggleCodeBlock('cloneGroup39', 'expandBtn39', 'collapseBtn39')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn39" onclick="toggleCodeBlock('cloneGroup39', 'expandBtn39', 'collapseBtn39')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup39"><code class="language-python text-sm text-gray-800">from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+from unittest.mock import MagicMock
+
+import pytest
+from mcp.server.fastmcp import FastMCP
+from mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink
+from panos.errors import PanDeviceError
+
+import panos_mcp.client as client_module
+import panos_mcp.config.firewalls as fw_module
+from panos_mcp.client import reset_client_cache
+from panos_mcp.config.firewalls import FirewallEntry
+from panos_mcp.tools._common import ToolContext
+from panos_mcp.tools.objects</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_crud_tools.py (Line 30:1 - Line 48:24), tests\unit\test_tools.py (Line 24:1 - Line 55:14)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn40" onclick="toggleCodeBlock('cloneGroup40', 'expandBtn40', 'collapseBtn40')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn40" onclick="toggleCodeBlock('cloneGroup40', 'expandBtn40', 'collapseBtn40')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup40"><code class="language-python text-sm text-gray-800">@pytest.fixture(autouse=True)
+def _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -&gt; Any:
+    monkeypatch.setenv(&quot;PANOS_FIREWALLS_CONFIG&quot;, str(tmp_path / &quot;firewalls.json&quot;))
+    monkeypatch.delenv(&quot;PANOS_HOST&quot;, raising=False)
+    monkeypatch.delenv(&quot;PANOS_API_KEY&quot;, raising=False)
+    fw_module._entries = []
+    reset_client_cache()
+    yield
+    fw_module._entries = []
+    reset_client_cache()
+    from panos.firewall import Firewall as RealFirewall
+    client_module.Firewall = RealFirewall
+
+
+def _seed_firewall(name: str = &quot;fw1&quot;) -&gt; None:
+    fw_module._entries.append(FirewallEntry(name=name, host=&quot;10.0.0.1&quot;, api_key=&quot;k&quot;))
+
+
+def _make_ctx_with_mode</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_crud_tools.py (Line 48:51 - Line 63:8), tests\unit\test_rule_crud.py (Line 55:37 - Line 66:10)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn41" onclick="toggleCodeBlock('cloneGroup41', 'expandBtn41', 'collapseBtn41')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn41" onclick="toggleCodeBlock('cloneGroup41', 'expandBtn41', 'collapseBtn41')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup41"><code class="language-python text-sm text-gray-800">) -&gt; tuple[ToolContext, FastMCP, ModeGate]:
+    mcp = FastMCP(&quot;test&quot;)
+    gate = ModeGate(mode=mode, env_var=&quot;PANOS_MODE&quot;, audit_sink=open_sink({}))
+    return ToolContext(mcp=mcp, gate=gate, tls=TlsConfig()), mcp, gate
+
+
+def _patch_fw(monkeypatch: pytest.MonkeyPatch, fake: Any) -&gt; None:
+    monkeypatch.setattr(client_module, &quot;Firewall&quot;, fake)
+
+
+async def _call(mcp: FastMCP, tool: str, **kwargs: Any) -&gt; Any:
+    &quot;&quot;&quot;Invoke a registered tool's handler. ``tool`` is the registered tool name.
+
+    Named ``tool`` (not ``name``) so callers can pass ``name=&quot;...&quot;`` as a kwarg
+    to the underlying PAN-OS tool without colliding with this helper's signature.
+    &quot;&quot;&quot;</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_client.py (Line 17:1 - Line 22:77), tests\unit\test_tools.py (Line 24:1 - Line 29:14)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn42" onclick="toggleCodeBlock('cloneGroup42', 'expandBtn42', 'collapseBtn42')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn42" onclick="toggleCodeBlock('cloneGroup42', 'expandBtn42', 'collapseBtn42')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup42"><code class="language-python text-sm text-gray-800">@pytest.fixture(autouse=True)
+def _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -&gt; Any:
+    monkeypatch.setenv(&quot;PANOS_FIREWALLS_CONFIG&quot;, str(tmp_path / &quot;firewalls.json&quot;))
+    monkeypatch.delenv(&quot;PANOS_HOST&quot;, raising=False)
+    monkeypatch.delenv(&quot;PANOS_API_KEY&quot;, raising=False)
+    # Stub out the network call that _build_client makes for auto-detection.</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_client.py (Line 99:42 - Line 113:53), tests\unit\test_client.py (Line 82:40 - Line 96:52)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn43" onclick="toggleCodeBlock('cloneGroup43', 'expandBtn43', 'collapseBtn43')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn43" onclick="toggleCodeBlock('cloneGroup43', 'expandBtn43', 'collapseBtn43')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup43"><code class="language-python text-sm text-gray-800">(self, monkeypatch: pytest.MonkeyPatch) -&gt; None:
+        captured: dict[str, Any] = {}
+
+        class FakeFirewall:
+            def __init__(self, **kwargs: Any) -&gt; None:
+                captured.update(kwargs)
+                self.hostname = kwargs.get(&quot;hostname&quot;)
+                self.api_key = kwargs.get(&quot;api_key&quot;)
+
+            def refresh_system_info(self) -&gt; tuple[str, str, str]:
+                return (&quot;11.1.0&quot;, &quot;PA-460&quot;, &quot;0123456789&quot;)
+
+        monkeypatch.setattr(client_module, &quot;Firewall&quot;, FakeFirewall)
+        _seed(&quot;fw1&quot;, &quot;10.0.0.1&quot;, &quot;k&quot;)
+        get_client(&quot;fw1&quot;, tls=TlsConfig(verify=False</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_client.py (Line 119:9 - Line 132:53), tests\unit\test_client.py (Line 83:9 - Line 96:53)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn44" onclick="toggleCodeBlock('cloneGroup44', 'expandBtn44', 'collapseBtn44')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn44" onclick="toggleCodeBlock('cloneGroup44', 'expandBtn44', 'collapseBtn44')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup44"><code class="language-python text-sm text-gray-800">captured: dict[str, Any] = {}
+
+        class FakeFirewall:
+            def __init__(self, **kwargs: Any) -&gt; None:
+                captured.update(kwargs)
+                self.hostname = kwargs.get(&quot;hostname&quot;)
+                self.api_key = kwargs.get(&quot;api_key&quot;)
+
+            def refresh_system_info(self) -&gt; tuple[str, str, str]:
+                return (&quot;11.1.0&quot;, &quot;PA-460&quot;, &quot;0123456789&quot;)
+
+        monkeypatch.setattr(client_module, &quot;Firewall&quot;, FakeFirewall)
+        _seed(&quot;fw1&quot;, &quot;10.0.0.1&quot;, &quot;k&quot;)
+        get_client(&quot;fw1&quot;, tls=TlsConfig(verify=True,</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_aggregations.py (Line 18:1 - Line 30:34), tests\unit\test_read_tools.py (Line 12:1 - Line 24:29)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn45" onclick="toggleCodeBlock('cloneGroup45', 'expandBtn45', 'collapseBtn45')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn45" onclick="toggleCodeBlock('cloneGroup45', 'expandBtn45', 'collapseBtn45')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup45"><code class="language-python text-sm text-gray-800">from pathlib import Path
+from typing import Any
+
+import pytest
+from mcp.server.fastmcp import FastMCP
+from mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink
+
+import panos_mcp.client as client_module
+import panos_mcp.config.firewalls as fw_module
+from panos_mcp.client import reset_client_cache
+from panos_mcp.config.firewalls import FirewallEntry
+from panos_mcp.tools._common import ToolContext
+from panos_mcp.tools.aggregations</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_aggregations.py (Line 39:1 - Line 53:21), tests\unit\test_tools.py (Line 24:1 - Line 51:24)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn46" onclick="toggleCodeBlock('cloneGroup46', 'expandBtn46', 'collapseBtn46')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn46" onclick="toggleCodeBlock('cloneGroup46', 'expandBtn46', 'collapseBtn46')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup46"><code class="language-python text-sm text-gray-800">@pytest.fixture(autouse=True)
+def _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -&gt; Any:
+    monkeypatch.setenv(&quot;PANOS_FIREWALLS_CONFIG&quot;, str(tmp_path / &quot;firewalls.json&quot;))
+    monkeypatch.delenv(&quot;PANOS_HOST&quot;, raising=False)
+    monkeypatch.delenv(&quot;PANOS_API_KEY&quot;, raising=False)
+    fw_module._entries = []
+    reset_client_cache()
+    yield
+    fw_module._entries = []
+    reset_client_cache()
+    from panos.firewall import Firewall as RealFirewall
+    client_module.Firewall = RealFirewall
+
+
+def _seed_firewall()</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_aggregations.py (Line 54:55 - Line 70:17), tests\unit\test_panorama_walkers.py (Line 54:56 - Line 72:19)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn47" onclick="toggleCodeBlock('cloneGroup47', 'expandBtn47', 'collapseBtn47')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn47" onclick="toggleCodeBlock('cloneGroup47', 'expandBtn47', 'collapseBtn47')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup47"><code class="language-python text-sm text-gray-800">, host=&quot;10.0.0.1&quot;, api_key=&quot;k&quot;))
+
+
+def _make_ctx() -&gt; tuple[ToolContext, FastMCP]:
+    mcp = FastMCP(&quot;test&quot;)
+    gate = ModeGate(mode=Mode.READ, env_var=&quot;PANOS_MODE&quot;, audit_sink=open_sink({}))
+    return ToolContext(mcp=mcp, gate=gate, tls=TlsConfig()), mcp
+
+
+async def _call(mcp: FastMCP, tool: str, **kwargs: Any) -&gt; Any:
+    entry = (mcp._tool_manager._tools or {}).get(tool)  # type: ignore[attr-defined]
+    if entry is None:
+        raise AssertionError(f&quot;tool '{tool}' not registered&quot;)
+    return await entry.fn(**kwargs)
+
+
+def _patch_panos</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_aggregations.py (Line 122:5 - Line 130:74), tests\unit\test_panorama_walkers.py (Line 73:5 - Line 81:4)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn48" onclick="toggleCodeBlock('cloneGroup48', 'expandBtn48', 'collapseBtn48')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn48" onclick="toggleCodeBlock('cloneGroup48', 'expandBtn48', 'collapseBtn48')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup48"><code class="language-python text-sm text-gray-800">def __init__(self, **data: Any) -&gt; None:
+        self._data = data
+        self.name = data.get(&quot;name&quot;)
+
+    def about(self) -&gt; dict[str, Any]:
+        return dict(self._data)
+
+
+# --- Helpers: IP parsing -----------------------------------------------</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_admin_ops.py (Line 17:1 - Line 31:31), tests\unit\test_rule_crud.py (Line 16:1 - Line 30:34)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn49" onclick="toggleCodeBlock('cloneGroup49', 'expandBtn49', 'collapseBtn49')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn49" onclick="toggleCodeBlock('cloneGroup49', 'expandBtn49', 'collapseBtn49')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup49"><code class="language-python text-sm text-gray-800">from pathlib import Path
+from typing import Any
+from unittest.mock import MagicMock
+
+import pytest
+from mcp.server.fastmcp import FastMCP
+from mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink
+from panos.errors import PanDeviceError
+
+import panos_mcp.client as client_module
+import panos_mcp.config.firewalls as fw_module
+from panos_mcp.client import reset_client_cache
+from panos_mcp.config.firewalls import FirewallEntry
+from panos_mcp.tools._common import ToolContext
+from panos_mcp.tools.admin_ops</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_admin_ops.py (Line 35:1 - Line 40:69), tests\unit\test_tools.py (Line 24:1 - Line 29:14)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn50" onclick="toggleCodeBlock('cloneGroup50', 'expandBtn50', 'collapseBtn50')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn50" onclick="toggleCodeBlock('cloneGroup50', 'expandBtn50', 'collapseBtn50')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup50"><code class="language-python text-sm text-gray-800">@pytest.fixture(autouse=True)
+def _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -&gt; Any:
+    monkeypatch.setenv(&quot;PANOS_FIREWALLS_CONFIG&quot;, str(tmp_path / &quot;firewalls.json&quot;))
+    monkeypatch.delenv(&quot;PANOS_HOST&quot;, raising=False)
+    monkeypatch.delenv(&quot;PANOS_API_KEY&quot;, raising=False)
+    # Most tests assume the raw-config and raw-op escape hatches are</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_admin_ops.py (Line 46:47 - Line 61:28), tests\unit\test_rule_crud.py (Line 41:39 - Line 55:37)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn51" onclick="toggleCodeBlock('cloneGroup51', 'expandBtn51', 'collapseBtn51')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn51" onclick="toggleCodeBlock('cloneGroup51', 'expandBtn51', 'collapseBtn51')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup51"><code class="language-python text-sm text-gray-800">, raising=False)
+    fw_module._entries = []
+    reset_client_cache()
+    yield
+    fw_module._entries = []
+    reset_client_cache()
+    from panos.firewall import Firewall as RealFirewall
+    client_module.Firewall = RealFirewall
+
+
+def _seed_firewall(name: str = &quot;fw1&quot;) -&gt; None:
+    fw_module._entries.append(FirewallEntry(name=name, host=&quot;10.0.0.1&quot;, api_key=&quot;k&quot;))
+
+
+def _make_ctx(
+    mode: Mode = Mode.ADMIN</code></pre></div><div class="py-4"><p class="text-gray-600">tests\unit\test_admin_ops.py (Line 88:1 - Line 100:18), tests\unit\test_rule_crud.py (Line 61:1 - Line 72:21)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn52" onclick="toggleCodeBlock('cloneGroup52', 'expandBtn52', 'collapseBtn52')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn52" onclick="toggleCodeBlock('cloneGroup52', 'expandBtn52', 'collapseBtn52')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup52"><code class="language-python text-sm text-gray-800">def _patch_fw(monkeypatch: pytest.MonkeyPatch, fake: Any) -&gt; None:
+    monkeypatch.setattr(client_module, &quot;Firewall&quot;, fake)
+
+
+async def _call(mcp: FastMCP, tool: str, **kwargs: Any) -&gt; Any:
+    entry = (mcp._tool_manager._tools or {}).get(tool)  # type: ignore[attr-defined]
+    if entry is None:
+        raise AssertionError(f&quot;tool '{tool}' not registered&quot;)
+    return await entry.fn(**kwargs)
+
+
+def _fake_fw_class(
+    commit_return</code></pre></div><!-- Add more clone groups for .txt format as needed         // Add more clone groups for .txt format as needed--></div><a name="css-clones"></a><h2 class="text-2xl font-semibold text-gray-700 mb-4">css</h2><div class="divide-y divide-gray-200 border-b-2"><!-- Add more clone groups for .txt format as needed         // Add more clone groups for .txt format as needed--></div><a name="javascript-clones"></a><h2 class="text-2xl font-semibold text-gray-700 mb-4">javascript</h2><div class="divide-y divide-gray-200 border-b-2"><!-- Add more clone groups for .txt format as needed         // Add more clone groups for .txt format as needed--></div><a name="markup-clones"></a><h2 class="text-2xl font-semibold text-gray-700 mb-4">markup</h2><div class="divide-y divide-gray-200 border-b-2"><div class="py-4"><p class="text-gray-600">report\html\index.html (Line 99:749 - Line 108:37), report\html\index.html (Line 76:725 - Line 85:30)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn53" onclick="toggleCodeBlock('cloneGroup53', 'expandBtn53', 'collapseBtn53')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn53" onclick="toggleCodeBlock('cloneGroup53', 'expandBtn53', 'collapseBtn53')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup53"><code class="language-markup text-sm text-gray-800">&quot;&gt;&lt;code class=&quot;language-python text-sm text-gray-800&quot;&gt;(**{k: v for k, v in kwargs.items() if v is not None or k == &amp;quot;name&amp;quot;})
+        rulebase.add(rule)
+        try:
+            rule.create()
+        except PanDeviceError as e:
+            return wrap_panos_error(e, &amp;quot;create&amp;quot;, name)
+        return write_success(&amp;quot;created&amp;quot;, name)
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)
+    async def delete_decryption_rule</code></pre></div><div class="py-4"><p class="text-gray-600">report\html\index.html (Line 190:9 - Line 208:10), report\html\index.html (Line 171:816 - Line 189:16)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn54" onclick="toggleCodeBlock('cloneGroup54', 'expandBtn54', 'collapseBtn54')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn54" onclick="toggleCodeBlock('cloneGroup54', 'expandBtn54', 'collapseBtn54')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup54"><code class="language-markup text-sm text-gray-800">]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -&amp;gt; None:
+                self.hostname = kwargs.get(&amp;quot;hostname&amp;quot;, &amp;quot;x&amp;quot;)
+            def add(self, child: Any) -&amp;gt; Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, &amp;quot;refreshall&amp;quot;, staticmethod(lambda *a, **k: rules))
+
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        result = await _call(mcp, &amp;quot;get_security_rules&amp;quot;, firewall=&amp;quot;fw1&amp;quot;)
+        #</code></pre></div><div class="py-4"><p class="text-gray-600">report\html\index.html (Line 216:697 - Line 233:30), report\html\index.html (Line 189:695 - Line 188:34)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn55" onclick="toggleCodeBlock('cloneGroup55', 'expandBtn55', 'collapseBtn55')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn55" onclick="toggleCodeBlock('cloneGroup55', 'expandBtn55', 'collapseBtn55')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup55"><code class="language-markup text-sm text-gray-800">&quot;&gt;&lt;code class=&quot;language-python text-sm text-gray-800&quot;&gt;}),
+        ]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -&amp;gt; None:
+                self.hostname = kwargs.get(&amp;quot;hostname&amp;quot;, &amp;quot;x&amp;quot;)
+            def add(self, child: Any) -&amp;gt; Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, &amp;quot;refreshall&amp;quot;, staticmethod(lambda *a, **k: rules))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        result = await _call(</code></pre></div><div class="py-4"><p class="text-gray-600">report\html\index.html (Line 243:9 - Line 261:20), report\html\index.html (Line 171:816 - Line 234:77)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn56" onclick="toggleCodeBlock('cloneGroup56', 'expandBtn56', 'collapseBtn56')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn56" onclick="toggleCodeBlock('cloneGroup56', 'expandBtn56', 'collapseBtn56')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup56"><code class="language-markup text-sm text-gray-800">]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -&amp;gt; None:
+                self.hostname = kwargs.get(&amp;quot;hostname&amp;quot;, &amp;quot;x&amp;quot;)
+            def add(self, child: Any) -&amp;gt; Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, &amp;quot;refreshall&amp;quot;, staticmethod(lambda *a, **k: rules))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        result = await _call(
+            mcp, &amp;quot;get_security_rules&amp;quot;, firewall=&amp;quot;fw1&amp;quot;,
+            attrs={</code></pre></div><div class="py-4"><p class="text-gray-600">report\html\index.html (Line 269:736 - Line 288:40), report\html\index.html (Line 189:695 - Line 261:37)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn57" onclick="toggleCodeBlock('cloneGroup57', 'expandBtn57', 'collapseBtn57')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn57" onclick="toggleCodeBlock('cloneGroup57', 'expandBtn57', 'collapseBtn57')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup57"><code class="language-markup text-sm text-gray-800">&quot;&gt;&lt;code class=&quot;language-python text-sm text-gray-800&quot;&gt;}),
+        ]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -&amp;gt; None:
+                self.hostname = kwargs.get(&amp;quot;hostname&amp;quot;, &amp;quot;x&amp;quot;)
+            def add(self, child: Any) -&amp;gt; Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, &amp;quot;refreshall&amp;quot;, staticmethod(lambda *a, **k: rules))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        result = await _call(
+            mcp, &amp;quot;get_security_rules&amp;quot;, firewall=&amp;quot;fw1&amp;quot;,
+            attrs={&amp;quot;has_inspection</code></pre></div><div class="py-4"><p class="text-gray-600">report\html\index.html (Line 288:723 - Line 296:58), report\html\index.html (Line 261:720 - Line 269:59)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn58" onclick="toggleCodeBlock('cloneGroup58', 'expandBtn58', 'collapseBtn58')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn58" onclick="toggleCodeBlock('cloneGroup58', 'expandBtn58', 'collapseBtn58')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup58"><code class="language-markup text-sm text-gray-800">&quot;&gt;&lt;code class=&quot;language-python text-sm text-gray-800&quot;&gt;class _Rule:
+            def __init__(self, about: dict[str, Any]) -&amp;gt; None:
+                self._about = about
+                self.name = about[&amp;quot;name&amp;quot;]
+            def about(self) -&amp;gt; dict[str, Any]:
+                return dict(self._about)
+
+        rules = [
+            _Rule({&amp;quot;name&amp;quot;: &amp;quot;guarded&amp;quot;,</code></pre></div><div class="py-4"><p class="text-gray-600">report\html\index.html (Line 297:733 - Line 316:37), report\html\index.html (Line 189:695 - Line 261:37)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn59" onclick="toggleCodeBlock('cloneGroup59', 'expandBtn59', 'collapseBtn59')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn59" onclick="toggleCodeBlock('cloneGroup59', 'expandBtn59', 'collapseBtn59')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup59"><code class="language-markup text-sm text-gray-800">&quot;&gt;&lt;code class=&quot;language-python text-sm text-gray-800&quot;&gt;}),
+        ]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -&amp;gt; None:
+                self.hostname = kwargs.get(&amp;quot;hostname&amp;quot;, &amp;quot;x&amp;quot;)
+            def add(self, child: Any) -&amp;gt; Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, &amp;quot;refreshall&amp;quot;, staticmethod(lambda *a, **k: rules))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        result = await _call(
+            mcp, &amp;quot;get_security_rules&amp;quot;, firewall=&amp;quot;fw1&amp;quot;,
+            attrs={&amp;quot;has_profile</code></pre></div><div class="py-4"><p class="text-gray-600">report\html\index.html (Line 324:809 - Line 341:10), report\html\index.html (Line 242:792 - Line 188:15)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn60" onclick="toggleCodeBlock('cloneGroup60', 'expandBtn60', 'collapseBtn60')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn60" onclick="toggleCodeBlock('cloneGroup60', 'expandBtn60', 'collapseBtn60')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup60"><code class="language-markup text-sm text-gray-800">]}),
+        ]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -&amp;gt; None:
+                self.hostname = kwargs.get(&amp;quot;hostname&amp;quot;, &amp;quot;x&amp;quot;)
+            def add(self, child: Any) -&amp;gt; Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, &amp;quot;refreshall&amp;quot;, staticmethod(lambda *a, **k: rules))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        #</code></pre></div><div class="py-4"><p class="text-gray-600">report\html\index.html (Line 350:9 - Line 364:12), report\html\index.html (Line 173:9 - Line 188:15)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn61" onclick="toggleCodeBlock('cloneGroup61', 'expandBtn61', 'collapseBtn61')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn61" onclick="toggleCodeBlock('cloneGroup61', 'expandBtn61', 'collapseBtn61')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup61"><code class="language-markup text-sm text-gray-800">class FakeFw:
+            def __init__(self, **kwargs: Any) -&amp;gt; None:
+                self.hostname = kwargs.get(&amp;quot;hostname&amp;quot;, &amp;quot;x&amp;quot;)
+            def add(self, child: Any) -&amp;gt; Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, &amp;quot;refreshall&amp;quot;, staticmethod(lambda *a, **k: rules))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        for</code></pre></div><div class="py-4"><p class="text-gray-600">report\html\index.html (Line 426:697 - Line 436:9), report\html\index.html (Line 364:684 - Line 376:4)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn62" onclick="toggleCodeBlock('cloneGroup62', 'expandBtn62', 'collapseBtn62')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn62" onclick="toggleCodeBlock('cloneGroup62', 'expandBtn62', 'collapseBtn62')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup62"><code class="language-markup text-sm text-gray-800">&quot;&gt;&lt;code class=&quot;language-python text-sm text-gray-800&quot;&gt;@pytest.fixture(autouse=True)
+def _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -&amp;gt; Any:
+    monkeypatch.setenv(&amp;quot;PANOS_FIREWALLS_CONFIG&amp;quot;, str(tmp_path / &amp;quot;firewalls.json&amp;quot;))
+    monkeypatch.delenv(&amp;quot;PANOS_HOST&amp;quot;, raising=False)
+    monkeypatch.delenv(&amp;quot;PANOS_API_KEY&amp;quot;, raising=False)
+    fw_module._entries = []
+    reset_client_cache()
+    yield
+    fw_module._entries = []
+    reset_client_cache()
+    from</code></pre></div><div class="py-4"><p class="text-gray-600">report\html\index.html (Line 478:784 - Line 491:63), report\html\index.html (Line 465:9 - Line 478:63)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn63" onclick="toggleCodeBlock('cloneGroup63', 'expandBtn63', 'collapseBtn63')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn63" onclick="toggleCodeBlock('cloneGroup63', 'expandBtn63', 'collapseBtn63')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup63"><code class="language-markup text-sm text-gray-800">captured: dict[str, Any] = {}
+
+        class FakeFirewall:
+            def __init__(self, **kwargs: Any) -&amp;gt; None:
+                captured.update(kwargs)
+                self.hostname = kwargs.get(&amp;quot;hostname&amp;quot;)
+                self.api_key = kwargs.get(&amp;quot;api_key&amp;quot;)
+
+            def refresh_system_info(self) -&amp;gt; tuple[str, str, str]:
+                return (&amp;quot;11.1.0&amp;quot;, &amp;quot;PA-460&amp;quot;, &amp;quot;0123456789&amp;quot;)
+
+        monkeypatch.setattr(client_module, &amp;quot;Firewall&amp;quot;, FakeFirewall)
+        _seed(&amp;quot;fw1&amp;quot;, &amp;quot;10.0.0.1&amp;quot;, &amp;quot;k&amp;quot;)
+        get_client(&amp;quot;fw1&amp;quot;, tls=TlsConfig(verify=True,</code></pre></div><div class="py-4"><p class="text-gray-600">report\html\index.html (Line 503:704 - Line 517:21), report\html\index.html (Line 364:684 - Line 440:25)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn64" onclick="toggleCodeBlock('cloneGroup64', 'expandBtn64', 'collapseBtn64')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn64" onclick="toggleCodeBlock('cloneGroup64', 'expandBtn64', 'collapseBtn64')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup64"><code class="language-markup text-sm text-gray-800">&quot;&gt;&lt;code class=&quot;language-python text-sm text-gray-800&quot;&gt;@pytest.fixture(autouse=True)
+def _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -&amp;gt; Any:
+    monkeypatch.setenv(&amp;quot;PANOS_FIREWALLS_CONFIG&amp;quot;, str(tmp_path / &amp;quot;firewalls.json&amp;quot;))
+    monkeypatch.delenv(&amp;quot;PANOS_HOST&amp;quot;, raising=False)
+    monkeypatch.delenv(&amp;quot;PANOS_API_KEY&amp;quot;, raising=False)
+    fw_module._entries = []
+    reset_client_cache()
+    yield
+    fw_module._entries = []
+    reset_client_cache()
+    from panos.firewall import Firewall as RealFirewall
+    client_module.Firewall = RealFirewall
+
+
+def _seed_firewall()</code></pre></div><div class="py-4"><p class="text-gray-600">report\html\index.html (Line 541:799 - Line 555:31), report\html\index.html (Line 412:1 - Line 426:29)</p><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2" id="expandBtn65" onclick="toggleCodeBlock('cloneGroup65', 'expandBtn65', 'collapseBtn65')">Show code</button><button class="bg-gray-500 text-white px-1 py-0.5 text-xs rounded focus:outline-none ml-2 hidden" id="collapseBtn65" onclick="toggleCodeBlock('cloneGroup65', 'expandBtn65', 'collapseBtn65')">Hide code</button><pre class="bg-gray-100 border border-gray-200 p-4 rounded mt-2 hidden" id="cloneGroup65"><code class="language-markup text-sm text-gray-800">from pathlib import Path
+from typing import Any
+from unittest.mock import MagicMock
+
+import pytest
+from mcp.server.fastmcp import FastMCP
+from mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink
+from panos.errors import PanDeviceError
+
+import panos_mcp.client as client_module
+import panos_mcp.config.firewalls as fw_module
+from panos_mcp.client import reset_client_cache
+from panos_mcp.config.firewalls import FirewallEntry
+from panos_mcp.tools._common import ToolContext
+from panos_mcp.tools.admin_ops</code></pre></div><!-- Add more clone groups for .txt format as needed         // Add more clone groups for .txt format as needed--></div><a name="yaml-clones"></a><h2 class="text-2xl font-semibold text-gray-700 mb-4">yaml</h2><div class="divide-y divide-gray-200 border-b-2"><!-- Add more clone groups for .txt format as needed         // Add more clone groups for .txt format as needed--></div><a name="json-clones"></a><h2 class="text-2xl font-semibold text-gray-700 mb-4">json</h2><div class="divide-y divide-gray-200 border-b-2"><!-- Add more clone groups for .txt format as needed         // Add more clone groups for .txt format as needed--></div><a name="markdown-clones"></a><h2 class="text-2xl font-semibold text-gray-700 mb-4">markdown</h2><div class="divide-y divide-gray-200 border-b-2"><!-- Add more clone groups for .txt format as needed         // Add more clone groups for .txt format as needed--></div><a name="bash-clones"></a><h2 class="text-2xl font-semibold text-gray-700 mb-4">bash</h2><div class="divide-y divide-gray-200 border-b-2"><!-- Add more clone groups for .txt format as needed         // Add more clone groups for .txt format as needed--></div><a name="toml-clones"></a><h2 class="text-2xl font-semibold text-gray-700 mb-4">toml</h2><div class="divide-y divide-gray-200 border-b-2"><!-- Add more clone groups for .txt format as needed         // Add more clone groups for .txt format as needed--></div></section><!-- Add more sections for other formats and clone groups as needed--></main><footer style="margin-top: 60px; padding: 30px 0; border-top: 1px solid #e0e0e0; text-align: center; font-family: -apple-system, sans-serif; color: #666;"><p style="margin: 8px 0; font-size: 14px;">Generated by&#32;<a href="https://jscpd.dev" target="_blank" style="color: #0066cc;">jscpd</a>&#32;v4.2.4&#32;by&#32;<a href="https://github.com/kucherenko" target="_blank" style="color: #0066cc;">Andrey Kucherenko</a></p><p style="margin: 8px 0; font-size: 14px;">🎩 Building AI agents that don't drift? Try&#32;<a href="https://gangsta.page" target="_blank" style="color: #0066cc; font-weight: 600;">Gangsta Agents</a>&#32;— spec-driven discipline for Claude Code, Cursor, Copilot</p><p style="margin: 8px 0; font-size: 12px; color: #999; text-align: center;"><a href="https://www.npmjs.com/package/jscpd" target="_blank"><img src="https://img.shields.io/npm/dw/jscpd.svg?style=flat-square" alt="npm weekly downloads" style="display: inline; vertical-align: middle;"></a>&#32;· Since 2013 ·&#32;<a href="https://opencollective.com/jscpd" target="_blank" style="color: #999;">Sponsor jscpd 💖</a></p></footer><script src="js/prism.js"></script><script>function toggleCodeBlock(codeBlockId, expandBtnId, collapseBtnId) {
+  const codeBlock = document.getElementById(codeBlockId);
+  const expandBtn = document.getElementById(expandBtnId);
+  const collapseBtn = document.getElementById(collapseBtnId);
+
+  codeBlock.classList.toggle('hidden');
+  expandBtn.classList.toggle('hidden');
+  collapseBtn.classList.toggle('hidden');
+}</script></body></html>

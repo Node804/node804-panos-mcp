@@ -324,9 +324,10 @@ class TestSummarizeSecurityPolicy:
         assert result["rule_counts"]["disabled"] == 1
         # r1 is any-any-any → counted; r2 has app=tor → not; r3 disabled → not counted.
         assert result["any_any_rules"] == 1
-        # r1 lacks profile group AND profile_setting → counted in no_profile.
-        # r2 has group → not. r3 disabled → not in enabled set.
-        assert result["rules_without_profiles"] == 1
+        # r1 lacks profile group AND any individual profile → counted in
+        # rules_without_inspection. r2 has group → not. r3 disabled → not in
+        # enabled set.
+        assert result["rules_without_inspection"] == 1
         assert "trust" in result["zones_referenced"]
         assert "untrust" in result["zones_referenced"]
         assert "dmz" in result["zones_referenced"]
@@ -377,6 +378,219 @@ class TestCountObjectsByType:
         assert result["application_filters"] == 0
 
 
+# --- panorama_summarize_security_policy -----------------------------
+
+
+class TestPanoramaSummarizeSecurityPolicy:
+    """End-to-end coverage of the Panorama-aware policy summary.
+
+    The tool must dispatch ``SecurityRule.refreshall`` by parent (DG pre, DG
+    post, shared pre, shared post) so the per-rulebase breakdown is correct
+    and the combined ``summary`` includes every rule in scope.
+    """
+
+    @staticmethod
+    def _patch_panorama(
+        monkeypatch: pytest.MonkeyPatch,
+        *,
+        dg_name: str,
+        rules_by_parent: dict[tuple[type, str], list[Any]],
+    ) -> None:
+        """Patch ctx.resolve to a real Panorama and dispatch refreshall by parent.
+
+        ``rules_by_parent`` is keyed by ``(rulebase_cls, scope)`` where scope
+        is ``"dg"`` for rules under the device group and ``"shared"`` for
+        rules attached directly to the Panorama.
+        """
+        from panos.panorama import DeviceGroup, Panorama
+        from panos.policies import PostRulebase, PreRulebase, SecurityRule
+
+        pano = Panorama("h", "u", "p")
+        dg = DeviceGroup(dg_name)
+
+        # Resolve always hands back our Panorama instance.
+        monkeypatch.setattr(
+            "panos_mcp.tools._common.get_client",
+            lambda *a, **k: pano,
+        )
+        monkeypatch.setattr(
+            DeviceGroup, "refreshall", staticmethod(lambda *a, **k: [dg])
+        )
+
+        def _refreshall(parent: Any, *args: Any, **kwargs: Any) -> list[Any]:
+            # Parent is the PreRulebase/PostRulebase whose parent is either
+            # the DeviceGroup or the Panorama. Use that chain to disambiguate.
+            scope = "dg" if isinstance(parent.parent, DeviceGroup) else "shared"
+            return rules_by_parent.get((type(parent), scope), [])
+
+        monkeypatch.setattr(SecurityRule, "refreshall", staticmethod(_refreshall))
+        # Stop DeviceGroup.refreshall from trying to call the Panorama in any
+        # of the helper tools that share this fixture.
+        _ = PreRulebase, PostRulebase  # quiet unused-import
+
+    @pytest.mark.asyncio
+    async def test_summarizes_dg_pre_and_post(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from panos.policies import PostRulebase, PreRulebase
+
+        pre_rules = [
+            _FakeObj(
+                name="dg-pre-1", action="allow",
+                fromzone=["trust"], tozone=["untrust"],
+                source=["any"], destination=["any"], application=["any"],
+                disabled=False, group=None, profile_setting=None,
+            ),
+        ]
+        post_rules = [
+            _FakeObj(
+                name="dg-post-1", action="deny",
+                fromzone=["dmz"], tozone=["untrust"],
+                source=["10.0.0.0/24"], destination=["any"], application=["tor"],
+                disabled=False, group="strict",
+            ),
+        ]
+        self._patch_panorama(
+            monkeypatch,
+            dg_name="Lafayette Plant",
+            rules_by_parent={
+                (PreRulebase, "dg"): pre_rules,
+                (PostRulebase, "dg"): post_rules,
+            },
+        )
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_aggregation_tools(ctx)
+
+        result = await _call(
+            mcp, "panorama_summarize_security_policy",
+            device_group="Lafayette Plant", firewall="fw1",
+        )
+
+        assert result["device_group"] == "Lafayette Plant"
+        assert result["include_shared"] is False
+        # Combined summary covers both rulebases.
+        assert result["summary"]["rule_counts"]["total"] == 2
+        assert result["summary"]["by_action"] == {"allow": 1, "deny": 1}
+        # The any-any pre-rule must show up at the combined level AND under "pre".
+        assert result["summary"]["any_any_rules"] == 1
+        assert result["per_rulebase"]["pre"]["any_any_rules"] == 1
+        assert result["per_rulebase"]["post"]["any_any_rules"] == 0
+        # No shared keys when include_shared=False.
+        assert "shared_pre" not in result["per_rulebase"]
+        assert "shared_post" not in result["per_rulebase"]
+
+    @pytest.mark.asyncio
+    async def test_include_shared_folds_in_shared_rulebases(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from panos.policies import PostRulebase, PreRulebase
+
+        shared_pre = [
+            _FakeObj(
+                name="shared-pre-1", action="allow",
+                fromzone=["any"], tozone=["any"],
+                source=["any"], destination=["any"], application=["any"],
+                disabled=False, group=None, profile_setting=None,
+            ),
+        ]
+        dg_pre = [
+            _FakeObj(
+                name="dg-pre-1", action="deny",
+                fromzone=["trust"], tozone=["untrust"],
+                source=["any"], destination=["any"], application=["tor"],
+                disabled=False, group="strict",
+            ),
+        ]
+        self._patch_panorama(
+            monkeypatch,
+            dg_name="OT-FWs",
+            rules_by_parent={
+                (PreRulebase, "dg"): dg_pre,
+                (PreRulebase, "shared"): shared_pre,
+                (PostRulebase, "dg"): [],
+                (PostRulebase, "shared"): [],
+            },
+        )
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_aggregation_tools(ctx)
+
+        result = await _call(
+            mcp, "panorama_summarize_security_policy",
+            device_group="OT-FWs", firewall="fw1", include_shared=True,
+        )
+
+        assert result["include_shared"] is True
+        assert set(result["per_rulebase"].keys()) == {"pre", "post", "shared_pre", "shared_post"}
+        # Shared pre is the only any-any rule.
+        assert result["per_rulebase"]["shared_pre"]["any_any_rules"] == 1
+        assert result["per_rulebase"]["pre"]["any_any_rules"] == 0
+        # Combined summary covers both DG and shared rulebases.
+        assert result["summary"]["rule_counts"]["total"] == 2
+        assert result["summary"]["by_action"] == {"allow": 1, "deny": 1}
+        # Shared-pre's "no inspection" rule must be visible somewhere — its
+        # group and every individual profile field are unset, so it counts.
+        assert result["per_rulebase"]["shared_pre"]["rules_without_inspection"] == 1
+
+    @pytest.mark.asyncio
+    async def test_unknown_device_group_returns_error(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from panos.panorama import DeviceGroup, Panorama
+
+        pano = Panorama("h", "u", "p")
+        monkeypatch.setattr(
+            "panos_mcp.tools._common.get_client", lambda *a, **k: pano,
+        )
+        monkeypatch.setattr(DeviceGroup, "refreshall", staticmethod(lambda *a, **k: []))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_aggregation_tools(ctx)
+
+        result = await _call(
+            mcp, "panorama_summarize_security_policy",
+            device_group="Does-Not-Exist", firewall="fw1",
+        )
+        assert "error" in result
+        assert "Does-Not-Exist" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_non_panorama_target_surfaces_clean_error(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """When ``DeviceGroup.refreshall`` fails (e.g. target isn't actually a
+        Panorama, or the xpath errors out), the tool returns a clean error
+        dict rather than letting the exception propagate.
+
+        Earlier versions of this tool also pre-rejected non-``Panorama``
+        ``isinstance`` checks, but that gate misfired on legitimate Panorama
+        clients whose class identity didn't match the locally-imported
+        ``Panorama`` symbol — so we trust resolution and surface failures
+        from the actual enumeration call instead.
+        """
+        from panos.firewall import Firewall
+        from panos.panorama import DeviceGroup
+
+        fw = Firewall("h", "u", "p")
+        monkeypatch.setattr(
+            "panos_mcp.tools._common.get_client", lambda *a, **k: fw,
+        )
+
+        def _boom(*_a: object, **_k: object) -> list[Any]:
+            raise RuntimeError("not a panorama")
+
+        monkeypatch.setattr(DeviceGroup, "refreshall", staticmethod(_boom))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_aggregation_tools(ctx)
+
+        result = await _call(
+            mcp, "panorama_summarize_security_policy",
+            device_group="anything", firewall="fw1",
+        )
+        assert "error" in result
+        assert "not a panorama" in result["error"]
+
+
 # --- Pure-helper tests -----------------------------------------------
 
 
@@ -394,6 +608,143 @@ class TestSummarizeRulesPureLogic:
         ]
         result = _summarize_rules(rules)
         assert result["by_action"] == {"deny": 1}
+
+
+class TestEnrichSecurityRuleDicts:
+    """Pure-helper coverage: derived booleans match the summary's definitions."""
+
+    def test_has_inspection_true_when_group_set(self) -> None:
+        from panos_mcp.tools._common import enrich_security_rule_dicts
+        out = enrich_security_rule_dicts([{"group": "strict"}])
+        assert out[0]["has_inspection"] is True
+
+    def test_has_inspection_true_when_individual_profile_set(self) -> None:
+        """The Rea-style pattern: no profile group, but individual L7
+        profile attachments live as top-level ``.about()`` keys. The earlier
+        ``has_profile`` flag only looked at ``profile_setting`` (which
+        ``.about()`` never produces) and silently marked every such rule
+        as "no inspection" — the bug this rename was introduced to fix.
+        """
+        from panos_mcp.tools._common import enrich_security_rule_dicts
+        out = enrich_security_rule_dicts([
+            {"virus": ["default"], "spyware": ["Rea Anti-Spyware"]}
+        ])
+        assert out[0]["has_inspection"] is True
+
+    def test_has_inspection_true_for_each_individual_profile_field(self) -> None:
+        """Any single profile attachment is enough — exercise the full set
+        so a future refactor that drops a field gets caught by tests.
+        """
+        from panos_mcp.tools._common import (
+            _INDIVIDUAL_PROFILE_FIELDS,
+            enrich_security_rule_dicts,
+        )
+        for field in _INDIVIDUAL_PROFILE_FIELDS:
+            out = enrich_security_rule_dicts([{field: ["default"]}])
+            assert out[0]["has_inspection"] is True, field
+
+    def test_has_inspection_false_when_all_absent(self) -> None:
+        from panos_mcp.tools._common import enrich_security_rule_dicts
+        out = enrich_security_rule_dicts([{"name": "r1"}])
+        assert out[0]["has_inspection"] is False
+        assert out[0]["has_log_setting"] is False
+
+    def test_has_inspection_false_when_individual_profiles_all_empty(self) -> None:
+        """Empty lists / empty strings on every profile field must read as
+        "no inspection" — otherwise ``drop_when_none`` + a benign ``[]``
+        could fake a profile attachment.
+        """
+        from panos_mcp.tools._common import enrich_security_rule_dicts
+        out = enrich_security_rule_dicts([{
+            "virus": [], "spyware": [], "vulnerability": [],
+            "url_filtering": [], "file_blocking": [],
+            "data_filtering": [], "wildfire_analysis": [],
+        }])
+        assert out[0]["has_inspection"] is False
+
+    def test_definition_agrees_with_summarize_rules(self) -> None:
+        """``rules_without_inspection`` from ``_summarize_rules`` and the
+        ``has_inspection`` flag must never disagree about what counts as
+        "no inspection" — otherwise the audit tool and the rule listing
+        tell different stories.
+        """
+        from panos_mcp.tools._common import enrich_security_rule_dicts
+        rules = [
+            # Profile group → has inspection.
+            {"name": "a", "action": "allow", "disabled": False, "group": "g1"},
+            # Individual profile attachment → has inspection (the case the
+            # old ``has_profile`` heuristic missed entirely).
+            {"name": "b", "action": "allow", "disabled": False,
+             "virus": ["default"]},
+            # Bare allow → no inspection.
+            {"name": "c", "action": "allow", "disabled": False},
+        ]
+        enriched = enrich_security_rule_dicts([dict(r) for r in rules])
+        no_inspection_via_flag = sum(1 for r in enriched if not r["has_inspection"])
+        summary = _summarize_rules(rules)
+        assert no_inspection_via_flag == summary["rules_without_inspection"]
+        assert no_inspection_via_flag == 1
+
+
+class TestFilterByAttrsPureLogic:
+    """Pure-helper coverage for the AND-of-substring attribute filter."""
+
+    def test_none_is_passthrough(self) -> None:
+        from panos_mcp.tools._common import filter_by_attrs
+        items: list[dict[str, Any]] = [{"name": "a"}, {"name": "b"}]
+        assert filter_by_attrs(items, None) == items
+
+    def test_empty_dict_is_passthrough(self) -> None:
+        from panos_mcp.tools._common import filter_by_attrs
+        items: list[dict[str, Any]] = [{"name": "a"}]
+        assert filter_by_attrs(items, {}) == items
+
+    def test_list_field_matches_any_element(self) -> None:
+        from panos_mcp.tools._common import filter_by_attrs
+        items = [
+            {"name": "r1", "source": ["10.0.0.0/24", "any"]},
+            {"name": "r2", "source": ["192.168.0.0/16"]},
+        ]
+        out = filter_by_attrs(items, {"source": "10.0.0.0/24"})
+        assert [r["name"] for r in out] == ["r1"]
+
+    def test_bool_field_matches_string_form(self) -> None:
+        from panos_mcp.tools._common import filter_by_attrs
+        items = [
+            {"name": "r1", "disabled": True},
+            {"name": "r2", "disabled": False},
+        ]
+        assert [r["name"] for r in filter_by_attrs(items, {"disabled": "true"})] == ["r1"]
+        assert [r["name"] for r in filter_by_attrs(items, {"disabled": "false"})] == ["r2"]
+
+    def test_case_insensitive_match(self) -> None:
+        from panos_mcp.tools._common import filter_by_attrs
+        items = [{"name": "r1", "action": "Allow"}]
+        assert filter_by_attrs(items, {"action": "ALLOW"}) == items
+
+    def test_missing_field_fails_the_condition(self) -> None:
+        """An item lacking a filtered field can't satisfy it — no silent
+        passthrough. Otherwise audit queries like "find rules with
+        has_profile=false" would falsely include rules from a tool that
+        didn't enrich its output.
+        """
+        from panos_mcp.tools._common import filter_by_attrs
+        items = [
+            {"name": "r1"},  # no source field
+            {"name": "r2", "source": ["any"]},
+        ]
+        out = filter_by_attrs(items, {"source": "any"})
+        assert [r["name"] for r in out] == ["r2"]
+
+    def test_all_conditions_must_match(self) -> None:
+        from panos_mcp.tools._common import filter_by_attrs
+        items = [
+            {"name": "r1", "action": "allow", "application": ["any"]},
+            {"name": "r2", "action": "deny", "application": ["any"]},
+            {"name": "r3", "action": "allow", "application": ["web-browsing"]},
+        ]
+        out = filter_by_attrs(items, {"action": "allow", "application": "any"})
+        assert [r["name"] for r in out] == ["r1"]
 
 
 class TestAddressFilterPureLogic:

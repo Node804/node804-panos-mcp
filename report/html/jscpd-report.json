@@ -1,0 +1,3261 @@
+{
+  "statistics": {
+    "detectionDate": "2026-05-29T01:21:53.235Z",
+    "formats": {
+      "python": {
+        "sources": {
+          "src/panos_mcp/tools/_xml_writers.py": {
+            "lines": 92,
+            "tokens": 470,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/_schemas.py": {
+            "lines": 95,
+            "tokens": 307,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/_guards.py": {
+            "lines": 199,
+            "tokens": 1006,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/_common.py": {
+            "lines": 483,
+            "tokens": 2342,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/vpn.py": {
+            "lines": 118,
+            "tokens": 1161,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/utility.py": {
+            "lines": 201,
+            "tokens": 1100,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/userid.py": {
+            "lines": 98,
+            "tokens": 964,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 12,
+            "duplicatedTokens": 121,
+            "percentage": 12.24,
+            "percentageTokens": 12.55,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/threat.py": {
+            "lines": 113,
+            "tokens": 1054,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 17,
+            "duplicatedTokens": 201,
+            "percentage": 15.04,
+            "percentageTokens": 19.07,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/system.py": {
+            "lines": 178,
+            "tokens": 1339,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/status.py": {
+            "lines": 51,
+            "tokens": 329,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/security.py": {
+            "lines": 656,
+            "tokens": 5442,
+            "sources": 1,
+            "clones": 8,
+            "duplicatedLines": 72,
+            "duplicatedTokens": 746,
+            "percentage": 10.98,
+            "percentageTokens": 13.71,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/objects.py": {
+            "lines": 450,
+            "tokens": 3656,
+            "sources": 1,
+            "clones": 8,
+            "duplicatedLines": 74,
+            "duplicatedTokens": 682,
+            "percentage": 16.44,
+            "percentageTokens": 18.65,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/network.py": {
+            "lines": 329,
+            "tokens": 3099,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 16,
+            "duplicatedTokens": 198,
+            "percentage": 4.86,
+            "percentageTokens": 6.39,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/nat.py": {
+            "lines": 168,
+            "tokens": 1608,
+            "sources": 1,
+            "clones": 5,
+            "duplicatedLines": 51,
+            "duplicatedTokens": 524,
+            "percentage": 30.36,
+            "percentageTokens": 32.59,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/logs.py": {
+            "lines": 208,
+            "tokens": 1782,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/licenses.py": {
+            "lines": 65,
+            "tokens": 651,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 5,
+            "duplicatedTokens": 80,
+            "percentage": 7.69,
+            "percentageTokens": 12.29,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/firewalls.py": {
+            "lines": 42,
+            "tokens": 222,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/certificates.py": {
+            "lines": 227,
+            "tokens": 2101,
+            "sources": 1,
+            "clones": 5,
+            "duplicatedLines": 51,
+            "duplicatedTokens": 524,
+            "percentage": 22.47,
+            "percentageTokens": 24.94,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/aggregations.py": {
+            "lines": 521,
+            "tokens": 3922,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/admin_ops.py": {
+            "lines": 279,
+            "tokens": 1808,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 18,
+            "duplicatedTokens": 198,
+            "percentage": 6.45,
+            "percentageTokens": 10.95,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/tools/admin.py": {
+            "lines": 85,
+            "tokens": 809,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/responses/shapers.py": {
+            "lines": 166,
+            "tokens": 1073,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/responses/schemas.py": {
+            "lines": 426,
+            "tokens": 2111,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/config/firewalls.py": {
+            "lines": 337,
+            "tokens": 2116,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/test_tools.py": {
+            "lines": 159,
+            "tokens": 1626,
+            "sources": 1,
+            "clones": 7,
+            "duplicatedLines": 66,
+            "duplicatedTokens": 778,
+            "percentage": 41.51,
+            "percentageTokens": 47.85,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/test_smoke.py": {
+            "lines": 31,
+            "tokens": 159,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/test_shapers.py": {
+            "lines": 183,
+            "tokens": 1892,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/test_security_profiles.py": {
+            "lines": 122,
+            "tokens": 848,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/test_rule_crud.py": {
+            "lines": 448,
+            "tokens": 3819,
+            "sources": 1,
+            "clones": 7,
+            "duplicatedLines": 85,
+            "duplicatedTokens": 872,
+            "percentage": 18.97,
+            "percentageTokens": 22.83,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/test_redact.py": {
+            "lines": 98,
+            "tokens": 722,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/test_read_tools.py": {
+            "lines": 694,
+            "tokens": 6434,
+            "sources": 1,
+            "clones": 31,
+            "duplicatedLines": 413,
+            "duplicatedTokens": 4299,
+            "percentage": 59.51,
+            "percentageTokens": 66.82,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/test_panorama_walkers.py": {
+            "lines": 463,
+            "tokens": 4159,
+            "sources": 1,
+            "clones": 5,
+            "duplicatedLines": 52,
+            "duplicatedTokens": 556,
+            "percentage": 11.23,
+            "percentageTokens": 13.37,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/test_firewalls.py": {
+            "lines": 275,
+            "tokens": 2762,
+            "sources": 1,
+            "clones": 6,
+            "duplicatedLines": 36,
+            "duplicatedTokens": 538,
+            "percentage": 13.09,
+            "percentageTokens": 19.48,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/test_dg_hierarchy.py": {
+            "lines": 144,
+            "tokens": 917,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/test_crud_tools.py": {
+            "lines": 355,
+            "tokens": 2702,
+            "sources": 1,
+            "clones": 3,
+            "duplicatedLines": 49,
+            "duplicatedTokens": 482,
+            "percentage": 13.8,
+            "percentageTokens": 17.84,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/test_client.py": {
+            "lines": 193,
+            "tokens": 2095,
+            "sources": 1,
+            "clones": 5,
+            "duplicatedLines": 59,
+            "duplicatedTokens": 801,
+            "percentage": 30.57,
+            "percentageTokens": 38.23,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/test_aggregations.py": {
+            "lines": 801,
+            "tokens": 7006,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 50,
+            "duplicatedTokens": 519,
+            "percentage": 6.24,
+            "percentageTokens": 7.41,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/unit/test_admin_ops.py": {
+            "lines": 667,
+            "tokens": 5449,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 46,
+            "duplicatedTokens": 475,
+            "percentage": 6.9,
+            "percentageTokens": 8.72,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/benchmark/test_policy_audit.py": {
+            "lines": 102,
+            "tokens": 636,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/benchmark/test_inventory_summary.py": {
+            "lines": 64,
+            "tokens": 436,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/benchmark/test_find_workflows.py": {
+            "lines": 118,
+            "tokens": 772,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "tests/benchmark/conftest.py": {
+            "lines": 235,
+            "tokens": 1780,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/__main__.py": {
+            "lines": 19,
+            "tokens": 34,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/__init__.py": {
+            "lines": 33,
+            "tokens": 121,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/_redact.py": {
+            "lines": 72,
+            "tokens": 247,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/server.py": {
+            "lines": 116,
+            "tokens": 594,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/panos_mcp/client.py": {
+            "lines": 154,
+            "tokens": 958,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 11133,
+          "tokens": 86640,
+          "sources": 47,
+          "clones": 53,
+          "duplicatedLines": 586,
+          "duplicatedTokens": 6297,
+          "percentage": 5.26,
+          "percentageTokens": 7.27,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "css": {
+        "sources": {
+          "report/html/styles/prism.css": {
+            "lines": 7,
+            "tokens": 335,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "report/html/index.html": {
+            "lines": 0,
+            "tokens": 335,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 7,
+          "tokens": 670,
+          "sources": 2,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "javascript": {
+        "sources": {
+          "report/html/js/prism.js": {
+            "lines": 15,
+            "tokens": 4580,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "report/html/index.html": {
+            "lines": 8,
+            "tokens": 80,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 23,
+          "tokens": 4660,
+          "sources": 2,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "markup": {
+        "sources": {
+          "report/html/index.html": {
+            "lines": 594,
+            "tokens": 14985,
+            "sources": 1,
+            "clones": 26,
+            "duplicatedLines": 380,
+            "duplicatedTokens": 3082,
+            "percentage": 63.97,
+            "percentageTokens": 20.57,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 594,
+          "tokens": 14985,
+          "sources": 1,
+          "clones": 13,
+          "duplicatedLines": 190,
+          "duplicatedTokens": 1541,
+          "percentage": 31.99,
+          "percentageTokens": 10.28,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "yaml": {
+        "sources": {
+          ".github/workflows/ci.yml": {
+            "lines": 35,
+            "tokens": 245,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 35,
+          "tokens": 245,
+          "sources": 1,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "json": {
+        "sources": {
+          ".claude/settings.local.json": {
+            "lines": 21,
+            "tokens": 83,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "README.md": {
+            "lines": 127,
+            "tokens": 185,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          ".jscpd.json": {
+            "lines": 11,
+            "tokens": 70,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 159,
+          "tokens": 338,
+          "sources": 3,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "markdown": {
+        "sources": {
+          "README.md": {
+            "lines": 291,
+            "tokens": 3594,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "CHANGELOG.md": {
+            "lines": 135,
+            "tokens": 1758,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 426,
+          "tokens": 5352,
+          "sources": 2,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "bash": {
+        "sources": {
+          "README.md": {
+            "lines": 255,
+            "tokens": 282,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 255,
+          "tokens": 282,
+          "sources": 1,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "toml": {
+        "sources": {
+          "pyproject.toml": {
+            "lines": 90,
+            "tokens": 408,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 90,
+          "tokens": 408,
+          "sources": 1,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      }
+    },
+    "total": {
+      "lines": 12722,
+      "tokens": 113580,
+      "sources": 60,
+      "clones": 66,
+      "duplicatedLines": 776,
+      "duplicatedTokens": 7838,
+      "percentage": 6.1,
+      "percentageTokens": 6.9,
+      "newDuplicatedLines": 0,
+      "newClones": 0
+    }
+  },
+  "duplicates": [
+    {
+      "format": "python",
+      "lines": 13,
+      "fragment": "cursor: Any = result\n    for k in keys:\n        if not isinstance(cursor, dict):\n            return []\n        cursor = cursor.get(k, {})\n    if isinstance(cursor, list):\n        return [c for c in cursor if isinstance(c, dict)]\n    if isinstance(cursor, dict):\n        return [cursor]\n    return []\n\n\ndef register_threat_tools",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src\\panos_mcp\\tools\\threat.py",
+        "start": 20,
+        "end": 32,
+        "startLoc": {
+          "line": 20,
+          "column": 5,
+          "position": 134
+        },
+        "endLoc": {
+          "line": 32,
+          "column": 26,
+          "position": 255
+        }
+      },
+      "secondFile": {
+        "name": "src\\panos_mcp\\tools\\userid.py",
+        "start": 16,
+        "end": 28,
+        "startLoc": {
+          "line": 16,
+          "column": 5,
+          "position": 128
+        },
+        "endLoc": {
+          "line": 28,
+          "column": 26,
+          "position": 249
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 10,
+      "fragment": ")\n        rulebase.add(rule)\n        try:\n            rule.create()\n        except PanDeviceError as e:\n            return wrap_panos_error(e, \"create\", name)\n        return write_success(\"created\", name)\n\n    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)\n    async def delete_pbf_rule",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src\\panos_mcp\\tools\\security.py",
+        "start": 490,
+        "end": 499,
+        "startLoc": {
+          "line": 490,
+          "column": 105,
+          "position": 3942
+        },
+        "endLoc": {
+          "line": 499,
+          "column": 30,
+          "position": 4023
+        }
+      },
+      "secondFile": {
+        "name": "src\\panos_mcp\\tools\\security.py",
+        "start": 383,
+        "end": 392,
+        "startLoc": {
+          "line": 383,
+          "column": 9,
+          "position": 2918
+        },
+        "endLoc": {
+          "line": 392,
+          "column": 35,
+          "position": 2999
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 10,
+      "fragment": "(name=name)\n        rulebase.add(rule)\n        try:\n            rule.delete()\n        except PanDeviceError as e:\n            return wrap_panos_error(e, \"delete\", name)\n        return write_success(\"deleted\", name)\n\n    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)\n    async def move_pbf_rule",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src\\panos_mcp\\tools\\security.py",
+        "start": 509,
+        "end": 518,
+        "startLoc": {
+          "line": 509,
+          "column": 37,
+          "position": 4118
+        },
+        "endLoc": {
+          "line": 518,
+          "column": 28,
+          "position": 4203
+        }
+      },
+      "secondFile": {
+        "name": "src\\panos_mcp\\tools\\security.py",
+        "start": 402,
+        "end": 411,
+        "startLoc": {
+          "line": 402,
+          "column": 28,
+          "position": 3094
+        },
+        "endLoc": {
+          "line": 411,
+          "column": 33,
+          "position": 3179
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 11,
+      "fragment": ", description=description, tag=tag\n        )\n        client.add(obj)\n        try:\n            obj.create()\n        except PanDeviceError as e:\n            return _wrap_panos_error(e, \"create\", name)\n        return _success(\"created\", name)\n\n    @ctx.gate.tool(ctx.mcp, required=Mode.STANDARD)\n    async def delete_address_group",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src\\panos_mcp\\tools\\objects.py",
+        "start": 276,
+        "end": 286,
+        "startLoc": {
+          "line": 276,
+          "column": 44,
+          "position": 2138
+        },
+        "endLoc": {
+          "line": 286,
+          "column": 35,
+          "position": 2231
+        }
+      },
+      "secondFile": {
+        "name": "src\\panos_mcp\\tools\\objects.py",
+        "start": 226,
+        "end": 236,
+        "startLoc": {
+          "line": 226,
+          "column": 46,
+          "position": 1724
+        },
+        "endLoc": {
+          "line": 236,
+          "column": 36,
+          "position": 1817
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 10,
+      "fragment": ")\n        client.add(obj)\n        try:\n            obj.create()\n        except PanDeviceError as e:\n            return _wrap_panos_error(e, \"create\", name)\n        return _success(\"created\", name)\n\n    @ctx.gate.tool(ctx.mcp, required=Mode.STANDARD)\n    async def delete_service_object",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src\\panos_mcp\\tools\\objects.py",
+        "start": 341,
+        "end": 350,
+        "startLoc": {
+          "line": 341,
+          "column": 9,
+          "position": 2659
+        },
+        "endLoc": {
+          "line": 350,
+          "column": 36,
+          "position": 2740
+        }
+      },
+      "secondFile": {
+        "name": "src\\panos_mcp\\tools\\objects.py",
+        "start": 227,
+        "end": 236,
+        "startLoc": {
+          "line": 227,
+          "column": 9,
+          "position": 1736
+        },
+        "endLoc": {
+          "line": 236,
+          "column": 36,
+          "position": 1817
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 10,
+      "fragment": ", tag=tag)\n        client.add(obj)\n        try:\n            obj.create()\n        except PanDeviceError as e:\n            return _wrap_panos_error(e, \"create\", name)\n        return _success(\"created\", name)\n\n    @ctx.gate.tool(ctx.mcp, required=Mode.STANDARD)\n    async def delete_service_group",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src\\panos_mcp\\tools\\objects.py",
+        "start": 382,
+        "end": 391,
+        "startLoc": {
+          "line": 382,
+          "column": 52,
+          "position": 3044
+        },
+        "endLoc": {
+          "line": 391,
+          "column": 35,
+          "position": 3130
+        }
+      },
+      "secondFile": {
+        "name": "src\\panos_mcp\\tools\\objects.py",
+        "start": 226,
+        "end": 236,
+        "startLoc": {
+          "line": 226,
+          "column": 71,
+          "position": 1729
+        },
+        "endLoc": {
+          "line": 236,
+          "column": 36,
+          "position": 1817
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 10,
+      "fragment": ")\n        client.add(obj)\n        try:\n            obj.create()\n        except PanDeviceError as e:\n            return _wrap_panos_error(e, \"create\", name)\n        return _success(\"created\", name)\n\n    @ctx.gate.tool(ctx.mcp, required=Mode.STANDARD)\n    async def delete_tag",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src\\panos_mcp\\tools\\objects.py",
+        "start": 425,
+        "end": 434,
+        "startLoc": {
+          "line": 425,
+          "column": 60,
+          "position": 3429
+        },
+        "endLoc": {
+          "line": 434,
+          "column": 25,
+          "position": 3510
+        }
+      },
+      "secondFile": {
+        "name": "src\\panos_mcp\\tools\\objects.py",
+        "start": 227,
+        "end": 236,
+        "startLoc": {
+          "line": 227,
+          "column": 9,
+          "position": 1736
+        },
+        "endLoc": {
+          "line": 236,
+          "column": 36,
+          "position": 1817
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 9,
+      "fragment": "client = ctx.resolve(firewall)\n        if isinstance(client, dict):\n            return client\n        vrs = VirtualRouter.refreshall(client)\n        target_vr = next((v for v in vrs if v.name == virtual_router), None)\n        if target_vr is None:\n            return {\n                \"success\": False,\n                \"operation\": \"delete\"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src\\panos_mcp\\tools\\network.py",
+        "start": 309,
+        "end": 317,
+        "startLoc": {
+          "line": 309,
+          "column": 9,
+          "position": 2900
+        },
+        "endLoc": {
+          "line": 317,
+          "column": 38,
+          "position": 2999
+        }
+      },
+      "secondFile": {
+        "name": "src\\panos_mcp\\tools\\network.py",
+        "start": 266,
+        "end": 274,
+        "startLoc": {
+          "line": 266,
+          "column": 9,
+          "position": 2468
+        },
+        "endLoc": {
+          "line": 274,
+          "column": 38,
+          "position": 2567
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 10,
+      "fragment": "(**{k: v for k, v in kwargs.items() if v is not None or k == \"name\"})\n        rulebase.add(rule)\n        try:\n            rule.create()\n        except PanDeviceError as e:\n            return wrap_panos_error(e, \"create\", name)\n        return write_success(\"created\", name)\n\n    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)\n    async def delete_nat_rule",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src\\panos_mcp\\tools\\nat.py",
+        "start": 90,
+        "end": 99,
+        "startLoc": {
+          "line": 90,
+          "column": 23,
+          "position": 819
+        },
+        "endLoc": {
+          "line": 99,
+          "column": 30,
+          "position": 941
+        }
+      },
+      "secondFile": {
+        "name": "src\\panos_mcp\\tools\\security.py",
+        "start": 490,
+        "end": 392,
+        "startLoc": {
+          "line": 490,
+          "column": 37,
+          "position": 3901
+        },
+        "endLoc": {
+          "line": 392,
+          "column": 35,
+          "position": 2999
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 10,
+      "fragment": "(name=name)\n        rulebase.add(rule)\n        try:\n            rule.delete()\n        except PanDeviceError as e:\n            return wrap_panos_error(e, \"delete\", name)\n        return write_success(\"deleted\", name)\n\n    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)\n    async def move_nat_rule",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src\\panos_mcp\\tools\\nat.py",
+        "start": 109,
+        "end": 118,
+        "startLoc": {
+          "line": 109,
+          "column": 23,
+          "position": 1036
+        },
+        "endLoc": {
+          "line": 118,
+          "column": 28,
+          "position": 1121
+        }
+      },
+      "secondFile": {
+        "name": "src\\panos_mcp\\tools\\security.py",
+        "start": 402,
+        "end": 411,
+        "startLoc": {
+          "line": 402,
+          "column": 28,
+          "position": 3094
+        },
+        "endLoc": {
+          "line": 411,
+          "column": 33,
+          "position": 3179
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 6,
+      "fragment": "client = ctx.resolve(firewall)\n        if isinstance(client, dict):\n            return client\n        result = op_to_dict(client, \"<show><system><info></info></system></show>\")\n        system = result.get(\"system\", result) if isinstance(result, dict) else result\n        return shape_single(system, shape=SHAPE_LICENSE_USAGE",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src\\panos_mcp\\tools\\licenses.py",
+        "start": 58,
+        "end": 63,
+        "startLoc": {
+          "line": 58,
+          "column": 9,
+          "position": 550
+        },
+        "endLoc": {
+          "line": 63,
+          "column": 62,
+          "position": 630
+        }
+      },
+      "secondFile": {
+        "name": "src\\panos_mcp\\tools\\threat.py",
+        "start": 55,
+        "end": 60,
+        "startLoc": {
+          "line": 55,
+          "column": 9,
+          "position": 504
+        },
+        "endLoc": {
+          "line": 60,
+          "column": 59,
+          "position": 584
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 10,
+      "fragment": "(**{k: v for k, v in kwargs.items() if v is not None or k == \"name\"})\n        rulebase.add(rule)\n        try:\n            rule.create()\n        except PanDeviceError as e:\n            return wrap_panos_error(e, \"create\", name)\n        return write_success(\"created\", name)\n\n    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)\n    async def delete_decryption_rule",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src\\panos_mcp\\tools\\certificates.py",
+        "start": 146,
+        "end": 155,
+        "startLoc": {
+          "line": 146,
+          "column": 30,
+          "position": 1270
+        },
+        "endLoc": {
+          "line": 155,
+          "column": 37,
+          "position": 1392
+        }
+      },
+      "secondFile": {
+        "name": "src\\panos_mcp\\tools\\security.py",
+        "start": 490,
+        "end": 392,
+        "startLoc": {
+          "line": 490,
+          "column": 37,
+          "position": 3901
+        },
+        "endLoc": {
+          "line": 392,
+          "column": 35,
+          "position": 2999
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 10,
+      "fragment": "(name=name)\n        rulebase.add(rule)\n        try:\n            rule.delete()\n        except PanDeviceError as e:\n            return wrap_panos_error(e, \"delete\", name)\n        return write_success(\"deleted\", name)\n\n    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)\n    async def move_decryption_rule",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src\\panos_mcp\\tools\\certificates.py",
+        "start": 166,
+        "end": 175,
+        "startLoc": {
+          "line": 166,
+          "column": 30,
+          "position": 1501
+        },
+        "endLoc": {
+          "line": 175,
+          "column": 35,
+          "position": 1586
+        }
+      },
+      "secondFile": {
+        "name": "src\\panos_mcp\\tools\\security.py",
+        "start": 402,
+        "end": 411,
+        "startLoc": {
+          "line": 402,
+          "column": 28,
+          "position": 3094
+        },
+        "endLoc": {
+          "line": 411,
+          "column": 33,
+          "position": 3179
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 13,
+      "fragment": "client = ctx.resolve(firewall)\n        if isinstance(client, dict):\n            return client\n        if where in (\"before\", \"after\") and not destination:\n            return {\n                \"success\": False,\n                \"operation\": \"moved\",\n                \"name\": name,\n                \"error\": \"'destination' is required when 'where' is 'before' or 'after'.\",\n            }\n        rulebase = Rulebase()\n        client.add(rulebase)\n        rule = DecryptionRule",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src\\panos_mcp\\tools\\certificates.py",
+        "start": 183,
+        "end": 195,
+        "startLoc": {
+          "line": 183,
+          "column": 9,
+          "position": 1666
+        },
+        "endLoc": {
+          "line": 195,
+          "column": 30,
+          "position": 1773
+        }
+      },
+      "secondFile": {
+        "name": "src\\panos_mcp\\tools\\nat.py",
+        "start": 125,
+        "end": 137,
+        "startLoc": {
+          "line": 125,
+          "column": 9,
+          "position": 1187
+        },
+        "endLoc": {
+          "line": 137,
+          "column": 23,
+          "position": 1294
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 13,
+      "fragment": "(name=name)\n        rulebase.add(rule)\n        try:\n            if where in (\"before\", \"after\"):\n                rule.move(location=where, ref=destination)\n            else:\n                rule.move(location=where)\n        except PanDeviceError as e:\n            return wrap_panos_error(e, \"move\", name)\n        return write_success(\"moved\", name, where=where, dst=destination)\n\n    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)\n    async def set_decryption_rule_disabled",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src\\panos_mcp\\tools\\certificates.py",
+        "start": 195,
+        "end": 207,
+        "startLoc": {
+          "line": 195,
+          "column": 30,
+          "position": 1774
+        },
+        "endLoc": {
+          "line": 207,
+          "column": 43,
+          "position": 1906
+        }
+      },
+      "secondFile": {
+        "name": "src\\panos_mcp\\tools\\nat.py",
+        "start": 137,
+        "end": 149,
+        "startLoc": {
+          "line": 137,
+          "column": 23,
+          "position": 1295
+        },
+        "endLoc": {
+          "line": 149,
+          "column": 36,
+          "position": 1427
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 10,
+      "fragment": "(name=name, disabled=disabled)\n        rulebase.add(rule)\n        try:\n            rule.update(\"disabled\")\n        except PanDeviceError as e:\n            return wrap_panos_error(e, \"set_disabled\", name)\n        return write_success(\"set_disabled\", name, disabled=disabled)\n\n\n__all__ = [\"register_certificates_tools\"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src\\panos_mcp\\tools\\certificates.py",
+        "start": 219,
+        "end": 228,
+        "startLoc": {
+          "line": 219,
+          "column": 30,
+          "position": 2022
+        },
+        "endLoc": {
+          "line": 228,
+          "column": 41,
+          "position": 2100
+        }
+      },
+      "secondFile": {
+        "name": "src\\panos_mcp\\tools\\nat.py",
+        "start": 160,
+        "end": 169,
+        "startLoc": {
+          "line": 160,
+          "column": 23,
+          "position": 1529
+        },
+        "endLoc": {
+          "line": 169,
+          "column": 32,
+          "position": 1607
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 10,
+      "fragment": "client = ctx.resolve(firewall)\n        if isinstance(client, dict):\n            return client\n        commit_kwargs: dict[str, Any] = {\"sync\": False, \"exception\": False}\n        if description:\n            commit_kwargs[\"description\"] = description\n        if partial_admin:\n            commit_kwargs[\"admins\"] = [partial_admin]\n        emit_preflight_audit(\n            ctx, tool=\"panorama_commit\"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src\\panos_mcp\\tools\\admin_ops.py",
+        "start": 122,
+        "end": 131,
+        "startLoc": {
+          "line": 122,
+          "column": 9,
+          "position": 720
+        },
+        "endLoc": {
+          "line": 131,
+          "column": 40,
+          "position": 819
+        }
+      },
+      "secondFile": {
+        "name": "src\\panos_mcp\\tools\\admin_ops.py",
+        "start": 92,
+        "end": 101,
+        "startLoc": {
+          "line": 92,
+          "column": 9,
+          "position": 441
+        },
+        "endLoc": {
+          "line": 101,
+          "column": 31,
+          "position": 540
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 7,
+      "fragment": "@pytest.fixture(autouse=True)\ndef _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Any:\n    monkeypatch.setenv(\"PANOS_FIREWALLS_CONFIG\", str(tmp_path / \"firewalls.json\"))\n    monkeypatch.delenv(\"PANOS_HOST\", raising=False)\n    monkeypatch.delenv(\"PANOS_API_KEY\", raising=False)\n    fw_module._entries = []\n    reset_client_cache",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_rule_crud.py",
+        "start": 37,
+        "end": 43,
+        "startLoc": {
+          "line": 37,
+          "column": 1,
+          "position": 201
+        },
+        "endLoc": {
+          "line": 43,
+          "column": 23,
+          "position": 289
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_tools.py",
+        "start": 24,
+        "end": 30,
+        "startLoc": {
+          "line": 24,
+          "column": 1,
+          "position": 125
+        },
+        "endLoc": {
+          "line": 30,
+          "column": 10,
+          "position": 213
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 7,
+      "fragment": "@pytest.fixture(autouse=True)\ndef _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Any:\n    monkeypatch.setenv(\"PANOS_FIREWALLS_CONFIG\", str(tmp_path / \"firewalls.json\"))\n    monkeypatch.delenv(\"PANOS_HOST\", raising=False)\n    monkeypatch.delenv(\"PANOS_API_KEY\", raising=False)\n    fw_module._entries = []\n    reset_client_cache()  # otherwise a Firewall from one test bleeds into the next",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 31,
+        "end": 37,
+        "startLoc": {
+          "line": 31,
+          "column": 1,
+          "position": 160
+        },
+        "endLoc": {
+          "line": 37,
+          "column": 84,
+          "position": 252
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_tools.py",
+        "start": 24,
+        "end": 44,
+        "startLoc": {
+          "line": 24,
+          "column": 1,
+          "position": 125
+        },
+        "endLoc": {
+          "line": 44,
+          "column": 10,
+          "position": 294
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 19,
+      "fragment": "]\n\n        class FakeFw:\n            def __init__(self, **kwargs: Any) -> None:\n                self.hostname = kwargs.get(\"hostname\", \"x\")\n            def add(self, child: Any) -> Any:\n                child.parent = self\n                return child\n\n        _patch_firewall_class(monkeypatch, FakeFw)\n        from panos.policies import SecurityRule\n        monkeypatch.setattr(SecurityRule, \"refreshall\", staticmethod(lambda *a, **k: rules))\n\n        _seed_firewall()\n        ctx, mcp = _make_ctx()\n        register_security_tools(ctx)\n\n        result = await _call(mcp, \"get_security_rules\", firewall=\"fw1\")\n        by_name",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 320,
+        "end": 338,
+        "startLoc": {
+          "line": 320,
+          "column": 9,
+          "position": 2853
+        },
+        "endLoc": {
+          "line": 338,
+          "column": 16,
+          "position": 3028
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 240,
+        "end": 258,
+        "startLoc": {
+          "line": 240,
+          "column": 57,
+          "position": 2171
+        },
+        "endLoc": {
+          "line": 258,
+          "column": 15,
+          "position": 2346
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 20,
+      "fragment": "}),\n        ]\n\n        class FakeFw:\n            def __init__(self, **kwargs: Any) -> None:\n                self.hostname = kwargs.get(\"hostname\", \"x\")\n            def add(self, child: Any) -> Any:\n                child.parent = self\n                return child\n\n        _patch_firewall_class(monkeypatch, FakeFw)\n        from panos.policies import SecurityRule\n        monkeypatch.setattr(SecurityRule, \"refreshall\", staticmethod(lambda *a, **k: rules))\n\n        _seed_firewall()\n        ctx, mcp = _make_ctx()\n        register_security_tools(ctx)\n\n        result = await _call(mcp, \"get_security_rules\", firewall=\"fw1\")\n        # Every rule must carry the field; the type must always be bool.",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 390,
+        "end": 409,
+        "startLoc": {
+          "line": 390,
+          "column": 73,
+          "position": 3495
+        },
+        "endLoc": {
+          "line": 409,
+          "column": 73,
+          "position": 3675
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 319,
+        "end": 258,
+        "startLoc": {
+          "line": 319,
+          "column": 13,
+          "position": 2848
+        },
+        "endLoc": {
+          "line": 258,
+          "column": 15,
+          "position": 2346
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 9,
+      "fragment": "class _Rule:\n            def __init__(self, about: dict[str, Any]) -> None:\n                self._about = about\n                self.name = about[\"name\"]\n            def about(self) -> dict[str, Any]:\n                return dict(self._about)\n\n        rules = [\n            _Rule",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 438,
+        "end": 446,
+        "startLoc": {
+          "line": 438,
+          "column": 9,
+          "position": 3854
+        },
+        "endLoc": {
+          "line": 446,
+          "column": 18,
+          "position": 3945
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 371,
+        "end": 380,
+        "startLoc": {
+          "line": 371,
+          "column": 9,
+          "position": 3270
+        },
+        "endLoc": {
+          "line": 380,
+          "column": 63,
+          "position": 3362
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 19,
+      "fragment": "}),\n        ]\n\n        class FakeFw:\n            def __init__(self, **kwargs: Any) -> None:\n                self.hostname = kwargs.get(\"hostname\", \"x\")\n            def add(self, child: Any) -> Any:\n                child.parent = self\n                return child\n\n        _patch_firewall_class(monkeypatch, FakeFw)\n        from panos.policies import SecurityRule\n        monkeypatch.setattr(SecurityRule, \"refreshall\", staticmethod(lambda *a, **k: rules))\n        _seed_firewall()\n        ctx, mcp = _make_ctx()\n        register_security_tools(ctx)\n\n        result = await _call(\n            mcp, \"get_security_rules\", firewall=\"fw1\",",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 452,
+        "end": 470,
+        "startLoc": {
+          "line": 452,
+          "column": 42,
+          "position": 4049
+        },
+        "endLoc": {
+          "line": 470,
+          "column": 55,
+          "position": 4227
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 319,
+        "end": 257,
+        "startLoc": {
+          "line": 319,
+          "column": 13,
+          "position": 2848
+        },
+        "endLoc": {
+          "line": 257,
+          "column": 72,
+          "position": 2343
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 9,
+      "fragment": "class _Rule:\n            def __init__(self, about: dict[str, Any]) -> None:\n                self._about = about\n                self.name = about[\"name\"]\n            def about(self) -> dict[str, Any]:\n                return dict(self._about)\n\n        rules = [\n            _Rule({\"name\": \"any-allow\"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 484,
+        "end": 492,
+        "startLoc": {
+          "line": 484,
+          "column": 9,
+          "position": 4337
+        },
+        "endLoc": {
+          "line": 492,
+          "column": 39,
+          "position": 4434
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 371,
+        "end": 446,
+        "startLoc": {
+          "line": 371,
+          "column": 9,
+          "position": 3270
+        },
+        "endLoc": {
+          "line": 446,
+          "column": 37,
+          "position": 3951
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 20,
+      "fragment": "]}),\n        ]\n\n        class FakeFw:\n            def __init__(self, **kwargs: Any) -> None:\n                self.hostname = kwargs.get(\"hostname\", \"x\")\n            def add(self, child: Any) -> Any:\n                child.parent = self\n                return child\n\n        _patch_firewall_class(monkeypatch, FakeFw)\n        from panos.policies import SecurityRule\n        monkeypatch.setattr(SecurityRule, \"refreshall\", staticmethod(lambda *a, **k: rules))\n        _seed_firewall()\n        ctx, mcp = _make_ctx()\n        register_security_tools(ctx)\n\n        result = await _call(\n            mcp, \"get_security_rules\", firewall=\"fw1\",\n            attrs={\"application\"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 497,
+        "end": 516,
+        "startLoc": {
+          "line": 497,
+          "column": 69,
+          "position": 4527
+        },
+        "endLoc": {
+          "line": 516,
+          "column": 33,
+          "position": 4712
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 452,
+        "end": 471,
+        "startLoc": {
+          "line": 452,
+          "column": 41,
+          "position": 4048
+        },
+        "endLoc": {
+          "line": 471,
+          "column": 28,
+          "position": 4233
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 9,
+      "fragment": "class _Rule:\n            def __init__(self, about: dict[str, Any]) -> None:\n                self._about = about\n                self.name = about[\"name\"]\n            def about(self) -> dict[str, Any]:\n                return dict(self._about)\n\n        rules = [\n            _Rule({\"name\": \"guarded\"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 531,
+        "end": 539,
+        "startLoc": {
+          "line": 531,
+          "column": 9,
+          "position": 4804
+        },
+        "endLoc": {
+          "line": 539,
+          "column": 37,
+          "position": 4901
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 371,
+        "end": 446,
+        "startLoc": {
+          "line": 371,
+          "column": 9,
+          "position": 3270
+        },
+        "endLoc": {
+          "line": 446,
+          "column": 37,
+          "position": 3951
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 20,
+      "fragment": "}),\n        ]\n\n        class FakeFw:\n            def __init__(self, **kwargs: Any) -> None:\n                self.hostname = kwargs.get(\"hostname\", \"x\")\n            def add(self, child: Any) -> Any:\n                child.parent = self\n                return child\n\n        _patch_firewall_class(monkeypatch, FakeFw)\n        from panos.policies import SecurityRule\n        monkeypatch.setattr(SecurityRule, \"refreshall\", staticmethod(lambda *a, **k: rules))\n        _seed_firewall()\n        ctx, mcp = _make_ctx()\n        register_security_tools(ctx)\n\n        result = await _call(\n            mcp, \"get_security_rules\", firewall=\"fw1\",\n            attrs={\"has_inspection\"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 541,
+        "end": 560,
+        "startLoc": {
+          "line": 541,
+          "column": 54,
+          "position": 4950
+        },
+        "endLoc": {
+          "line": 560,
+          "column": 36,
+          "position": 5134
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 319,
+        "end": 471,
+        "startLoc": {
+          "line": 319,
+          "column": 13,
+          "position": 2848
+        },
+        "endLoc": {
+          "line": 471,
+          "column": 28,
+          "position": 4233
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 10,
+      "fragment": "class _Rule:\n            def __init__(self, about: dict[str, Any]) -> None:\n                self._about = about\n                self.name = about[\"name\"]\n            def about(self) -> dict[str, Any]:\n                return dict(self._about)\n\n        rules = [\n            _Rule({\"name\": \"guarded\", \"action\": \"allow\", \"group\": \"strict\"}),\n            _Rule({\"name\": \"bare\"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 576,
+        "end": 585,
+        "startLoc": {
+          "line": 576,
+          "column": 9,
+          "position": 5223
+        },
+        "endLoc": {
+          "line": 585,
+          "column": 34,
+          "position": 5344
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 371,
+        "end": 540,
+        "startLoc": {
+          "line": 371,
+          "column": 9,
+          "position": 3270
+        },
+        "endLoc": {
+          "line": 540,
+          "column": 36,
+          "position": 4925
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 20,
+      "fragment": "}),\n        ]\n\n        class FakeFw:\n            def __init__(self, **kwargs: Any) -> None:\n                self.hostname = kwargs.get(\"hostname\", \"x\")\n            def add(self, child: Any) -> Any:\n                child.parent = self\n                return child\n\n        _patch_firewall_class(monkeypatch, FakeFw)\n        from panos.policies import SecurityRule\n        monkeypatch.setattr(SecurityRule, \"refreshall\", staticmethod(lambda *a, **k: rules))\n        _seed_firewall()\n        ctx, mcp = _make_ctx()\n        register_security_tools(ctx)\n\n        result = await _call(\n            mcp, \"get_security_rules\", firewall=\"fw1\",\n            attrs={\"has_profile\"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 585,
+        "end": 604,
+        "startLoc": {
+          "line": 585,
+          "column": 53,
+          "position": 5351
+        },
+        "endLoc": {
+          "line": 604,
+          "column": 33,
+          "position": 5535
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 319,
+        "end": 471,
+        "startLoc": {
+          "line": 319,
+          "column": 13,
+          "position": 2848
+        },
+        "endLoc": {
+          "line": 471,
+          "column": 28,
+          "position": 4233
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 9,
+      "fragment": "class _Rule:\n            def __init__(self, about: dict[str, Any]) -> None:\n                self._about = about\n                self.name = about[\"name\"]\n            def about(self) -> dict[str, Any]:\n                return dict(self._about)\n\n        rules = [\n            _Rule({\"name\": \"match-me\"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 622,
+        "end": 630,
+        "startLoc": {
+          "line": 622,
+          "column": 9,
+          "position": 5647
+        },
+        "endLoc": {
+          "line": 630,
+          "column": 38,
+          "position": 5744
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 371,
+        "end": 446,
+        "startLoc": {
+          "line": 371,
+          "column": 9,
+          "position": 3270
+        },
+        "endLoc": {
+          "line": 446,
+          "column": 37,
+          "position": 3951
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 18,
+      "fragment": ": [\"any\"]}),\n        ]\n\n        class FakeFw:\n            def __init__(self, **kwargs: Any) -> None:\n                self.hostname = kwargs.get(\"hostname\", \"x\")\n            def add(self, child: Any) -> Any:\n                child.parent = self\n                return child\n\n        _patch_firewall_class(monkeypatch, FakeFw)\n        from panos.policies import SecurityRule\n        monkeypatch.setattr(SecurityRule, \"refreshall\", staticmethod(lambda *a, **k: rules))\n        _seed_firewall()\n        ctx, mcp = _make_ctx()\n        register_security_tools(ctx)\n\n        # verbose=False is the default; ``source`` IS in the default whitelist",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 633,
+        "end": 650,
+        "startLoc": {
+          "line": 633,
+          "column": 54,
+          "position": 5798
+        },
+        "endLoc": {
+          "line": 650,
+          "column": 79,
+          "position": 5962
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 497,
+        "end": 257,
+        "startLoc": {
+          "line": 497,
+          "column": 61,
+          "position": 4523
+        },
+        "endLoc": {
+          "line": 257,
+          "column": 15,
+          "position": 2326
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 8,
+      "fragment": "class _Rule:\n            def __init__(self, about: dict[str, Any]) -> None:\n                self._about = about\n                self.name = about[\"name\"]\n            def about(self) -> dict[str, Any]:\n                return dict(self._about)\n\n        rules = [_Rule({\"name\": f",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 668,
+        "end": 675,
+        "startLoc": {
+          "line": 668,
+          "column": 9,
+          "position": 6109
+        },
+        "endLoc": {
+          "line": 675,
+          "column": 34,
+          "position": 6204
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 371,
+        "end": 446,
+        "startLoc": {
+          "line": 371,
+          "column": 9,
+          "position": 3270
+        },
+        "endLoc": {
+          "line": 446,
+          "column": 37,
+          "position": 3951
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 17,
+      "fragment": ")]\n\n        class FakeFw:\n            def __init__(self, **kwargs: Any) -> None:\n                self.hostname = kwargs.get(\"hostname\", \"x\")\n            def add(self, child: Any) -> Any:\n                child.parent = self\n                return child\n\n        _patch_firewall_class(monkeypatch, FakeFw)\n        from panos.policies import SecurityRule\n        monkeypatch.setattr(SecurityRule, \"refreshall\", staticmethod(lambda *a, **k: rules))\n        _seed_firewall()\n        ctx, mcp = _make_ctx()\n        register_security_tools(ctx)\n\n        for",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 675,
+        "end": 691,
+        "startLoc": {
+          "line": 675,
+          "column": 78,
+          "position": 6224
+        },
+        "endLoc": {
+          "line": 691,
+          "column": 12,
+          "position": 6379
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 240,
+        "end": 257,
+        "startLoc": {
+          "line": 240,
+          "column": 56,
+          "position": 2170
+        },
+        "endLoc": {
+          "line": 257,
+          "column": 15,
+          "position": 2326
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 13,
+      "fragment": "@pytest.fixture(autouse=True)\ndef _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Any:\n    monkeypatch.setenv(\"PANOS_FIREWALLS_CONFIG\", str(tmp_path / \"firewalls.json\"))\n    monkeypatch.delenv(\"PANOS_HOST\", raising=False)\n    monkeypatch.delenv(\"PANOS_API_KEY\", raising=False)\n    fw_module._entries = []\n    reset_client_cache()\n    yield\n    fw_module._entries = []\n    reset_client_cache()\n\n\ndef",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_panorama_walkers.py",
+        "start": 41,
+        "end": 53,
+        "startLoc": {
+          "line": 41,
+          "column": 1,
+          "position": 182
+        },
+        "endLoc": {
+          "line": 53,
+          "column": 4,
+          "position": 294
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_tools.py",
+        "start": 24,
+        "end": 47,
+        "startLoc": {
+          "line": 24,
+          "column": 1,
+          "position": 125
+        },
+        "endLoc": {
+          "line": 47,
+          "column": 9,
+          "position": 312
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 10,
+      "fragment": "))\n\n\ndef _make_ctx() -> tuple[ToolContext, FastMCP]:\n    mcp = FastMCP(\"test\")\n    gate = ModeGate(mode=Mode.READ, env_var=\"PANOS_MODE\", audit_sink=open_sink({}))\n    return ToolContext(mcp=mcp, gate=gate, tls=TlsConfig()), mcp\n\n\nasync",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_panorama_walkers.py",
+        "start": 54,
+        "end": 63,
+        "startLoc": {
+          "line": 54,
+          "column": 86,
+          "position": 328
+        },
+        "endLoc": {
+          "line": 63,
+          "column": 6,
+          "position": 416
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 47,
+        "end": 56,
+        "startLoc": {
+          "line": 47,
+          "column": 78,
+          "position": 363
+        },
+        "endLoc": {
+          "line": 56,
+          "column": 4,
+          "position": 451
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 8,
+      "fragment": "async def _call(mcp: FastMCP, tool: str, **kwargs: Any) -> Any:\n    entry = (mcp._tool_manager._tools or {}).get(tool)  # type: ignore[attr-defined]\n    if entry is None:\n        raise AssertionError(f\"tool '{tool}' not registered\")\n    return await entry.fn(**kwargs)\n\n\nclass",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_panorama_walkers.py",
+        "start": 63,
+        "end": 70,
+        "startLoc": {
+          "line": 63,
+          "column": 1,
+          "position": 416
+        },
+        "endLoc": {
+          "line": 70,
+          "column": 6,
+          "position": 506
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_rule_crud.py",
+        "start": 65,
+        "end": 72,
+        "startLoc": {
+          "line": 65,
+          "column": 1,
+          "position": 521
+        },
+        "endLoc": {
+          "line": 72,
+          "column": 4,
+          "position": 611
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 7,
+      "fragment": "(\n        self, fake_keyring: dict[str, str], capsys: pytest.CaptureFixture[str]\n    ) -> None:\n        path = get_config_path()\n        path.parent.mkdir(parents=True, exist_ok=True)\n        path.write_text(json.dumps({\"firewalls\": [\n            {\"name\": \"fw1\", \"host\": \"10.0.0.1\",",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_firewalls.py",
+        "start": 129,
+        "end": 135,
+        "startLoc": {
+          "line": 129,
+          "column": 62,
+          "position": 1134
+        },
+        "endLoc": {
+          "line": 135,
+          "column": 48,
+          "position": 1224
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_firewalls.py",
+        "start": 116,
+        "end": 121,
+        "startLoc": {
+          "line": 116,
+          "column": 39,
+          "position": 994
+        },
+        "endLoc": {
+          "line": 121,
+          "column": 86,
+          "position": 1082
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 6,
+      "fragment": ") -> None:\n        path = get_config_path()\n        path.parent.mkdir(parents=True, exist_ok=True)\n        path.write_text(json.dumps({\"firewalls\": [\n            {\"name\": \"fw1\", \"host\": \"10.0.0.1\", \"api_key\": \"key-1\"},\n        ]",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_firewalls.py",
+        "start": 155,
+        "end": 160,
+        "startLoc": {
+          "line": 155,
+          "column": 78,
+          "position": 1405
+        },
+        "endLoc": {
+          "line": 160,
+          "column": 10,
+          "position": 1476
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_firewalls.py",
+        "start": 131,
+        "end": 136,
+        "startLoc": {
+          "line": 131,
+          "column": 5,
+          "position": 1163
+        },
+        "endLoc": {
+          "line": 136,
+          "column": 14,
+          "position": 1234
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 8,
+      "fragment": "(self, fake_keyring: dict[str, str]) -> None:\n        path = get_config_path()\n        path.parent.mkdir(parents=True, exist_ok=True)\n        path.write_text(json.dumps({\"firewalls\": [\n            {\"name\": \"fw1\", \"host\": \"10.0.0.1\"},\n            {\"name\": \"fw2\", \"host\": \"10.0.0.2\"},\n        ]}))\n        fake_keyring[f\"{KEYRING_SERVICE}::fw1\"] = \"k1\"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_firewalls.py",
+        "start": 203,
+        "end": 210,
+        "startLoc": {
+          "line": 203,
+          "column": 48,
+          "position": 1902
+        },
+        "endLoc": {
+          "line": 210,
+          "column": 55,
+          "position": 2010
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_firewalls.py",
+        "start": 101,
+        "end": 108,
+        "startLoc": {
+          "line": 101,
+          "column": 45,
+          "position": 815
+        },
+        "endLoc": {
+          "line": 108,
+          "column": 58,
+          "position": 923
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 17,
+      "fragment": "from __future__ import annotations\n\nfrom pathlib import Path\nfrom typing import Any\nfrom unittest.mock import MagicMock\n\nimport pytest\nfrom mcp.server.fastmcp import FastMCP\nfrom mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink\nfrom panos.errors import PanDeviceError\n\nimport panos_mcp.client as client_module\nimport panos_mcp.config.firewalls as fw_module\nfrom panos_mcp.client import reset_client_cache\nfrom panos_mcp.config.firewalls import FirewallEntry\nfrom panos_mcp.tools._common import ToolContext\nfrom panos_mcp.tools.objects",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_crud_tools.py",
+        "start": 11,
+        "end": 27,
+        "startLoc": {
+          "line": 11,
+          "column": 1,
+          "position": 3
+        },
+        "endLoc": {
+          "line": 27,
+          "column": 29,
+          "position": 145
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_rule_crud.py",
+        "start": 14,
+        "end": 30,
+        "startLoc": {
+          "line": 14,
+          "column": 1,
+          "position": 3
+        },
+        "endLoc": {
+          "line": 30,
+          "column": 34,
+          "position": 145
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 19,
+      "fragment": "@pytest.fixture(autouse=True)\ndef _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Any:\n    monkeypatch.setenv(\"PANOS_FIREWALLS_CONFIG\", str(tmp_path / \"firewalls.json\"))\n    monkeypatch.delenv(\"PANOS_HOST\", raising=False)\n    monkeypatch.delenv(\"PANOS_API_KEY\", raising=False)\n    fw_module._entries = []\n    reset_client_cache()\n    yield\n    fw_module._entries = []\n    reset_client_cache()\n    from panos.firewall import Firewall as RealFirewall\n    client_module.Firewall = RealFirewall\n\n\ndef _seed_firewall(name: str = \"fw1\") -> None:\n    fw_module._entries.append(FirewallEntry(name=name, host=\"10.0.0.1\", api_key=\"k\"))\n\n\ndef _make_ctx_with_mode",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_crud_tools.py",
+        "start": 30,
+        "end": 48,
+        "startLoc": {
+          "line": 30,
+          "column": 1,
+          "position": 153
+        },
+        "endLoc": {
+          "line": 48,
+          "column": 24,
+          "position": 338
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_tools.py",
+        "start": 24,
+        "end": 55,
+        "startLoc": {
+          "line": 24,
+          "column": 1,
+          "position": 125
+        },
+        "endLoc": {
+          "line": 55,
+          "column": 14,
+          "position": 386
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 16,
+      "fragment": ") -> tuple[ToolContext, FastMCP, ModeGate]:\n    mcp = FastMCP(\"test\")\n    gate = ModeGate(mode=mode, env_var=\"PANOS_MODE\", audit_sink=open_sink({}))\n    return ToolContext(mcp=mcp, gate=gate, tls=TlsConfig()), mcp, gate\n\n\ndef _patch_fw(monkeypatch: pytest.MonkeyPatch, fake: Any) -> None:\n    monkeypatch.setattr(client_module, \"Firewall\", fake)\n\n\nasync def _call(mcp: FastMCP, tool: str, **kwargs: Any) -> Any:\n    \"\"\"Invoke a registered tool's handler. ``tool`` is the registered tool name.\n\n    Named ``tool`` (not ``name``) so callers can pass ``name=\"...\"`` as a kwarg\n    to the underlying PAN-OS tool without colliding with this helper's signature.\n    \"\"\"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_crud_tools.py",
+        "start": 48,
+        "end": 63,
+        "startLoc": {
+          "line": 48,
+          "column": 51,
+          "position": 350
+        },
+        "endLoc": {
+          "line": 63,
+          "column": 8,
+          "position": 505
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_rule_crud.py",
+        "start": 55,
+        "end": 66,
+        "startLoc": {
+          "line": 55,
+          "column": 37,
+          "position": 398
+        },
+        "endLoc": {
+          "line": 66,
+          "column": 10,
+          "position": 553
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 6,
+      "fragment": "@pytest.fixture(autouse=True)\r\ndef _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Any:\r\n    monkeypatch.setenv(\"PANOS_FIREWALLS_CONFIG\", str(tmp_path / \"firewalls.json\"))\r\n    monkeypatch.delenv(\"PANOS_HOST\", raising=False)\r\n    monkeypatch.delenv(\"PANOS_API_KEY\", raising=False)\r\n    # Stub out the network call that _build_client makes for auto-detection.",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_client.py",
+        "start": 17,
+        "end": 22,
+        "startLoc": {
+          "line": 17,
+          "column": 1,
+          "position": 113
+        },
+        "endLoc": {
+          "line": 22,
+          "column": 77,
+          "position": 196
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_tools.py",
+        "start": 24,
+        "end": 29,
+        "startLoc": {
+          "line": 24,
+          "column": 1,
+          "position": 125
+        },
+        "endLoc": {
+          "line": 29,
+          "column": 14,
+          "position": 203
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 15,
+      "fragment": "(self, monkeypatch: pytest.MonkeyPatch) -> None:\r\n        captured: dict[str, Any] = {}\r\n\r\n        class FakeFirewall:\r\n            def __init__(self, **kwargs: Any) -> None:\r\n                captured.update(kwargs)\r\n                self.hostname = kwargs.get(\"hostname\")\r\n                self.api_key = kwargs.get(\"api_key\")\r\n\r\n            def refresh_system_info(self) -> tuple[str, str, str]:\r\n                return (\"11.1.0\", \"PA-460\", \"0123456789\")\r\n\r\n        monkeypatch.setattr(client_module, \"Firewall\", FakeFirewall)\r\n        _seed(\"fw1\", \"10.0.0.1\", \"k\")\r\n        get_client(\"fw1\", tls=TlsConfig(verify=False",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_client.py",
+        "start": 99,
+        "end": 113,
+        "startLoc": {
+          "line": 99,
+          "column": 42,
+          "position": 972
+        },
+        "endLoc": {
+          "line": 113,
+          "column": 53,
+          "position": 1161
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_client.py",
+        "start": 82,
+        "end": 96,
+        "startLoc": {
+          "line": 82,
+          "column": 40,
+          "position": 758
+        },
+        "endLoc": {
+          "line": 96,
+          "column": 52,
+          "position": 947
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 14,
+      "fragment": "captured: dict[str, Any] = {}\r\n\r\n        class FakeFirewall:\r\n            def __init__(self, **kwargs: Any) -> None:\r\n                captured.update(kwargs)\r\n                self.hostname = kwargs.get(\"hostname\")\r\n                self.api_key = kwargs.get(\"api_key\")\r\n\r\n            def refresh_system_info(self) -> tuple[str, str, str]:\r\n                return (\"11.1.0\", \"PA-460\", \"0123456789\")\r\n\r\n        monkeypatch.setattr(client_module, \"Firewall\", FakeFirewall)\r\n        _seed(\"fw1\", \"10.0.0.1\", \"k\")\r\n        get_client(\"fw1\", tls=TlsConfig(verify=True,",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_client.py",
+        "start": 119,
+        "end": 132,
+        "startLoc": {
+          "line": 119,
+          "column": 9,
+          "position": 1233
+        },
+        "endLoc": {
+          "line": 132,
+          "column": 53,
+          "position": 1403
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_client.py",
+        "start": 83,
+        "end": 96,
+        "startLoc": {
+          "line": 83,
+          "column": 9,
+          "position": 778
+        },
+        "endLoc": {
+          "line": 96,
+          "column": 53,
+          "position": 948
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 13,
+      "fragment": "from pathlib import Path\nfrom typing import Any\n\nimport pytest\nfrom mcp.server.fastmcp import FastMCP\nfrom mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink\n\nimport panos_mcp.client as client_module\nimport panos_mcp.config.firewalls as fw_module\nfrom panos_mcp.client import reset_client_cache\nfrom panos_mcp.config.firewalls import FirewallEntry\nfrom panos_mcp.tools._common import ToolContext\nfrom panos_mcp.tools.aggregations",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_aggregations.py",
+        "start": 18,
+        "end": 30,
+        "startLoc": {
+          "line": 18,
+          "column": 1,
+          "position": 16
+        },
+        "endLoc": {
+          "line": 30,
+          "column": 34,
+          "position": 129
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_read_tools.py",
+        "start": 12,
+        "end": 24,
+        "startLoc": {
+          "line": 12,
+          "column": 1,
+          "position": 12
+        },
+        "endLoc": {
+          "line": 24,
+          "column": 29,
+          "position": 125
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 15,
+      "fragment": "@pytest.fixture(autouse=True)\ndef _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Any:\n    monkeypatch.setenv(\"PANOS_FIREWALLS_CONFIG\", str(tmp_path / \"firewalls.json\"))\n    monkeypatch.delenv(\"PANOS_HOST\", raising=False)\n    monkeypatch.delenv(\"PANOS_API_KEY\", raising=False)\n    fw_module._entries = []\n    reset_client_cache()\n    yield\n    fw_module._entries = []\n    reset_client_cache()\n    from panos.firewall import Firewall as RealFirewall\n    client_module.Firewall = RealFirewall\n\n\ndef _seed_firewall()",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_aggregations.py",
+        "start": 39,
+        "end": 53,
+        "startLoc": {
+          "line": 39,
+          "column": 1,
+          "position": 159
+        },
+        "endLoc": {
+          "line": 53,
+          "column": 21,
+          "position": 299
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_tools.py",
+        "start": 24,
+        "end": 51,
+        "startLoc": {
+          "line": 24,
+          "column": 1,
+          "position": 125
+        },
+        "endLoc": {
+          "line": 51,
+          "column": 24,
+          "position": 341
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 17,
+      "fragment": ", host=\"10.0.0.1\", api_key=\"k\"))\n\n\ndef _make_ctx() -> tuple[ToolContext, FastMCP]:\n    mcp = FastMCP(\"test\")\n    gate = ModeGate(mode=Mode.READ, env_var=\"PANOS_MODE\", audit_sink=open_sink({}))\n    return ToolContext(mcp=mcp, gate=gate, tls=TlsConfig()), mcp\n\n\nasync def _call(mcp: FastMCP, tool: str, **kwargs: Any) -> Any:\n    entry = (mcp._tool_manager._tools or {}).get(tool)  # type: ignore[attr-defined]\n    if entry is None:\n        raise AssertionError(f\"tool '{tool}' not registered\")\n    return await entry.fn(**kwargs)\n\n\ndef _patch_panos",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_aggregations.py",
+        "start": 54,
+        "end": 70,
+        "startLoc": {
+          "line": 54,
+          "column": 55,
+          "position": 319
+        },
+        "endLoc": {
+          "line": 70,
+          "column": 17,
+          "position": 509
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_panorama_walkers.py",
+        "start": 54,
+        "end": 72,
+        "startLoc": {
+          "line": 54,
+          "column": 56,
+          "position": 318
+        },
+        "endLoc": {
+          "line": 72,
+          "column": 19,
+          "position": 613
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 9,
+      "fragment": "def __init__(self, **data: Any) -> None:\n        self._data = data\n        self.name = data.get(\"name\")\n\n    def about(self) -> dict[str, Any]:\n        return dict(self._data)\n\n\n# --- Helpers: IP parsing -----------------------------------------------",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_aggregations.py",
+        "start": 122,
+        "end": 130,
+        "startLoc": {
+          "line": 122,
+          "column": 5,
+          "position": 872
+        },
+        "endLoc": {
+          "line": 130,
+          "column": 74,
+          "position": 948
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_panorama_walkers.py",
+        "start": 73,
+        "end": 81,
+        "startLoc": {
+          "line": 73,
+          "column": 5,
+          "position": 516
+        },
+        "endLoc": {
+          "line": 81,
+          "column": 4,
+          "position": 592
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 15,
+      "fragment": "from pathlib import Path\nfrom typing import Any\nfrom unittest.mock import MagicMock\n\nimport pytest\nfrom mcp.server.fastmcp import FastMCP\nfrom mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink\nfrom panos.errors import PanDeviceError\n\nimport panos_mcp.client as client_module\nimport panos_mcp.config.firewalls as fw_module\nfrom panos_mcp.client import reset_client_cache\nfrom panos_mcp.config.firewalls import FirewallEntry\nfrom panos_mcp.tools._common import ToolContext\nfrom panos_mcp.tools.admin_ops",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_admin_ops.py",
+        "start": 17,
+        "end": 31,
+        "startLoc": {
+          "line": 17,
+          "column": 1,
+          "position": 20
+        },
+        "endLoc": {
+          "line": 31,
+          "column": 31,
+          "position": 153
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_rule_crud.py",
+        "start": 16,
+        "end": 30,
+        "startLoc": {
+          "line": 16,
+          "column": 1,
+          "position": 12
+        },
+        "endLoc": {
+          "line": 30,
+          "column": 34,
+          "position": 145
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 6,
+      "fragment": "@pytest.fixture(autouse=True)\ndef _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Any:\n    monkeypatch.setenv(\"PANOS_FIREWALLS_CONFIG\", str(tmp_path / \"firewalls.json\"))\n    monkeypatch.delenv(\"PANOS_HOST\", raising=False)\n    monkeypatch.delenv(\"PANOS_API_KEY\", raising=False)\n    # Most tests assume the raw-config and raw-op escape hatches are",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_admin_ops.py",
+        "start": 35,
+        "end": 40,
+        "startLoc": {
+          "line": 35,
+          "column": 1,
+          "position": 173
+        },
+        "endLoc": {
+          "line": 40,
+          "column": 69,
+          "position": 251
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_tools.py",
+        "start": 24,
+        "end": 29,
+        "startLoc": {
+          "line": 24,
+          "column": 1,
+          "position": 125
+        },
+        "endLoc": {
+          "line": 29,
+          "column": 14,
+          "position": 203
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 16,
+      "fragment": ", raising=False)\n    fw_module._entries = []\n    reset_client_cache()\n    yield\n    fw_module._entries = []\n    reset_client_cache()\n    from panos.firewall import Firewall as RealFirewall\n    client_module.Firewall = RealFirewall\n\n\ndef _seed_firewall(name: str = \"fw1\") -> None:\n    fw_module._entries.append(FirewallEntry(name=name, host=\"10.0.0.1\", api_key=\"k\"))\n\n\ndef _make_ctx(\n    mode: Mode = Mode.ADMIN",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_admin_ops.py",
+        "start": 46,
+        "end": 61,
+        "startLoc": {
+          "line": 46,
+          "column": 47,
+          "position": 290
+        },
+        "endLoc": {
+          "line": 61,
+          "column": 28,
+          "position": 418
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_rule_crud.py",
+        "start": 41,
+        "end": 55,
+        "startLoc": {
+          "line": 41,
+          "column": 39,
+          "position": 271
+        },
+        "endLoc": {
+          "line": 55,
+          "column": 37,
+          "position": 397
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 13,
+      "fragment": "def _patch_fw(monkeypatch: pytest.MonkeyPatch, fake: Any) -> None:\n    monkeypatch.setattr(client_module, \"Firewall\", fake)\n\n\nasync def _call(mcp: FastMCP, tool: str, **kwargs: Any) -> Any:\n    entry = (mcp._tool_manager._tools or {}).get(tool)  # type: ignore[attr-defined]\n    if entry is None:\n        raise AssertionError(f\"tool '{tool}' not registered\")\n    return await entry.fn(**kwargs)\n\n\ndef _fake_fw_class(\n    commit_return",
+      "tokens": 0,
+      "firstFile": {
+        "name": "tests\\unit\\test_admin_ops.py",
+        "start": 88,
+        "end": 100,
+        "startLoc": {
+          "line": 88,
+          "column": 1,
+          "position": 652
+        },
+        "endLoc": {
+          "line": 100,
+          "column": 18,
+          "position": 788
+        }
+      },
+      "secondFile": {
+        "name": "tests\\unit\\test_rule_crud.py",
+        "start": 61,
+        "end": 72,
+        "startLoc": {
+          "line": 61,
+          "column": 1,
+          "position": 481
+        },
+        "endLoc": {
+          "line": 72,
+          "column": 21,
+          "position": 615
+        }
+      }
+    },
+    {
+      "format": "markup",
+      "lines": 10,
+      "fragment": "\"><code class=\"language-python text-sm text-gray-800\">(**{k: v for k, v in kwargs.items() if v is not None or k == &quot;name&quot;})\n        rulebase.add(rule)\n        try:\n            rule.create()\n        except PanDeviceError as e:\n            return wrap_panos_error(e, &quot;create&quot;, name)\n        return write_success(&quot;created&quot;, name)\n\n    @ctx.gate.tool(ctx.mcp, required=Mode.FULL)\n    async def delete_decryption_rule",
+      "tokens": 0,
+      "firstFile": {
+        "name": "report\\html\\index.html",
+        "start": 99,
+        "end": 108,
+        "startLoc": {
+          "line": 99,
+          "column": 749,
+          "position": 3770
+        },
+        "endLoc": {
+          "line": 108,
+          "column": 37,
+          "position": 3868
+        }
+      },
+      "secondFile": {
+        "name": "report\\html\\index.html",
+        "start": 76,
+        "end": 85,
+        "startLoc": {
+          "line": 76,
+          "column": 725,
+          "position": 3086
+        },
+        "endLoc": {
+          "line": 85,
+          "column": 30,
+          "position": 3184
+        }
+      }
+    },
+    {
+      "format": "markup",
+      "lines": 19,
+      "fragment": "]\n\n        class FakeFw:\n            def __init__(self, **kwargs: Any) -&gt; None:\n                self.hostname = kwargs.get(&quot;hostname&quot;, &quot;x&quot;)\n            def add(self, child: Any) -&gt; Any:\n                child.parent = self\n                return child\n\n        _patch_firewall_class(monkeypatch, FakeFw)\n        from panos.policies import SecurityRule\n        monkeypatch.setattr(SecurityRule, &quot;refreshall&quot;, staticmethod(lambda *a, **k: rules))\n\n        _seed_firewall()\n        ctx, mcp = _make_ctx()\n        register_security_tools(ctx)\n\n        result = await _call(mcp, &quot;get_security_rules&quot;, firewall=&quot;fw1&quot;)\n        #",
+      "tokens": 0,
+      "firstFile": {
+        "name": "report\\html\\index.html",
+        "start": 190,
+        "end": 208,
+        "startLoc": {
+          "line": 190,
+          "column": 9,
+          "position": 5948
+        },
+        "endLoc": {
+          "line": 208,
+          "column": 10,
+          "position": 6081
+        }
+      },
+      "secondFile": {
+        "name": "report\\html\\index.html",
+        "start": 171,
+        "end": 189,
+        "startLoc": {
+          "line": 171,
+          "column": 816,
+          "position": 5656
+        },
+        "endLoc": {
+          "line": 189,
+          "column": 16,
+          "position": 5789
+        }
+      }
+    },
+    {
+      "format": "markup",
+      "lines": 18,
+      "fragment": "\"><code class=\"language-python text-sm text-gray-800\">}),\n        ]\n\n        class FakeFw:\n            def __init__(self, **kwargs: Any) -&gt; None:\n                self.hostname = kwargs.get(&quot;hostname&quot;, &quot;x&quot;)\n            def add(self, child: Any) -&gt; Any:\n                child.parent = self\n                return child\n\n        _patch_firewall_class(monkeypatch, FakeFw)\n        from panos.policies import SecurityRule\n        monkeypatch.setattr(SecurityRule, &quot;refreshall&quot;, staticmethod(lambda *a, **k: rules))\n        _seed_firewall()\n        ctx, mcp = _make_ctx()\n        register_security_tools(ctx)\n\n        result = await _call(",
+      "tokens": 0,
+      "firstFile": {
+        "name": "report\\html\\index.html",
+        "start": 216,
+        "end": 233,
+        "startLoc": {
+          "line": 216,
+          "column": 697,
+          "position": 6470
+        },
+        "endLoc": {
+          "line": 233,
+          "column": 30,
+          "position": 6602
+        }
+      },
+      "secondFile": {
+        "name": "report\\html\\index.html",
+        "start": 189,
+        "end": 188,
+        "startLoc": {
+          "line": 189,
+          "column": 695,
+          "position": 5934
+        },
+        "endLoc": {
+          "line": 188,
+          "column": 34,
+          "position": 5775
+        }
+      }
+    },
+    {
+      "format": "markup",
+      "lines": 19,
+      "fragment": "]\n\n        class FakeFw:\n            def __init__(self, **kwargs: Any) -&gt; None:\n                self.hostname = kwargs.get(&quot;hostname&quot;, &quot;x&quot;)\n            def add(self, child: Any) -&gt; Any:\n                child.parent = self\n                return child\n\n        _patch_firewall_class(monkeypatch, FakeFw)\n        from panos.policies import SecurityRule\n        monkeypatch.setattr(SecurityRule, &quot;refreshall&quot;, staticmethod(lambda *a, **k: rules))\n        _seed_firewall()\n        ctx, mcp = _make_ctx()\n        register_security_tools(ctx)\n\n        result = await _call(\n            mcp, &quot;get_security_rules&quot;, firewall=&quot;fw1&quot;,\n            attrs={",
+      "tokens": 0,
+      "firstFile": {
+        "name": "report\\html\\index.html",
+        "start": 243,
+        "end": 261,
+        "startLoc": {
+          "line": 243,
+          "column": 9,
+          "position": 7003
+        },
+        "endLoc": {
+          "line": 261,
+          "column": 20,
+          "position": 7138
+        }
+      },
+      "secondFile": {
+        "name": "report\\html\\index.html",
+        "start": 171,
+        "end": 234,
+        "startLoc": {
+          "line": 171,
+          "column": 816,
+          "position": 5656
+        },
+        "endLoc": {
+          "line": 234,
+          "column": 77,
+          "position": 6617
+        }
+      }
+    },
+    {
+      "format": "markup",
+      "lines": 20,
+      "fragment": "\"><code class=\"language-python text-sm text-gray-800\">}),\n        ]\n\n        class FakeFw:\n            def __init__(self, **kwargs: Any) -&gt; None:\n                self.hostname = kwargs.get(&quot;hostname&quot;, &quot;x&quot;)\n            def add(self, child: Any) -&gt; Any:\n                child.parent = self\n                return child\n\n        _patch_firewall_class(monkeypatch, FakeFw)\n        from panos.policies import SecurityRule\n        monkeypatch.setattr(SecurityRule, &quot;refreshall&quot;, staticmethod(lambda *a, **k: rules))\n        _seed_firewall()\n        ctx, mcp = _make_ctx()\n        register_security_tools(ctx)\n\n        result = await _call(\n            mcp, &quot;get_security_rules&quot;, firewall=&quot;fw1&quot;,\n            attrs={&quot;has_inspection",
+      "tokens": 0,
+      "firstFile": {
+        "name": "report\\html\\index.html",
+        "start": 269,
+        "end": 288,
+        "startLoc": {
+          "line": 269,
+          "column": 736,
+          "position": 7514
+        },
+        "endLoc": {
+          "line": 288,
+          "column": 40,
+          "position": 7665
+        }
+      },
+      "secondFile": {
+        "name": "report\\html\\index.html",
+        "start": 189,
+        "end": 261,
+        "startLoc": {
+          "line": 189,
+          "column": 695,
+          "position": 5934
+        },
+        "endLoc": {
+          "line": 261,
+          "column": 37,
+          "position": 7140
+        }
+      }
+    },
+    {
+      "format": "markup",
+      "lines": 9,
+      "fragment": "\"><code class=\"language-python text-sm text-gray-800\">class _Rule:\n            def __init__(self, about: dict[str, Any]) -&gt; None:\n                self._about = about\n                self.name = about[&quot;name&quot;]\n            def about(self) -&gt; dict[str, Any]:\n                return dict(self._about)\n\n        rules = [\n            _Rule({&quot;name&quot;: &quot;guarded&quot;,",
+      "tokens": 0,
+      "firstFile": {
+        "name": "report\\html\\index.html",
+        "start": 288,
+        "end": 296,
+        "startLoc": {
+          "line": 288,
+          "column": 723,
+          "position": 7811
+        },
+        "endLoc": {
+          "line": 296,
+          "column": 58,
+          "position": 7895
+        }
+      },
+      "secondFile": {
+        "name": "report\\html\\index.html",
+        "start": 261,
+        "end": 269,
+        "startLoc": {
+          "line": 261,
+          "column": 720,
+          "position": 7286
+        },
+        "endLoc": {
+          "line": 269,
+          "column": 59,
+          "position": 7370
+        }
+      }
+    },
+    {
+      "format": "markup",
+      "lines": 20,
+      "fragment": "\"><code class=\"language-python text-sm text-gray-800\">}),\n        ]\n\n        class FakeFw:\n            def __init__(self, **kwargs: Any) -&gt; None:\n                self.hostname = kwargs.get(&quot;hostname&quot;, &quot;x&quot;)\n            def add(self, child: Any) -&gt; Any:\n                child.parent = self\n                return child\n\n        _patch_firewall_class(monkeypatch, FakeFw)\n        from panos.policies import SecurityRule\n        monkeypatch.setattr(SecurityRule, &quot;refreshall&quot;, staticmethod(lambda *a, **k: rules))\n        _seed_firewall()\n        ctx, mcp = _make_ctx()\n        register_security_tools(ctx)\n\n        result = await _call(\n            mcp, &quot;get_security_rules&quot;, firewall=&quot;fw1&quot;,\n            attrs={&quot;has_profile",
+      "tokens": 0,
+      "firstFile": {
+        "name": "report\\html\\index.html",
+        "start": 297,
+        "end": 316,
+        "startLoc": {
+          "line": 297,
+          "column": 733,
+          "position": 8071
+        },
+        "endLoc": {
+          "line": 316,
+          "column": 37,
+          "position": 8222
+        }
+      },
+      "secondFile": {
+        "name": "report\\html\\index.html",
+        "start": 189,
+        "end": 261,
+        "startLoc": {
+          "line": 189,
+          "column": 695,
+          "position": 5934
+        },
+        "endLoc": {
+          "line": 261,
+          "column": 37,
+          "position": 7140
+        }
+      }
+    },
+    {
+      "format": "markup",
+      "lines": 18,
+      "fragment": "]}),\n        ]\n\n        class FakeFw:\n            def __init__(self, **kwargs: Any) -&gt; None:\n                self.hostname = kwargs.get(&quot;hostname&quot;, &quot;x&quot;)\n            def add(self, child: Any) -&gt; Any:\n                child.parent = self\n                return child\n\n        _patch_firewall_class(monkeypatch, FakeFw)\n        from panos.policies import SecurityRule\n        monkeypatch.setattr(SecurityRule, &quot;refreshall&quot;, staticmethod(lambda *a, **k: rules))\n        _seed_firewall()\n        ctx, mcp = _make_ctx()\n        register_security_tools(ctx)\n\n        #",
+      "tokens": 0,
+      "firstFile": {
+        "name": "report\\html\\index.html",
+        "start": 324,
+        "end": 341,
+        "startLoc": {
+          "line": 324,
+          "column": 809,
+          "position": 8613
+        },
+        "endLoc": {
+          "line": 341,
+          "column": 10,
+          "position": 8728
+        }
+      },
+      "secondFile": {
+        "name": "report\\html\\index.html",
+        "start": 242,
+        "end": 188,
+        "startLoc": {
+          "line": 242,
+          "column": 792,
+          "position": 7000
+        },
+        "endLoc": {
+          "line": 188,
+          "column": 15,
+          "position": 5769
+        }
+      }
+    },
+    {
+      "format": "markup",
+      "lines": 15,
+      "fragment": "class FakeFw:\n            def __init__(self, **kwargs: Any) -&gt; None:\n                self.hostname = kwargs.get(&quot;hostname&quot;, &quot;x&quot;)\n            def add(self, child: Any) -&gt; Any:\n                child.parent = self\n                return child\n\n        _patch_firewall_class(monkeypatch, FakeFw)\n        from panos.policies import SecurityRule\n        monkeypatch.setattr(SecurityRule, &quot;refreshall&quot;, staticmethod(lambda *a, **k: rules))\n        _seed_firewall()\n        ctx, mcp = _make_ctx()\n        register_security_tools(ctx)\n\n        for",
+      "tokens": 0,
+      "firstFile": {
+        "name": "report\\html\\index.html",
+        "start": 350,
+        "end": 364,
+        "startLoc": {
+          "line": 350,
+          "column": 9,
+          "position": 9131
+        },
+        "endLoc": {
+          "line": 364,
+          "column": 12,
+          "position": 9239
+        }
+      },
+      "secondFile": {
+        "name": "report\\html\\index.html",
+        "start": 173,
+        "end": 188,
+        "startLoc": {
+          "line": 173,
+          "column": 9,
+          "position": 5660
+        },
+        "endLoc": {
+          "line": 188,
+          "column": 15,
+          "position": 5769
+        }
+      }
+    },
+    {
+      "format": "markup",
+      "lines": 11,
+      "fragment": "\"><code class=\"language-python text-sm text-gray-800\">@pytest.fixture(autouse=True)\ndef _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -&gt; Any:\n    monkeypatch.setenv(&quot;PANOS_FIREWALLS_CONFIG&quot;, str(tmp_path / &quot;firewalls.json&quot;))\n    monkeypatch.delenv(&quot;PANOS_HOST&quot;, raising=False)\n    monkeypatch.delenv(&quot;PANOS_API_KEY&quot;, raising=False)\n    fw_module._entries = []\n    reset_client_cache()\n    yield\n    fw_module._entries = []\n    reset_client_cache()\n    from",
+      "tokens": 0,
+      "firstFile": {
+        "name": "report\\html\\index.html",
+        "start": 426,
+        "end": 436,
+        "startLoc": {
+          "line": 426,
+          "column": 697,
+          "position": 11005
+        },
+        "endLoc": {
+          "line": 436,
+          "column": 9,
+          "position": 11091
+        }
+      },
+      "secondFile": {
+        "name": "report\\html\\index.html",
+        "start": 364,
+        "end": 376,
+        "startLoc": {
+          "line": 364,
+          "column": 684,
+          "position": 9384
+        },
+        "endLoc": {
+          "line": 376,
+          "column": 4,
+          "position": 9471
+        }
+      }
+    },
+    {
+      "format": "markup",
+      "lines": 14,
+      "fragment": "captured: dict[str, Any] = {}\r\n\r\n        class FakeFirewall:\r\n            def __init__(self, **kwargs: Any) -&gt; None:\r\n                captured.update(kwargs)\r\n                self.hostname = kwargs.get(&quot;hostname&quot;)\r\n                self.api_key = kwargs.get(&quot;api_key&quot;)\r\n\r\n            def refresh_system_info(self) -&gt; tuple[str, str, str]:\r\n                return (&quot;11.1.0&quot;, &quot;PA-460&quot;, &quot;0123456789&quot;)\r\n\r\n        monkeypatch.setattr(client_module, &quot;Firewall&quot;, FakeFirewall)\r\n        _seed(&quot;fw1&quot;, &quot;10.0.0.1&quot;, &quot;k&quot;)\r\n        get_client(&quot;fw1&quot;, tls=TlsConfig(verify=True,",
+      "tokens": 0,
+      "firstFile": {
+        "name": "report\\html\\index.html",
+        "start": 478,
+        "end": 491,
+        "startLoc": {
+          "line": 478,
+          "column": 784,
+          "position": 12182
+        },
+        "endLoc": {
+          "line": 491,
+          "column": 63,
+          "position": 12319
+        }
+      },
+      "secondFile": {
+        "name": "report\\html\\index.html",
+        "start": 465,
+        "end": 478,
+        "startLoc": {
+          "line": 465,
+          "column": 9,
+          "position": 11889
+        },
+        "endLoc": {
+          "line": 478,
+          "column": 63,
+          "position": 12026
+        }
+      }
+    },
+    {
+      "format": "markup",
+      "lines": 15,
+      "fragment": "\"><code class=\"language-python text-sm text-gray-800\">@pytest.fixture(autouse=True)\ndef _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -&gt; Any:\n    monkeypatch.setenv(&quot;PANOS_FIREWALLS_CONFIG&quot;, str(tmp_path / &quot;firewalls.json&quot;))\n    monkeypatch.delenv(&quot;PANOS_HOST&quot;, raising=False)\n    monkeypatch.delenv(&quot;PANOS_API_KEY&quot;, raising=False)\n    fw_module._entries = []\n    reset_client_cache()\n    yield\n    fw_module._entries = []\n    reset_client_cache()\n    from panos.firewall import Firewall as RealFirewall\n    client_module.Firewall = RealFirewall\n\n\ndef _seed_firewall()",
+      "tokens": 0,
+      "firstFile": {
+        "name": "report\\html\\index.html",
+        "start": 503,
+        "end": 517,
+        "startLoc": {
+          "line": 503,
+          "column": 704,
+          "position": 12706
+        },
+        "endLoc": {
+          "line": 517,
+          "column": 21,
+          "position": 12815
+        }
+      },
+      "secondFile": {
+        "name": "report\\html\\index.html",
+        "start": 364,
+        "end": 440,
+        "startLoc": {
+          "line": 364,
+          "column": 684,
+          "position": 9384
+        },
+        "endLoc": {
+          "line": 440,
+          "column": 25,
+          "position": 11114
+        }
+      }
+    },
+    {
+      "format": "markup",
+      "lines": 15,
+      "fragment": "from pathlib import Path\nfrom typing import Any\nfrom unittest.mock import MagicMock\n\nimport pytest\nfrom mcp.server.fastmcp import FastMCP\nfrom mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink\nfrom panos.errors import PanDeviceError\n\nimport panos_mcp.client as client_module\nimport panos_mcp.config.firewalls as fw_module\nfrom panos_mcp.client import reset_client_cache\nfrom panos_mcp.config.firewalls import FirewallEntry\nfrom panos_mcp.tools._common import ToolContext\nfrom panos_mcp.tools.admin_ops",
+      "tokens": 0,
+      "firstFile": {
+        "name": "report\\html\\index.html",
+        "start": 541,
+        "end": 555,
+        "startLoc": {
+          "line": 541,
+          "column": 799,
+          "position": 13483
+        },
+        "endLoc": {
+          "line": 555,
+          "column": 31,
+          "position": 13585
+        }
+      },
+      "secondFile": {
+        "name": "report\\html\\index.html",
+        "start": 412,
+        "end": 426,
+        "startLoc": {
+          "line": 412,
+          "column": 1,
+          "position": 10758
+        },
+        "endLoc": {
+          "line": 426,
+          "column": 29,
+          "position": 10860
+        }
+      }
+    }
+  ]
+}
