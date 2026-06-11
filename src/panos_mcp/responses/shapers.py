@@ -25,7 +25,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from mcp_toolkit import Pagination, filter_by_pattern, paginate
+from node804_mcp_toolkit import Pagination, filter_by_pattern, paginate
 
 
 @dataclass(frozen=True)
@@ -120,9 +120,7 @@ def apply_shape(
     total = len(filtered)
 
     # Project + drop-None.
-    projected = [
-        _project_fields(item, fields, shape.default_fields, verbose) for item in filtered
-    ]
+    projected = [_project_fields(item, fields, shape.default_fields, verbose) for item in filtered]
     if shape.drop_when_none:
         projected = [_drop_nones(item) for item in projected]
 

@@ -20,7 +20,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from mcp.server.fastmcp import FastMCP
-from mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink
+from node804_mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink
 from panos.errors import PanDeviceError
 
 import panos_mcp.client as client_module
@@ -50,6 +50,7 @@ def _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Any:
     fw_module._entries = []
     reset_client_cache()
     from panos.firewall import Firewall as RealFirewall
+
     client_module.Firewall = RealFirewall
 
 
@@ -58,7 +59,9 @@ def _seed_firewall(name: str = "fw1") -> None:
 
 
 def _make_ctx(
-    mode: Mode = Mode.ADMIN, *, audit_sink: Any = None,
+    mode: Mode = Mode.ADMIN,
+    *,
+    audit_sink: Any = None,
 ) -> tuple[ToolContext, FastMCP, ModeGate]:
     mcp = FastMCP("test")
     sink = audit_sink if audit_sink is not None else open_sink({})
@@ -187,14 +190,17 @@ class TestCommit:
         assert result["id"] == "1234"
 
     @pytest.mark.asyncio
-    async def test_passes_description_and_partial_admin(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_passes_description_and_partial_admin(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         _patch_fw(monkeypatch, _fake_fw_class())
         _seed_firewall()
         ctx, mcp, _ = _make_ctx()
         register_admin_ops_tools(ctx)
 
         await _call(
-            mcp, "commit",
+            mcp,
+            "commit",
             description="Partial commit by SecOps",
             partial_admin="alice",
             firewall="fw1",
@@ -211,6 +217,7 @@ class TestCommit:
             def __init__(self, **kwargs: Any) -> None:
                 self.hostname = kwargs.get("hostname", "x")
                 self.xapi = MagicMock()
+
             def commit(self, **kwargs: Any) -> Any:
                 raise PanDeviceError("Commit blocked: validation errors")
 
@@ -242,14 +249,17 @@ class TestPanoramaCommit:
 
 class TestPanoramaPush:
     @pytest.mark.asyncio
-    async def test_push_calls_commit_all_with_devicegroup(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_push_calls_commit_all_with_devicegroup(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         _patch_fw(monkeypatch, _fake_fw_class(commit_all_return={"id": "777"}))
         _seed_firewall()
         ctx, mcp, _ = _make_ctx()
         register_admin_ops_tools(ctx)
 
         result = await _call(
-            mcp, "panorama_push_to_devices",
+            mcp,
+            "panorama_push_to_devices",
             device_group="hq-dg",
             description="Push security policy",
             include_template=True,
@@ -279,9 +289,10 @@ class TestSetConfig:
         register_admin_ops_tools(ctx)
 
         result = await _call(
-            mcp, "set_config",
+            mcp,
+            "set_config",
             xpath="/config/devices/entry[@name='localhost.localdomain']/vsys/entry[@name='vsys1']/address",
-            element="<entry name=\"x\"><ip-netmask>10.0.0.1/32</ip-netmask></entry>",
+            element='<entry name="x"><ip-netmask>10.0.0.1/32</ip-netmask></entry>',
             firewall="fw1",
         )
         assert result["success"] is True
@@ -293,6 +304,7 @@ class TestSetConfig:
         from pydantic import TypeAdapter, ValidationError
 
         from panos_mcp.tools.admin_ops import XPathParam
+
         with pytest.raises(ValidationError):
             TypeAdapter(XPathParam).validate_python("/wrong/start")
 
@@ -301,6 +313,7 @@ class TestSetConfig:
         from pydantic import TypeAdapter, ValidationError
 
         from panos_mcp.tools.admin_ops import XmlElement
+
         adapter = TypeAdapter(XmlElement)
         adapter.validate_python("<entry name='x'/>")
         with pytest.raises(ValidationError):
@@ -316,7 +329,8 @@ class TestDeleteConfig:
         register_admin_ops_tools(ctx)
 
         result = await _call(
-            mcp, "delete_config",
+            mcp,
+            "delete_config",
             xpath="/config/devices/entry[@name='localhost.localdomain']/vsys/entry[@name='vsys1']/address/entry[@name='gone']",
             firewall="fw1",
         )
@@ -337,7 +351,8 @@ class TestRunOpCommand:
         register_utility_tools(ctx)
 
         result = await _call(
-            mcp, "run_op_command",
+            mcp,
+            "run_op_command",
             command="<show><system><info></info></system></show>",
             firewall="fw1",
         )
@@ -349,6 +364,7 @@ class TestRunOpCommand:
         from pydantic import TypeAdapter, ValidationError
 
         from panos_mcp.tools.utility import XmlOpCommand
+
         adapter = TypeAdapter(XmlOpCommand)
         with pytest.raises(ValidationError):
             adapter.validate_python("not xml")
@@ -370,7 +386,8 @@ class TestRunShowCommand:
         register_utility_tools(ctx)
 
         result = await _call(
-            mcp, "run_show_command",
+            mcp,
+            "run_show_command",
             command="<show><system><info></info></system></show>",
             firewall="fw1",
         )
@@ -381,6 +398,7 @@ class TestRunShowCommand:
         from pydantic import TypeAdapter, ValidationError
 
         from panos_mcp.tools.utility import XmlShowCommand
+
         adapter = TypeAdapter(XmlShowCommand)
         # <show ...> accepted
         adapter.validate_python("<show><system><info></info></system></show>")
@@ -401,6 +419,98 @@ class TestRunShowCommand:
         enabled = set(gate.summary()["enabled_tools"])
         assert "run_show_command" in enabled
 
+    @pytest.mark.asyncio
+    async def test_show_config_of_protected_subtree_refused(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # A <show><config> read targeting a secret-bearing subtree is rejected
+        # before reaching the device (M2 read denylist).
+        _patch_fw(monkeypatch, _fake_fw_class())
+        _seed_firewall()
+        ctx, mcp, _ = _make_ctx(Mode.READ)
+        register_utility_tools(ctx)
+
+        result = await _call(
+            mcp,
+            "run_show_command",
+            command=(
+                "<show><config><running><xpath>/config/mgt-config/users"
+                "</xpath></running></config></show>"
+            ),
+            firewall="fw1",
+        )
+        assert result["success"] is False
+        assert "protected subtree" in result["error"]
+        # Never hit the device.
+        assert client_module._CLIENTS["fw1"].op_calls == []
+
+
+# --- get_config_xpath: injection + read denylist ------------------------
+
+
+class TestGetConfigXpathSecurity:
+    """H1 (XML/op injection) and M2 (read-side denylist) defenses."""
+
+    def test_xpath_schema_rejects_angle_brackets(self) -> None:
+        from pydantic import TypeAdapter, ValidationError
+
+        from panos_mcp.tools.utility import XPathParam
+
+        adapter = TypeAdapter(XPathParam)
+        # Legitimate xpaths (incl. quoted predicates) are accepted.
+        adapter.validate_python("/config/devices/entry[@name='localhost.localdomain']/network")
+        # Breakout attempts and non-/config roots are rejected.
+        for bad in [
+            "/config/x</xpath></running></config></show><request><restart/>",
+            "/config/x<foo>",
+            "/etc/passwd",
+            "config/no-leading-slash",
+        ]:
+            with pytest.raises(ValidationError):
+                adapter.validate_python(bad)
+
+    @pytest.mark.asyncio
+    async def test_xpath_value_is_xml_escaped_in_command(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Even though the schema rejects '<', the command builder escapes the
+        # value as defense-in-depth. Verify quotes survive and the wrapper is
+        # well-formed for a legitimate predicate xpath.
+        _patch_fw(monkeypatch, _fake_fw_class(op_return={"network": {}}))
+        _seed_firewall()
+        ctx, mcp, _ = _make_ctx(Mode.READ)
+        register_utility_tools(ctx)
+
+        await _call(
+            mcp,
+            "get_config_xpath",
+            xpath="/config/devices/entry[@name='localhost.localdomain']/network",
+            firewall="fw1",
+        )
+        sent = client_module._CLIENTS["fw1"].op_calls[0]
+        assert sent.startswith("<show><config><running><xpath>/config/")
+        assert sent.endswith("</xpath></running></config></show>")
+        # Quote preserved (valid in XML text), no stray '<' inside the value.
+        assert "entry[@name='localhost.localdomain']" in sent
+
+    @pytest.mark.asyncio
+    async def test_protected_subtree_read_refused(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        _patch_fw(monkeypatch, _fake_fw_class())
+        _seed_firewall()
+        ctx, mcp, _ = _make_ctx(Mode.READ)
+        register_utility_tools(ctx)
+
+        for protected in [
+            "/config/shared/certificate",
+            "/config/mgt-config/users",
+            "/config/shared/authentication-profile",
+        ]:
+            result = await _call(mcp, "get_config_xpath", xpath=protected, firewall="fw1")
+            assert result["success"] is False, protected
+            assert "protected subtree" in result["error"]
+        # Rejected before the client is even resolved — no device contact.
+        assert "fw1" not in client_module._CLIENTS
+
 
 # --- Security guards: env gating + denylists ----------------------------
 
@@ -408,9 +518,7 @@ class TestRunShowCommand:
 class TestRawConfigGating:
     """set_config / delete_config must require PANOS_ENABLE_RAW_CONFIG=true."""
 
-    def test_raw_config_unregistered_when_env_unset(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_raw_config_unregistered_when_env_unset(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("PANOS_ENABLE_RAW_CONFIG", raising=False)
         ctx, _mcp, gate = _make_ctx(Mode.ADMIN)
         register_admin_ops_tools(ctx)
@@ -448,7 +556,8 @@ class TestRawConfigGating:
         register_admin_ops_tools(ctx)
 
         result = await _call(
-            mcp, "set_config",
+            mcp,
+            "set_config",
             xpath=denied_xpath,
             element="<entry name='x'/>",
             firewall="fw1",
@@ -468,7 +577,8 @@ class TestRawConfigGating:
         ctx, mcp, _ = _make_ctx()
         register_admin_ops_tools(ctx)
         result = await _call(
-            mcp, "delete_config",
+            mcp,
+            "delete_config",
             xpath="/config/mgt-config/users/entry[@name='admin']",
             firewall="fw1",
         )
@@ -478,9 +588,7 @@ class TestRawConfigGating:
         client.xapi.delete.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_allowlist_restricts_surface(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_allowlist_restricts_surface(self, monkeypatch: pytest.MonkeyPatch) -> None:
         # Operator may further restrict to a single subtree via env.
         monkeypatch.setenv(
             "PANOS_RAW_XPATH_ALLOW",
@@ -493,9 +601,10 @@ class TestRawConfigGating:
 
         # Inside the allowed subtree → succeeds.
         ok = await _call(
-            mcp, "set_config",
+            mcp,
+            "set_config",
             xpath="/config/devices/entry[@name='localhost.localdomain']"
-                  "/vsys/entry[@name='vsys1']/address",
+            "/vsys/entry[@name='vsys1']/address",
             element="<entry name='x'><ip-netmask>1.2.3.4/32</ip-netmask></entry>",
             firewall="fw1",
         )
@@ -503,7 +612,8 @@ class TestRawConfigGating:
 
         # Outside the allowed subtree → rejected even when not denylisted.
         denied = await _call(
-            mcp, "set_config",
+            mcp,
+            "set_config",
             xpath="/config/devices/entry[@name='localhost.localdomain']/network",
             element="<x/>",
             firewall="fw1",
@@ -515,9 +625,7 @@ class TestRawConfigGating:
 class TestRawOpGating:
     """run_op_command must require PANOS_ENABLE_RAW_OPS=true and apply denylist."""
 
-    def test_run_op_unregistered_when_env_unset(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_run_op_unregistered_when_env_unset(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("PANOS_ENABLE_RAW_OPS", raising=False)
         ctx, _mcp, gate = _make_ctx(Mode.ADMIN)
         register_utility_tools(ctx)
@@ -568,9 +676,7 @@ class TestPreflightAudit:
     and survives kill-9 / network hang scenarios."""
 
     @pytest.mark.asyncio
-    async def test_commit_emits_preflight(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_commit_emits_preflight(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_fw(monkeypatch, _fake_fw_class())
         _seed_firewall()
         sink = _RecordingSink()
@@ -597,9 +703,10 @@ class TestPreflightAudit:
         # Big element body — pre-flight record should truncate it.
         big = "<entry name='x'>" + ("<long/>" * 200) + "</entry>"
         await _call(
-            mcp, "set_config",
+            mcp,
+            "set_config",
             xpath="/config/devices/entry[@name='localhost.localdomain']"
-                  "/vsys/entry[@name='vsys1']/address",
+            "/vsys/entry[@name='vsys1']/address",
             element=big,
             firewall="fw1",
         )
@@ -623,7 +730,8 @@ class TestPreflightAudit:
         register_admin_ops_tools(ctx)
 
         result = await _call(
-            mcp, "set_config",
+            mcp,
+            "set_config",
             xpath="/config/mgt-config/users/entry[@name='attacker']",
             element="<entry/>",
             firewall="fw1",
@@ -647,6 +755,7 @@ class TestRunBlockingDoesNotStallEventLoop:
             def __init__(self, **kwargs: Any) -> None:
                 self.hostname = kwargs.get("hostname", "x")
                 self.xapi = MagicMock()
+
             def commit(self, **kwargs: Any) -> Any:
                 time.sleep(0.2)  # simulate slow PAN-OS commit
                 return {"id": "x"}
@@ -665,4 +774,6 @@ class TestRunBlockingDoesNotStallEventLoop:
         assert all(r["success"] for r in results)
         # If sequential (event-loop-blocking): ~0.4s. If parallel via executor:
         # ~0.2s. Allow generous margin for test machines.
-        assert elapsed < 0.35, f"calls appear sequential ({elapsed:.2f}s); run_blocking should parallelize"
+        assert elapsed < 0.35, (
+            f"calls appear sequential ({elapsed:.2f}s); run_blocking should parallelize"
+        )

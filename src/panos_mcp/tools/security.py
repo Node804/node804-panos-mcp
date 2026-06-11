@@ -17,13 +17,11 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal
 
-from mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
+from node804_mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
 from pan.xapi import PanXapiError
 from panos.errors import PanDeviceError
 from panos.policies import (
     PolicyBasedForwarding,
-    PostRulebase,
-    PreRulebase,
     Rulebase,
     SecurityRule,
 )
@@ -41,6 +39,7 @@ from ..responses.shapers import apply_shape
 from ._common import (
     AttrFilter,
     ToolContext,
+    build_running_config_xpath_cmd,
     check_renamed_attr_keys,
     enrich_security_rule_dicts,
     filter_by_attrs,
@@ -93,7 +92,7 @@ def _profiles_xpath(client: Any) -> str:
     if isinstance(client, Panorama):
         return "/config/shared/profiles"
     vsys = getattr(client, "vsys", None) or "vsys1"
-    return client.xpath_root(Root.VSYS, vsys) + "/profiles"
+    return f"{client.xpath_root(Root.VSYS, vsys)}/profiles"
 
 
 def _security_profile_objects(client: Any) -> list[dict[str, Any]]:
@@ -103,7 +102,7 @@ def _security_profile_objects(client: Any) -> list[dict[str, Any]]:
     each known profile type into ``{name, description, type, ...}`` dicts.
     """
     xpath = _profiles_xpath(client)
-    cmd = f"<show><config><running><xpath>{xpath}</xpath></running></config></show>"
+    cmd = build_running_config_xpath_cmd(xpath)
     try:
         result = op_to_dict(client, cmd)
     except (PanDeviceError, PanXapiError) as exc:
@@ -222,7 +221,10 @@ def register_security_tools(ctx: ToolContext) -> None:
         return apply_shape(
             filtered,
             shape=SHAPE_SECURITY_RULE,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -239,8 +241,12 @@ def register_security_tools(ctx: ToolContext) -> None:
             return client
         items = _security_profile_objects(client)
         return apply_shape(
-            items, shape=SHAPE_PROFILE, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            items,
+            shape=SHAPE_PROFILE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -253,13 +259,18 @@ def register_security_tools(ctx: ToolContext) -> None:
     ) -> dict[str, Any]:
         """Security profile groups that bundle multiple profiles for use in rules."""
         from panos.objects import SecurityProfileGroup
+
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
         groups = SecurityProfileGroup.refreshall(client)
         return apply_shape(
-            panos_object_dicts(groups), shape=SHAPE_PROFILE_GROUP,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(groups),
+            shape=SHAPE_PROFILE_GROUP,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -278,8 +289,12 @@ def register_security_tools(ctx: ToolContext) -> None:
         client.add(rulebase)
         rules = PolicyBasedForwarding.refreshall(rulebase)
         return apply_shape(
-            panos_object_dicts(rules), shape=SHAPE_PBF_RULE,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(rules),
+            shape=SHAPE_PBF_RULE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -299,16 +314,21 @@ def register_security_tools(ctx: ToolContext) -> None:
                     "DoS profile model not available in this pan-os-python version. "
                     "Tracked for a follow-up; use get_config_xpath as a workaround."
                 ),
-                "items": [], "total": 0, "count": 0,
+                "items": [],
+                "total": 0,
+                "count": 0,
             }
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
         profiles = DosProtectionProfile.refreshall(client)
-        _ = (PostRulebase, PreRulebase)
         return apply_shape(
-            panos_object_dicts(profiles), shape=SHAPE_DOS_PROFILE,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(profiles),
+            shape=SHAPE_DOS_PROFILE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -323,10 +343,7 @@ def register_security_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        result = op_to_dict(
-            client,
-            f"<show><config><running><xpath>{QOS_RULES_XPATH}</xpath></running></config></show>",
-        )
+        result = op_to_dict(client, build_running_config_xpath_cmd(QOS_RULES_XPATH))
         rules_section = result.get("rules", result) if isinstance(result, dict) else {}
         if isinstance(rules_section, dict) and "entry" in rules_section:
             entries_raw = rules_section["entry"]
@@ -335,8 +352,11 @@ def register_security_tools(ctx: ToolContext) -> None:
             items = []
         return apply_shape(
             [i for i in items if isinstance(i, dict)],
-            shape=SHAPE_QOS_RULE, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            shape=SHAPE_QOS_RULE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     # ── Security rule CRUD (Mode.FULL) ──────────────────────────────────────
@@ -458,7 +478,9 @@ def register_security_tools(ctx: ToolContext) -> None:
         action: PbfAction,
         egress_interface: Annotated[
             str | None,
-            Field(default=None, max_length=63, description="Egress interface for 'forward' action."),
+            Field(
+                default=None, max_length=63, description="Egress interface for 'forward' action."
+            ),
         ] = None,
         next_hop_type: Literal["ip-address", "fqdn"] | None = None,
         next_hop_value: MemberValue | None = None,
@@ -487,7 +509,9 @@ def register_security_tools(ctx: ToolContext) -> None:
                 # pan-os-python field is forward_next_hop_type / forward_next_hop_value
                 kwargs["forward_next_hop_type"] = next_hop_type
                 kwargs["forward_next_hop_value"] = next_hop_value
-        rule = PolicyBasedForwarding(**{k: v for k, v in kwargs.items() if v is not None or k == "name"})
+        rule = PolicyBasedForwarding(
+            **{k: v for k, v in kwargs.items() if v is not None or k == "name"}
+        )
         rulebase.add(rule)
         try:
             rule.create()
@@ -627,9 +651,7 @@ def register_security_tools(ctx: ToolContext) -> None:
                 "error": "'destination' is required when 'where' is 'before' or 'after'.",
             }
         try:
-            client.xapi.move(
-                qos_rule_xpath(name), where, dst=destination
-            )
+            client.xapi.move(qos_rule_xpath(name), where, dst=destination)
         except PanDeviceError as e:
             return wrap_panos_error(e, "move", name)
         return write_success("moved", name, where=where, dst=destination)

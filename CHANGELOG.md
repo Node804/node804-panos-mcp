@@ -5,7 +5,32 @@ All notable changes to this project will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.5]
+## [0.1.5] — 2026-06-11
+
+First public release, published to PyPI as **`node804-panos-mcp`**.
+
+### Security
+
+- **XPath injection hardening (`get_config_xpath`).** LLM-supplied xpaths are
+  now XML-escaped and the schema rejects angle brackets, so a value can no
+  longer break out of the `<xpath>` element to inject sibling op-command XML.
+  All `<show><config><running>` command construction is centralized in
+  `build_running_config_xpath_cmd`, so the escaping can't be dropped by a
+  refactor.
+- **Read-side denylist.** `get_config_xpath` and `run_show_command` now refuse
+  reads of secret-bearing config subtrees (certificates, `mgt-config` admin
+  accounts/password hashes, authentication profiles), mirroring the existing
+  write-side denylist.
+- **License authcodes** are no longer returned in the default `get_licenses`
+  response — pass `verbose=true` or `fields=["authcode"]` to include them.
+
+### Packaging
+
+- Renamed the distribution to `node804-panos-mcp` and declared its dependency
+  on `node804-mcp-toolkit` (previously installed out-of-band). The version is
+  now single-sourced from `panos_mcp.__version__`. Added a `py.typed` marker,
+  trove classifiers, keywords, and an sdist exclude list. CI installs the
+  declared dependency instead of an unclaimed PyPI name.
 
 ### Fixed
 
@@ -129,11 +154,12 @@ package.
 
 ### Verification
 
-- 134 unit tests + 7 benchmark tests passing on Python 3.13/3.14
-- Ruff (`E F I B UP SIM RUF`) and mypy (`--strict`) clean across 30 source
-  files
+- 227 unit tests + benchmark suite passing on Python 3.13/3.14
+- Ruff (`E F I B UP SIM RUF`), `ruff format`, and mypy (`--strict`) clean
+  across all source files
 - POSIX file-permission tests skipped on Windows; everything else runs on
   every platform
 
-[Unreleased]: https://github.com/epopleachim/panos-mcp-py/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/epopleachim/panos-mcp-py/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/epopleachim/panos-mcp-py/releases/tag/v0.1.5
 [0.1.0]: https://github.com/epopleachim/panos-mcp-py/releases/tag/v0.1.0

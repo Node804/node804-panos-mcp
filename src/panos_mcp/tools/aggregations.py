@@ -20,10 +20,9 @@ config.
 from __future__ import annotations
 
 import ipaddress
-import re
 from typing import Annotated, Any, Literal
 
-from mcp_toolkit import Mode
+from node804_mcp_toolkit import Mode
 from panos.objects import (
     AddressGroup,
     AddressObject,
@@ -32,7 +31,7 @@ from panos.objects import (
     ServiceObject,
     Tag,
 )
-from panos.panorama import DeviceGroup, Panorama
+from panos.panorama import DeviceGroup
 from panos.policies import (
     DecryptionRule,
     NatRule,
@@ -98,7 +97,9 @@ def _try_parse_ip_range(value: str) -> tuple[int, int] | None:
     return (min(low, high), max(low, high))
 
 
-def _ip_object_matches(addr_dict: dict[str, Any], query_net: ipaddress.IPv4Network | ipaddress.IPv6Network) -> bool:
+def _ip_object_matches(
+    addr_dict: dict[str, Any], query_net: ipaddress.IPv4Network | ipaddress.IPv6Network
+) -> bool:
     """True when ``addr_dict``'s value contains or overlaps ``query_net``."""
     # ip-netmask / ip-wildcard: parse as network, check overlap.
     for key in ("ip_netmask", "ip_wildcard"):
@@ -279,7 +280,9 @@ def register_aggregation_tools(ctx: ToolContext) -> None:
         if isinstance(client, dict):
             return client
 
-        types_to_search = set(rule_types) if rule_types else {"security", "nat", "pbf", "decryption"}
+        types_to_search = (
+            set(rule_types) if rule_types else {"security", "nat", "pbf", "decryption"}
+        )
         needle = pattern.casefold()
 
         rulebase = Rulebase()
@@ -500,10 +503,6 @@ def register_aggregation_tools(ctx: ToolContext) -> None:
         svc_groups = ServiceGroup.refreshall(client)
         tags = Tag.refreshall(client)
         app_filters = ApplicationFilter.refreshall(client)
-
-        # Silence unused-import warning for the regex import used by future
-        # extensions of name-pattern matching.
-        _ = re
 
         return {
             "address_objects": {"total": len(addrs), "by_type": addr_types},

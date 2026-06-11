@@ -148,9 +148,7 @@ def load_firewall_config() -> None:
             for e in to_migrate:
                 assert e.api_key is not None
                 keyring.set_password(KEYRING_SERVICE, e.name, e.api_key)
-            cleaned = {
-                "firewalls": [{"name": e.name, "host": e.host} for e in file_entries]
-            }
+            cleaned = {"firewalls": [{"name": e.name, "host": e.host} for e in file_entries]}
             _write_restricted(path, json.dumps(cleaned, indent=2) + "\n")
             print(
                 f"[panos-mcp] Migrated {len(to_migrate)} API key(s) to system keychain",

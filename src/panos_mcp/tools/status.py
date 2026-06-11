@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp_toolkit import AuditSink, Mode, describe_tls
+from node804_mcp_toolkit import AuditSink, Mode, describe_tls
 
 from ..config.firewalls import is_multi_firewall, list_firewall_entries
 from ._common import ToolContext

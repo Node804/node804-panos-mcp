@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
+from node804_mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
 
 from ..responses.schemas import SHAPE_GP_CONFIG, SHAPE_GP_USER, SHAPE_IPSEC_TUNNEL
 from ..responses.shapers import apply_shape
-from ._common import ToolContext, op_to_dict
+from ._common import ToolContext, build_running_config_xpath_cmd, op_to_dict
 
 
 def register_vpn_tools(ctx: ToolContext) -> None:
@@ -38,8 +38,11 @@ def register_vpn_tools(ctx: ToolContext) -> None:
             items = []
         return apply_shape(
             [i for i in items if isinstance(i, dict)],
-            shape=SHAPE_IPSEC_TUNNEL, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            shape=SHAPE_IPSEC_TUNNEL,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -68,8 +71,12 @@ def register_vpn_tools(ctx: ToolContext) -> None:
         else:
             items = []
         return apply_shape(
-            items, shape=SHAPE_GP_USER, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            items,
+            shape=SHAPE_GP_USER,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -89,10 +96,7 @@ def register_vpn_tools(ctx: ToolContext) -> None:
             "/config/devices/entry[@name='localhost.localdomain']/vsys/entry[@name='vsys1']"
             "/global-protect"
         )
-        result = op_to_dict(
-            client,
-            f"<show><config><running><xpath>{xpath}</xpath></running></config></show>",
-        )
+        result = op_to_dict(client, build_running_config_xpath_cmd(xpath))
         gp = result.get("global-protect", result) if isinstance(result, dict) else result
         if not isinstance(gp, dict):
             return {"total": 0, "count": 0, "items": []}
@@ -111,8 +115,12 @@ def register_vpn_tools(ctx: ToolContext) -> None:
                     e2["kind"] = kind
                     items.append(e2)
         return apply_shape(
-            items, shape=SHAPE_GP_CONFIG, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            items,
+            shape=SHAPE_GP_CONFIG,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
 

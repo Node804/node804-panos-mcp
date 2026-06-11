@@ -101,10 +101,16 @@ class TestLoadFirewallConfig:
     def test_loads_entries_with_keyring_keys(self, fake_keyring: dict[str, str]) -> None:
         path = get_config_path()
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"firewalls": [
-            {"name": "fw1", "host": "10.0.0.1"},
-            {"name": "fw2", "host": "10.0.0.2"},
-        ]}))
+        path.write_text(
+            json.dumps(
+                {
+                    "firewalls": [
+                        {"name": "fw1", "host": "10.0.0.1"},
+                        {"name": "fw2", "host": "10.0.0.2"},
+                    ]
+                }
+            )
+        )
         fake_keyring[f"{KEYRING_SERVICE}::fw1"] = "key-1"
         fake_keyring[f"{KEYRING_SERVICE}::fw2"] = "key-2"
 
@@ -131,10 +137,16 @@ class TestPlaintextKeyMigration:
     ) -> None:
         path = get_config_path()
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"firewalls": [
-            {"name": "fw1", "host": "10.0.0.1", "api_key": "key-1"},
-            {"name": "fw2", "host": "10.0.0.2", "api_key": "key-2"},
-        ]}))
+        path.write_text(
+            json.dumps(
+                {
+                    "firewalls": [
+                        {"name": "fw1", "host": "10.0.0.1", "api_key": "key-1"},
+                        {"name": "fw2", "host": "10.0.0.2", "api_key": "key-2"},
+                    ]
+                }
+            )
+        )
 
         load_firewall_config()
 
@@ -155,9 +167,15 @@ class TestPlaintextKeyMigration:
     def test_keeps_plaintext_when_keychain_unavailable(self, no_keyring: None) -> None:
         path = get_config_path()
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"firewalls": [
-            {"name": "fw1", "host": "10.0.0.1", "api_key": "key-1"},
-        ]}))
+        path.write_text(
+            json.dumps(
+                {
+                    "firewalls": [
+                        {"name": "fw1", "host": "10.0.0.1", "api_key": "key-1"},
+                    ]
+                }
+            )
+        )
         load_firewall_config()
         e = resolve_firewall("fw1")
         assert e is not None
@@ -203,10 +221,16 @@ class TestResolveFirewall:
     def test_multi_entry_requires_explicit_name(self, fake_keyring: dict[str, str]) -> None:
         path = get_config_path()
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"firewalls": [
-            {"name": "fw1", "host": "10.0.0.1"},
-            {"name": "fw2", "host": "10.0.0.2"},
-        ]}))
+        path.write_text(
+            json.dumps(
+                {
+                    "firewalls": [
+                        {"name": "fw1", "host": "10.0.0.1"},
+                        {"name": "fw2", "host": "10.0.0.2"},
+                    ]
+                }
+            )
+        )
         fake_keyring[f"{KEYRING_SERVICE}::fw1"] = "k1"
         fake_keyring[f"{KEYRING_SERVICE}::fw2"] = "k2"
         load_firewall_config()
@@ -230,13 +254,9 @@ class TestResolveFirewall:
 
 
 class TestSaveFirewallEntry:
-    def test_writes_to_keychain_and_file_without_keys(
-        self, fake_keyring: dict[str, str]
-    ) -> None:
+    def test_writes_to_keychain_and_file_without_keys(self, fake_keyring: dict[str, str]) -> None:
         load_firewall_config()
-        save_firewall_entry(
-            FirewallEntry(name="new-fw", host="10.0.0.5", api_key="new-key")
-        )
+        save_firewall_entry(FirewallEntry(name="new-fw", host="10.0.0.5", api_key="new-key"))
         # Key in keychain
         assert fake_keyring[f"{KEYRING_SERVICE}::new-fw"] == "new-key"
         # File stored without the key
@@ -251,9 +271,7 @@ class TestSaveFirewallEntry:
         self, no_keyring: None, capsys: pytest.CaptureFixture[str]
     ) -> None:
         load_firewall_config()
-        save_firewall_entry(
-            FirewallEntry(name="new-fw", host="10.0.0.5", api_key="plain-key")
-        )
+        save_firewall_entry(FirewallEntry(name="new-fw", host="10.0.0.5", api_key="plain-key"))
         on_disk = json.loads(get_config_path().read_text())
         assert on_disk["firewalls"][0]["api_key"] == "plain-key"
         assert "keychain unavailable" in capsys.readouterr().err

@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from mcp_toolkit import FieldsList, Mode, VerboseFlag
+from node804_mcp_toolkit import FieldsList, Mode, VerboseFlag
 from panos.panorama import Panorama
 
 from ..responses.schemas import (
@@ -46,7 +46,9 @@ def _parse_top_output(result: dict[str, Any]) -> dict[str, Any]:
         }
 
     # %Cpu(s):  3.2 us,  2.1 sy,  0.0 ni, 94.5 id, ...
-    m = re.search(r"%Cpu\(s\):\s*([\d.]+)\s*us,\s*([\d.]+)\s*sy,\s*[\d.]+\s*ni,\s*([\d.]+)\s*id", text)
+    m = re.search(
+        r"%Cpu\(s\):\s*([\d.]+)\s*us,\s*([\d.]+)\s*sy,\s*[\d.]+\s*ni,\s*([\d.]+)\s*id", text
+    )
     if m:
         user = float(m.group(1))
         system = float(m.group(2))

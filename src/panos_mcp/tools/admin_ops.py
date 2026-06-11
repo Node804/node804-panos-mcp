@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from mcp_toolkit import Mode
+from node804_mcp_toolkit import Mode
 from panos.errors import PanDeviceError
 from pydantic import Field
 
@@ -98,7 +98,9 @@ def register_admin_ops_tools(ctx: ToolContext) -> None:
         if partial_admin:
             commit_kwargs["admins"] = [partial_admin]
         emit_preflight_audit(
-            ctx, tool="commit", firewall=firewall,
+            ctx,
+            tool="commit",
+            firewall=firewall,
             args={"description": description, "partial_admin": partial_admin},
         )
         try:
@@ -128,7 +130,9 @@ def register_admin_ops_tools(ctx: ToolContext) -> None:
         if partial_admin:
             commit_kwargs["admins"] = [partial_admin]
         emit_preflight_audit(
-            ctx, tool="panorama_commit", firewall=firewall,
+            ctx,
+            tool="panorama_commit",
+            firewall=firewall,
             args={"description": description, "partial_admin": partial_admin},
         )
         try:
@@ -168,7 +172,9 @@ def register_admin_ops_tools(ctx: ToolContext) -> None:
         if description:
             kwargs["description"] = description
         emit_preflight_audit(
-            ctx, tool="panorama_push_to_devices", firewall=firewall,
+            ctx,
+            tool="panorama_push_to_devices",
+            firewall=firewall,
             args={
                 "device_group": device_group,
                 "include_template": include_template,
@@ -228,7 +234,9 @@ def register_admin_ops_tools(ctx: ToolContext) -> None:
         # Truncate element to keep audit lines bounded; full XML is in the
         # post-call toolkit record.  The xpath is small enough to log raw.
         emit_preflight_audit(
-            ctx, tool="set_config", firewall=firewall,
+            ctx,
+            tool="set_config",
+            firewall=firewall,
             args={
                 "xpath": xpath,
                 "element_head": element[:200] + ("…" if len(element) > 200 else ""),
@@ -268,7 +276,10 @@ def register_admin_ops_tools(ctx: ToolContext) -> None:
                 "error": reason,
             }
         emit_preflight_audit(
-            ctx, tool="delete_config", firewall=firewall, args={"xpath": xpath},
+            ctx,
+            tool="delete_config",
+            firewall=firewall,
+            args={"xpath": xpath},
         )
         try:
             await run_blocking(client.xapi.delete, xpath)

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
+from node804_mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
 from panos.errors import PanDeviceError
 
 from ..responses.schemas import (
@@ -45,15 +45,21 @@ def register_certificates_tools(ctx: ToolContext) -> None:
         except ImportError:
             return {
                 "error": "Certificate model not in this pan-os-python version.",
-                "items": [], "total": 0, "count": 0,
+                "items": [],
+                "total": 0,
+                "count": 0,
             }
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
         certs = Certificate.refreshall(client)
         return apply_shape(
-            panos_object_dicts(certs), shape=SHAPE_CERTIFICATE,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(certs),
+            shape=SHAPE_CERTIFICATE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -66,6 +72,7 @@ def register_certificates_tools(ctx: ToolContext) -> None:
     ) -> dict[str, Any]:
         """SSL decryption policy rules."""
         from panos.policies import DecryptionRule, Rulebase
+
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
@@ -73,8 +80,12 @@ def register_certificates_tools(ctx: ToolContext) -> None:
         client.add(rulebase)
         rules = DecryptionRule.refreshall(rulebase)
         return apply_shape(
-            panos_object_dicts(rules), shape=SHAPE_DECRYPTION_RULE,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(rules),
+            shape=SHAPE_DECRYPTION_RULE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -91,15 +102,21 @@ def register_certificates_tools(ctx: ToolContext) -> None:
         except ImportError:
             return {
                 "error": "DecryptionProfile not modeled in this pan-os-python version.",
-                "items": [], "total": 0, "count": 0,
+                "items": [],
+                "total": 0,
+                "count": 0,
             }
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
         profiles = DecryptionProfile.refreshall(client)
         return apply_shape(
-            panos_object_dicts(profiles), shape=SHAPE_DECRYPTION_PROFILE,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(profiles),
+            shape=SHAPE_DECRYPTION_PROFILE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     # ── Decryption rule CRUD (Mode.FULL) ────────────────────────────────────
@@ -121,6 +138,7 @@ def register_certificates_tools(ctx: ToolContext) -> None:
     ) -> dict[str, Any]:
         """Create an SSL decryption policy rule. Staged in candidate config."""
         from panos.policies import DecryptionRule, Rulebase
+
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
@@ -158,6 +176,7 @@ def register_certificates_tools(ctx: ToolContext) -> None:
     ) -> dict[str, Any]:
         """Delete a decryption rule. Staged in candidate config."""
         from panos.policies import DecryptionRule, Rulebase
+
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
@@ -180,6 +199,7 @@ def register_certificates_tools(ctx: ToolContext) -> None:
     ) -> dict[str, Any]:
         """Move a decryption rule. Staged in candidate config."""
         from panos.policies import DecryptionRule, Rulebase
+
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
@@ -211,6 +231,7 @@ def register_certificates_tools(ctx: ToolContext) -> None:
     ) -> dict[str, Any]:
         """Enable or disable a decryption rule. Staged in candidate config."""
         from panos.policies import DecryptionRule, Rulebase
+
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client

@@ -53,9 +53,7 @@ def test_panorama_xpath_is_shared() -> None:
 def test_aggregates_multiple_types_and_normalizes_name() -> None:
     fw = _FakeFirewall(
         {
-            "virus": {
-                "entry": {"@_name": "av-default", "description": "default AV"}
-            },
+            "virus": {"entry": {"@_name": "av-default", "description": "default AV"}},
             "spyware": {
                 "entry": [
                     {"@_name": "as-strict", "description": "strict"},
@@ -111,9 +109,8 @@ def test_unrelated_xapi_error_still_propagates() -> None:
     are real errors the caller has to see. Any other error message keeps
     propagating.
     """
-    from pan.xapi import PanXapiError
-
     import pytest
+    from pan.xapi import PanXapiError
 
     class AuthFailure(_FakeFirewall):
         def op(self, cmd: str, **kwargs: Any) -> dict[str, Any]:

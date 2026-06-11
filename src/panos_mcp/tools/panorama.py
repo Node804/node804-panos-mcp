@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
+from node804_mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
 from panos.errors import PanDeviceError
 from panos.objects import (
     AddressGroup,
@@ -60,6 +60,7 @@ from ..responses.shapers import apply_shape
 from ._common import (
     AttrFilter,
     ToolContext,
+    build_running_config_xpath_cmd,
     check_renamed_attr_keys,
     enrich_security_rule_dicts,
     filter_by_attrs,
@@ -93,16 +94,18 @@ def _entries(result: Any, *keys: str) -> list[dict[str, Any]]:
 # parametric — adding a fifth rule type means one row here, not new tools.
 
 _RULE_TYPE_REGISTRY: dict[str, dict[str, Any]] = {
-    "security": {"cls": SecurityRule, "shape": SHAPE_SECURITY_RULE,
-                 "enrich": enrich_security_rule_dicts},
+    "security": {
+        "cls": SecurityRule,
+        "shape": SHAPE_SECURITY_RULE,
+        "enrich": enrich_security_rule_dicts,
+    },
     "nat": {"cls": NatRule, "shape": SHAPE_NAT_RULE, "enrich": None},
     "pbf": {"cls": PolicyBasedForwarding, "shape": SHAPE_PBF_RULE, "enrich": None},
-    "decryption": {"cls": DecryptionRule, "shape": SHAPE_DECRYPTION_RULE,
-                   "enrich": None},
+    "decryption": {"cls": DecryptionRule, "shape": SHAPE_DECRYPTION_RULE, "enrich": None},
 }
 
 RuleType = Literal["security", "nat", "pbf", "decryption"]
-Rulebase_ = Literal["pre", "post"]
+RulebaseKind = Literal["pre", "post"]
 
 
 def _walk_dg_hierarchy(result: dict[str, Any]) -> list[dict[str, Any]]:
@@ -172,8 +175,12 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         result = op_to_dict(client, "<show><devices><all></all></devices></show>")
         items = _entries(result, "devices", "entry") or _entries(result, "entry")
         return apply_shape(
-            items, shape=SHAPE_MANAGED_DEVICE, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            items,
+            shape=SHAPE_MANAGED_DEVICE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -190,8 +197,12 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             return client
         dgs = DeviceGroup.refreshall(client)
         return apply_shape(
-            panos_object_dicts(dgs), shape=SHAPE_DEVICE_GROUP,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(dgs),
+            shape=SHAPE_DEVICE_GROUP,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -237,8 +248,12 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             return client
         templates = Template.refreshall(client)
         return apply_shape(
-            panos_object_dicts(templates), shape=SHAPE_TEMPLATE,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(templates),
+            shape=SHAPE_TEMPLATE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -255,8 +270,12 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             return client
         stacks = TemplateStack.refreshall(client)
         return apply_shape(
-            panos_object_dicts(stacks), shape=SHAPE_TEMPLATE_STACK,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(stacks),
+            shape=SHAPE_TEMPLATE_STACK,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     # --- Shared objects ---
@@ -275,8 +294,12 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             return client
         items = AddressObject.refreshall(client)
         return apply_shape(
-            panos_object_dicts(items), shape=SHAPE_ADDRESS_OBJECT,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(items),
+            shape=SHAPE_ADDRESS_OBJECT,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -293,8 +316,12 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             return client
         items = AddressGroup.refreshall(client)
         return apply_shape(
-            panos_object_dicts(items), shape=SHAPE_ADDRESS_GROUP,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(items),
+            shape=SHAPE_ADDRESS_GROUP,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -311,8 +338,12 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             return client
         items = ServiceObject.refreshall(client)
         return apply_shape(
-            panos_object_dicts(items), shape=SHAPE_SERVICE_OBJECT,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(items),
+            shape=SHAPE_SERVICE_OBJECT,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -329,8 +360,12 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             return client
         items = ServiceGroup.refreshall(client)
         return apply_shape(
-            panos_object_dicts(items), shape=SHAPE_SERVICE_GROUP,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(items),
+            shape=SHAPE_SERVICE_GROUP,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -345,13 +380,18 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         # Reuses the per-firewall security profile aggregator since the
         # behavior is the same when client is a Panorama instance.
         from .security import _security_profile_objects
+
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
         items = _security_profile_objects(client)
         return apply_shape(
-            items, shape=SHAPE_PROFILE, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            items,
+            shape=SHAPE_PROFILE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -368,8 +408,12 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             return client
         groups = SecurityProfileGroup.refreshall(client)
         return apply_shape(
-            panos_object_dicts(groups), shape=SHAPE_PROFILE_GROUP,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(groups),
+            shape=SHAPE_PROFILE_GROUP,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     # --- Pre/Post rules ---
@@ -397,7 +441,12 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             return client
         dg = _find_dg(client, device_group)
         if dg is None:
-            return {"error": f"Device group '{device_group}' not found.", "items": [], "total": 0, "count": 0}
+            return {
+                "error": f"Device group '{device_group}' not found.",
+                "items": [],
+                "total": 0,
+                "count": 0,
+            }
         prerb = PreRulebase()
         dg.add(prerb)
         rules = SecurityRule.refreshall(prerb)
@@ -406,7 +455,10 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         return apply_shape(
             filtered,
             shape=SHAPE_SECURITY_RULE,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -432,7 +484,12 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             return client
         dg = _find_dg(client, device_group)
         if dg is None:
-            return {"error": f"Device group '{device_group}' not found.", "items": [], "total": 0, "count": 0}
+            return {
+                "error": f"Device group '{device_group}' not found.",
+                "items": [],
+                "total": 0,
+                "count": 0,
+            }
         postrb = PostRulebase()
         dg.add(postrb)
         rules = SecurityRule.refreshall(postrb)
@@ -441,13 +498,16 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         return apply_shape(
             filtered,
             shape=SHAPE_SECURITY_RULE,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
     async def panorama_get_device_group_nat_rules(
         device_group: str,
-        rulebase: str = "pre",
+        rulebase: RulebaseKind = "pre",
         firewall: str | None = None,
         verbose: VerboseFlag = False,
         fields: FieldsList = None,
@@ -458,17 +518,24 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        if rulebase not in ("pre", "post"):
-            return {"error": "rulebase must be 'pre' or 'post'.", "items": [], "total": 0, "count": 0}
         dg = _find_dg(client, device_group)
         if dg is None:
-            return {"error": f"Device group '{device_group}' not found.", "items": [], "total": 0, "count": 0}
+            return {
+                "error": f"Device group '{device_group}' not found.",
+                "items": [],
+                "total": 0,
+                "count": 0,
+            }
         rb = PreRulebase() if rulebase == "pre" else PostRulebase()
         dg.add(rb)
         rules = NatRule.refreshall(rb)
         return apply_shape(
-            panos_object_dicts(rules), shape=SHAPE_NAT_RULE,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(rules),
+            shape=SHAPE_NAT_RULE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     # --- Bulk walkers across all device groups ---
@@ -508,8 +575,7 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         unknown = [t for t in types if t not in _RULE_TYPE_REGISTRY]
         if unknown:
             return {
-                "error": f"Unknown rule_types: {unknown}. "
-                         f"Valid: {list(_RULE_TYPE_REGISTRY)}.",
+                "error": f"Unknown rule_types: {unknown}. Valid: {list(_RULE_TYPE_REGISTRY)}.",
                 "per_device_group": {},
                 "totals": {},
             }
@@ -610,9 +676,10 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         unknown = [t for t in types if t not in _RULE_TYPE_REGISTRY]
         if unknown:
             return {
-                "error": f"Unknown rule_types: {unknown}. "
-                         f"Valid: {list(_RULE_TYPE_REGISTRY)}.",
-                "items": [], "total": 0, "count": 0,
+                "error": f"Unknown rule_types: {unknown}. Valid: {list(_RULE_TYPE_REGISTRY)}.",
+                "items": [],
+                "total": 0,
+                "count": 0,
             }
 
         all_dgs = DeviceGroup.refreshall(client)
@@ -623,13 +690,16 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             if missing:
                 return {
                     "error": f"Device group(s) not found: {sorted(missing)}.",
-                    "items": [], "total": 0, "count": 0,
+                    "items": [],
+                    "total": 0,
+                    "count": 0,
                 }
         else:
             scoped = list(all_dgs)
 
-        def _materialize(parent: Any, type_name: str, dg_name: str,
-                         rb_label: str) -> list[dict[str, Any]]:
+        def _materialize(
+            parent: Any, type_name: str, dg_name: str, rb_label: str
+        ) -> list[dict[str, Any]]:
             spec = _RULE_TYPE_REGISTRY[type_name]
             cls = spec["cls"]
             enrich = spec["enrich"]
@@ -675,7 +745,7 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         # tags (device_group/rulebase/rule_type) always survive projection
         # regardless of the per-type lean default — otherwise the caller
         # couldn't tell where a result came from.
-        from mcp_toolkit import filter_by_pattern, paginate
+        from node804_mcp_toolkit import filter_by_pattern, paginate
 
         pattern_filtered = filter_by_pattern(filtered, pattern, name_field="name")
         total = len(pattern_filtered)
@@ -683,8 +753,8 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         ORIGIN_KEYS = ("device_group", "rulebase", "rule_type")
         projected: list[dict[str, Any]] = []
         for item in pattern_filtered:
-            t = item.get("rule_type")
-            spec = _RULE_TYPE_REGISTRY.get(t, _RULE_TYPE_REGISTRY["security"])
+            rule_type = str(item.get("rule_type", "security"))
+            spec = _RULE_TYPE_REGISTRY.get(rule_type, _RULE_TYPE_REGISTRY["security"])
             shape = spec["shape"]
             if fields is not None:
                 keep = set(fields) | set(ORIGIN_KEYS)
@@ -694,8 +764,7 @@ def register_panorama_tools(ctx: ToolContext) -> None:
                 keep = set(shape.default_fields) | set(ORIGIN_KEYS)
             row = {k: v for k, v in item.items() if k in keep}
             if shape.drop_when_none:
-                row = {k: v for k, v in row.items()
-                       if v is not None or k in ORIGIN_KEYS}
+                row = {k: v for k, v in row.items() if v is not None or k in ORIGIN_KEYS}
             projected.append(row)
 
         shaped_items = paginate(projected, pagination.limit, pagination.offset)
@@ -728,8 +797,12 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         result = op_to_dict(client, "<show><log-collector><all></all></log-collector></show>")
         items = _entries(result, "log-collector", "entry") or _entries(result, "entry")
         return apply_shape(
-            items, shape=SHAPE_LOG_COLLECTOR, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            items,
+            shape=SHAPE_LOG_COLLECTOR,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -749,20 +822,20 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        xpath = (
-            "/config/devices/entry[@name='localhost.localdomain']/log-collector-group"
-        )
+        xpath = "/config/devices/entry[@name='localhost.localdomain']/log-collector-group"
         try:
-            result = op_to_dict(
-                client, f"<show><config><running><xpath>{xpath}</xpath></running></config></show>"
-            )
+            result = op_to_dict(client, build_running_config_xpath_cmd(xpath))
         except PanDeviceError:
             # "No such node" when no collector groups are configured.
             result = {}
         groups = _entries(result, "log-collector-group", "entry")
         return apply_shape(
-            groups, shape=SHAPE_COLLECTOR_GROUP, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            groups,
+            shape=SHAPE_COLLECTOR_GROUP,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     # --- Push & commit status ---
@@ -787,13 +860,14 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         all_jobs = _entries(result, "job") or _entries(result, "entry")
         # Keep only push-type jobs (CommitAll, Push, etc.)
         push_types = {"CommitAll", "Push", "Validate"}
-        items = [
-            j for j in all_jobs
-            if isinstance(j, dict) and j.get("type") in push_types
-        ]
+        items = [j for j in all_jobs if isinstance(j, dict) and j.get("type") in push_types]
         return apply_shape(
-            items, shape=SHAPE_PUSH_STATUS, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            items,
+            shape=SHAPE_PUSH_STATUS,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -811,8 +885,12 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         result = op_to_dict(client, "<show><jobs><all></all></jobs></show>")
         items = _entries(result, "job") or _entries(result, "entry")
         return apply_shape(
-            items, shape=SHAPE_COMMIT_JOB, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            items,
+            shape=SHAPE_COMMIT_JOB,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     # --- Software / HA ---
@@ -837,13 +915,25 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         items = _entries(result, "devices", "entry") or _entries(result, "entry")
         # Override default whitelist to surface version columns specifically.
         from ..responses.shapers import LeanShape
+
         shape = LeanShape(
-            default_fields=("hostname", "serial", "sw-version", "app-version", "threat-version", "wildfire-version"),
+            default_fields=(
+                "hostname",
+                "serial",
+                "sw-version",
+                "app-version",
+                "threat-version",
+                "wildfire-version",
+            ),
             name_field="hostname",
         )
         return apply_shape(
-            items, shape=shape, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            items,
+            shape=shape,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -862,6 +952,7 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         )
         from ..responses.schemas import SHAPE_HA_STATUS
         from ..responses.shapers import shape_single
+
         return shape_single(result, shape=SHAPE_HA_STATUS, verbose=verbose, fields=fields)
 
     # ── Panorama pre/post rule CRUD (Mode.FULL) ─────────────────────────────
@@ -922,10 +1013,20 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             return resolved
         _dg, rb = resolved
         rule = SecurityRule(
-            name=name, fromzone=from_zones, tozone=to_zones, source=source,
-            destination=destination, application=application, service=service,
-            action=action, description=description, disabled=disabled,
-            log_start=log_start, log_end=log_end, group=profile_group, tag=tag,
+            name=name,
+            fromzone=from_zones,
+            tozone=to_zones,
+            source=source,
+            destination=destination,
+            application=application,
+            service=service,
+            action=action,
+            description=description,
+            disabled=disabled,
+            log_start=log_start,
+            log_end=log_end,
+            group=profile_group,
+            tag=tag,
         )
         rb.add(rule)
         try:
@@ -970,7 +1071,9 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             return client
         if where in ("before", "after") and not destination:
             return {
-                "success": False, "operation": "moved", "name": name,
+                "success": False,
+                "operation": "moved",
+                "name": name,
                 "error": "'destination' is required when 'where' is 'before' or 'after'.",
             }
         resolved = _resolve_dg_and_rulebase(client, device_group, "pre")
@@ -1016,10 +1119,20 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             return resolved
         _dg, rb = resolved
         rule = SecurityRule(
-            name=name, fromzone=from_zones, tozone=to_zones, source=source,
-            destination=destination, application=application, service=service,
-            action=action, description=description, disabled=disabled,
-            log_start=log_start, log_end=log_end, group=profile_group, tag=tag,
+            name=name,
+            fromzone=from_zones,
+            tozone=to_zones,
+            source=source,
+            destination=destination,
+            application=application,
+            service=service,
+            action=action,
+            description=description,
+            disabled=disabled,
+            log_start=log_start,
+            log_end=log_end,
+            group=profile_group,
+            tag=tag,
         )
         rb.add(rule)
         try:
@@ -1064,7 +1177,9 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             return client
         if where in ("before", "after") and not destination:
             return {
-                "success": False, "operation": "moved", "name": name,
+                "success": False,
+                "operation": "moved",
+                "name": name,
                 "error": "'destination' is required when 'where' is 'before' or 'after'.",
             }
         resolved = _resolve_dg_and_rulebase(client, device_group, "post")
@@ -1112,9 +1227,14 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             return resolved
         _dg, rb = resolved
         kwargs: dict[str, Any] = {
-            "name": name, "fromzone": from_zones, "tozone": to_zones,
-            "source": source, "destination": destination, "service": service,
-            "description": description, "disabled": disabled,
+            "name": name,
+            "fromzone": from_zones,
+            "tozone": to_zones,
+            "source": source,
+            "destination": destination,
+            "service": service,
+            "description": description,
+            "disabled": disabled,
         }
         if snat_type:
             kwargs["source_translation_type"] = snat_type
@@ -1172,7 +1292,9 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             return client
         if where in ("before", "after") and not destination:
             return {
-                "success": False, "operation": "moved", "name": name,
+                "success": False,
+                "operation": "moved",
+                "name": name,
                 "error": "'destination' is required when 'where' is 'before' or 'after'.",
             }
         resolved = _resolve_dg_and_rulebase(client, device_group, rulebase)
@@ -1188,8 +1310,14 @@ def register_panorama_tools(ctx: ToolContext) -> None:
                 rule.move(location=where)
         except PanDeviceError as e:
             return wrap_panos_error(e, "move", name)
-        return write_success("moved", name, where=where, dst=destination,
-                             device_group=device_group, rulebase=rulebase)
+        return write_success(
+            "moved",
+            name,
+            where=where,
+            dst=destination,
+            device_group=device_group,
+            rulebase=rulebase,
+        )
 
 
 __all__ = ["register_panorama_tools"]

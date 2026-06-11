@@ -6,11 +6,15 @@ and the per-module suites added in later phases.
 
 from __future__ import annotations
 
+import re
+
 from panos_mcp import __version__
 
 
 def test_version_is_set() -> None:
-    assert __version__ == "0.1.0"
+    # Match a semver-ish string rather than a literal so routine version
+    # bumps don't break the smoke test.
+    assert re.fullmatch(r"\d+\.\d+\.\d+([.-].+)?", __version__), __version__
 
 
 def test_server_module_imports() -> None:

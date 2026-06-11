@@ -19,7 +19,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from mcp.server.fastmcp import FastMCP
-from mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink
+from node804_mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink
 from panos.errors import PanDeviceError
 
 import panos_mcp.client as client_module
@@ -45,6 +45,7 @@ def _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Any:
     fw_module._entries = []
     reset_client_cache()
     from panos.firewall import Firewall as RealFirewall
+
     client_module.Firewall = RealFirewall
 
 
@@ -129,26 +130,39 @@ class TestModeGating:
         enabled = set(gate.summary()["enabled_tools"])
         expected = {
             # security (4)
-            "add_security_rule", "delete_security_rule",
-            "move_security_rule", "set_security_rule_disabled",
+            "add_security_rule",
+            "delete_security_rule",
+            "move_security_rule",
+            "set_security_rule_disabled",
             # PBF (4)
-            "add_pbf_rule", "delete_pbf_rule",
-            "move_pbf_rule", "set_pbf_rule_disabled",
+            "add_pbf_rule",
+            "delete_pbf_rule",
+            "move_pbf_rule",
+            "set_pbf_rule_disabled",
             # QoS (4)
-            "add_qos_rule", "delete_qos_rule",
-            "move_qos_rule", "set_qos_rule_disabled",
+            "add_qos_rule",
+            "delete_qos_rule",
+            "move_qos_rule",
+            "set_qos_rule_disabled",
             # NAT (4)
-            "add_nat_rule", "delete_nat_rule",
-            "move_nat_rule", "set_nat_rule_disabled",
+            "add_nat_rule",
+            "delete_nat_rule",
+            "move_nat_rule",
+            "set_nat_rule_disabled",
             # Decryption (4)
-            "add_decryption_rule", "delete_decryption_rule",
-            "move_decryption_rule", "set_decryption_rule_disabled",
+            "add_decryption_rule",
+            "delete_decryption_rule",
+            "move_decryption_rule",
+            "set_decryption_rule_disabled",
             # Static routes (2)
-            "add_static_route", "delete_static_route",
+            "add_static_route",
+            "delete_static_route",
             # Panorama (9)
-            "panorama_add_pre_rule", "panorama_delete_pre_rule",
+            "panorama_add_pre_rule",
+            "panorama_delete_pre_rule",
             "panorama_move_pre_rule",
-            "panorama_add_post_rule", "panorama_delete_post_rule",
+            "panorama_add_post_rule",
+            "panorama_delete_post_rule",
             "panorama_move_post_rule",
             "panorama_add_device_group_nat_rule",
             "panorama_delete_device_group_nat_rule",
@@ -167,6 +181,7 @@ class TestSecurityRuleCRUD:
     async def test_add_succeeds(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_fw(monkeypatch, _fake_fw_class())
         from panos.policies import SecurityRule
+
         monkeypatch.setattr(SecurityRule, "create", MagicMock(return_value=None))
 
         _seed_firewall()
@@ -174,7 +189,8 @@ class TestSecurityRuleCRUD:
         register_security_tools(ctx)
 
         result = await _call(
-            mcp, "add_security_rule",
+            mcp,
+            "add_security_rule",
             name="block-tor",
             from_zones=["trust"],
             to_zones=["untrust"],
@@ -191,8 +207,10 @@ class TestSecurityRuleCRUD:
     async def test_delete_propagates_panos_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_fw(monkeypatch, _fake_fw_class())
         from panos.policies import SecurityRule
+
         monkeypatch.setattr(
-            SecurityRule, "delete",
+            SecurityRule,
+            "delete",
             MagicMock(side_effect=PanDeviceError("Rule not found")),
         )
 
@@ -205,7 +223,9 @@ class TestSecurityRuleCRUD:
         assert "not found" in result["error"]
 
     @pytest.mark.asyncio
-    async def test_move_requires_destination_for_relative(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_move_requires_destination_for_relative(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         _patch_fw(monkeypatch, _fake_fw_class())
         _seed_firewall()
         ctx, mcp, _ = _make_ctx()
@@ -216,9 +236,12 @@ class TestSecurityRuleCRUD:
         assert "destination" in result["error"]
 
     @pytest.mark.asyncio
-    async def test_move_to_top_works_without_destination(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_move_to_top_works_without_destination(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         _patch_fw(monkeypatch, _fake_fw_class())
         from panos.policies import SecurityRule
+
         move_mock = MagicMock(return_value=None)
         monkeypatch.setattr(SecurityRule, "move", move_mock)
 
@@ -234,6 +257,7 @@ class TestSecurityRuleCRUD:
     async def test_set_disabled_updates_field(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_fw(monkeypatch, _fake_fw_class())
         from panos.policies import SecurityRule
+
         update_mock = MagicMock(return_value=None)
         monkeypatch.setattr(SecurityRule, "update", update_mock)
 
@@ -241,7 +265,9 @@ class TestSecurityRuleCRUD:
         ctx, mcp, _ = _make_ctx()
         register_security_tools(ctx)
 
-        result = await _call(mcp, "set_security_rule_disabled", name="r1", disabled=True, firewall="fw1")
+        result = await _call(
+            mcp, "set_security_rule_disabled", name="r1", disabled=True, firewall="fw1"
+        )
         assert result["success"] is True
         assert result["disabled"] is True
         update_mock.assert_called_once_with("disabled")
@@ -261,7 +287,8 @@ class TestQosRuleCRUD:
         register_security_tools(ctx)
 
         result = await _call(
-            mcp, "add_qos_rule",
+            mcp,
+            "add_qos_rule",
             name="prio-voice",
             from_zones=["trust"],
             to_zones=["untrust"],
@@ -284,7 +311,9 @@ class TestQosRuleCRUD:
         assert "<class>1</class>" in element_arg
 
     @pytest.mark.asyncio
-    async def test_delete_calls_xapi_delete_with_rule_xpath(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_delete_calls_xapi_delete_with_rule_xpath(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         _patch_fw(monkeypatch, _fake_fw_class())
         _seed_firewall()
         ctx, mcp, _ = _make_ctx()
@@ -312,11 +341,15 @@ class TestQosRuleCRUD:
         client.xapi.set.side_effect = PanDeviceError("Invalid class number")
 
         result = await _call(
-            mcp, "add_qos_rule",
+            mcp,
+            "add_qos_rule",
             name="bad",
-            from_zones=["trust"], to_zones=["untrust"],
-            source=["any"], destination=["any"],
-            application=["any"], service=["any"],
+            from_zones=["trust"],
+            to_zones=["untrust"],
+            source=["any"],
+            destination=["any"],
+            application=["any"],
+            service=["any"],
             action_class="1",
             firewall="fw1",
         )
@@ -332,15 +365,19 @@ class TestOtherCategoriesSuccessPath:
     async def test_nat_add(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_fw(monkeypatch, _fake_fw_class())
         from panos.policies import NatRule
+
         monkeypatch.setattr(NatRule, "create", MagicMock(return_value=None))
         _seed_firewall()
         ctx, mcp, _ = _make_ctx()
         register_nat_tools(ctx)
         result = await _call(
-            mcp, "add_nat_rule",
+            mcp,
+            "add_nat_rule",
             name="src-nat-1",
-            from_zones=["trust"], to_zones=["untrust"],
-            source=["any"], destination=["any"],
+            from_zones=["trust"],
+            to_zones=["untrust"],
+            source=["any"],
+            destination=["any"],
             firewall="fw1",
         )
         assert result["success"] is True
@@ -349,15 +386,19 @@ class TestOtherCategoriesSuccessPath:
     async def test_decryption_add(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_fw(monkeypatch, _fake_fw_class())
         from panos.policies import DecryptionRule
+
         monkeypatch.setattr(DecryptionRule, "create", MagicMock(return_value=None))
         _seed_firewall()
         ctx, mcp, _ = _make_ctx()
         register_certificates_tools(ctx)
         result = await _call(
-            mcp, "add_decryption_rule",
+            mcp,
+            "add_decryption_rule",
             name="dec-1",
-            from_zones=["trust"], to_zones=["untrust"],
-            source=["any"], destination=["any"],
+            from_zones=["trust"],
+            to_zones=["untrust"],
+            source=["any"],
+            destination=["any"],
             service=["any"],
             action="decrypt",
             type="ssl-forward-proxy",
@@ -370,12 +411,14 @@ class TestOtherCategoriesSuccessPath:
         class FakeVr:
             def __init__(self) -> None:
                 self.name = "default"
+
             def add(self, child: Any) -> Any:
                 child.parent = self
                 return child
 
         _patch_fw(monkeypatch, _fake_fw_class())
         from panos.network import StaticRoute, VirtualRouter
+
         monkeypatch.setattr(VirtualRouter, "refreshall", staticmethod(lambda *a, **k: [FakeVr()]))
         monkeypatch.setattr(StaticRoute, "create", MagicMock(return_value=None))
 
@@ -383,7 +426,8 @@ class TestOtherCategoriesSuccessPath:
         ctx, mcp, _ = _make_ctx()
         register_network_tools(ctx)
         result = await _call(
-            mcp, "add_static_route",
+            mcp,
+            "add_static_route",
             name="default-route",
             destination="0.0.0.0/0",
             nexthop_type="ip-address",
@@ -403,6 +447,7 @@ class TestPanoramaRuleCRUD:
         class FakeDg:
             def __init__(self) -> None:
                 self.name = "hq-dg"
+
             def add(self, child: Any) -> Any:
                 child.parent = self
                 return child
@@ -410,6 +455,7 @@ class TestPanoramaRuleCRUD:
         _patch_fw(monkeypatch, _fake_fw_class())
         from panos.panorama import DeviceGroup
         from panos.policies import SecurityRule
+
         monkeypatch.setattr(DeviceGroup, "refreshall", staticmethod(lambda *a, **k: [FakeDg()]))
         monkeypatch.setattr(SecurityRule, "create", MagicMock(return_value=None))
 
@@ -417,12 +463,16 @@ class TestPanoramaRuleCRUD:
         ctx, mcp, _ = _make_ctx()
         register_panorama_tools(ctx)
         result = await _call(
-            mcp, "panorama_add_pre_rule",
+            mcp,
+            "panorama_add_pre_rule",
             device_group="hq-dg",
             name="pre-block",
-            from_zones=["trust"], to_zones=["untrust"],
-            source=["any"], destination=["any"],
-            application=["any"], service=["any"],
+            from_zones=["trust"],
+            to_zones=["untrust"],
+            source=["any"],
+            destination=["any"],
+            application=["any"],
+            service=["any"],
             action="deny",
             firewall="fw1",
         )
@@ -431,16 +481,20 @@ class TestPanoramaRuleCRUD:
         assert result["rulebase"] == "pre"
 
     @pytest.mark.asyncio
-    async def test_unknown_device_group_returns_clean_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_unknown_device_group_returns_clean_error(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         _patch_fw(monkeypatch, _fake_fw_class())
         from panos.panorama import DeviceGroup
+
         monkeypatch.setattr(DeviceGroup, "refreshall", staticmethod(lambda *a, **k: []))
 
         _seed_firewall()
         ctx, mcp, _ = _make_ctx()
         register_panorama_tools(ctx)
         result = await _call(
-            mcp, "panorama_delete_pre_rule",
+            mcp,
+            "panorama_delete_pre_rule",
             device_group="nonexistent",
             name="r1",
             firewall="fw1",

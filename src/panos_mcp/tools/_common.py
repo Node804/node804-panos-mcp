@@ -24,9 +24,10 @@ from dataclasses import dataclass
 from datetime import UTC
 from typing import Annotated, Any
 from xml.etree.ElementTree import Element
+from xml.sax.saxutils import escape as _xml_escape
 
 from mcp.server.fastmcp import FastMCP
-from mcp_toolkit import ModeGate, TlsConfig
+from node804_mcp_toolkit import ModeGate, TlsConfig
 from pydantic import Field
 
 from .._redact import redact_exception
@@ -103,7 +104,7 @@ def emit_preflight_audit(
         import uuid
         from datetime import datetime
 
-        from mcp_toolkit import AuditEvent
+        from node804_mcp_toolkit import AuditEvent
 
         event = AuditEvent(
             ts=datetime.now(UTC).isoformat(timespec="milliseconds"),
@@ -169,6 +170,20 @@ def _convert(element: Element) -> Any:
         else:
             out[child.tag] = [existing, value]
     return out
+
+
+def build_running_config_xpath_cmd(xpath: str) -> str:
+    """Build a ``<show><config><running>`` op command for an XPath.
+
+    The xpath is XML-escaped (``&``, ``<``, ``>``) before interpolation so
+    that no value — even a caller-supplied one — can break out of the
+    ``<xpath>`` element and inject sibling op-command XML. Quotes are left
+    intact because PAN-OS xpath predicates legitimately use them
+    (``entry[@name="x"]``); escaping ``<``/``>`` is sufficient to prevent
+    structural breakout. Callers passing module constants get the same
+    treatment at zero cost, so this hole can't be reintroduced by a refactor.
+    """
+    return f"<show><config><running><xpath>{_xml_escape(xpath)}</xpath></running></config></show>"
 
 
 def op_to_dict(client: Any, cmd: str) -> dict[str, Any]:
@@ -308,10 +323,10 @@ AttrFilter = Annotated[
             "tozone, service) it matches when ANY element contains the "
             "substring. Booleans like ``has_inspection`` / ``has_log_setting`` "
             "/ ``disabled`` accept ``'true'`` or ``'false'``. Examples: "
-            "``{\"source\": \"10.0.0.0/24\"}`` → rules whose source list "
-            "contains that CIDR token; ``{\"application\": \"any\", "
-            "\"action\": \"allow\"}`` → any-application allow rules; "
-            "``{\"has_inspection\": \"false\"}`` → rules missing inspection. "
+            '``{"source": "10.0.0.0/24"}`` → rules whose source list '
+            'contains that CIDR token; ``{"application": "any", '
+            '"action": "allow"}`` → any-application allow rules; '
+            '``{"has_inspection": "false"}`` → rules missing inspection. '
             "Runs before lean projection, so you can filter on verbose-only "
             "fields without setting ``verbose=true``. Note: the old key "
             "``has_profile`` was renamed to ``has_inspection`` — passing the "
@@ -403,7 +418,8 @@ def filter_by_attrs(
     if not attrs:
         return list(items)
     return [
-        item for item in items
+        item
+        for item in items
         if all(_attr_value_matches(item.get(field), needle) for field, needle in attrs.items())
     ]
 
@@ -471,10 +487,10 @@ async def run_blocking[T](callable_fn: Callable[..., T], *args: Any, **kwargs: A
 __all__ = [
     "AttrFilter",
     "ToolContext",
+    "check_renamed_attr_keys",
     "element_to_dict",
     "emit_preflight_audit",
     "enrich_security_rule_dicts",
-    "check_renamed_attr_keys",
     "filter_by_attrs",
     "op_to_dict",
     "panos_object_dicts",

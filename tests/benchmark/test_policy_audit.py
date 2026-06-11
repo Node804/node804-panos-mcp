@@ -48,9 +48,7 @@ def test_summarize_vs_lean_dump(
     assert ratio >= 20, (
         f"summarize_security_policy regressed: only {ratio:.1f}x smaller than lean dump"
     )
-    assert summary_tokens < 1_000, (
-        f"summary should fit in <1000 tokens; got {summary_tokens}"
-    )
+    assert summary_tokens < 1_000, f"summary should fit in <1000 tokens; got {summary_tokens}"
 
 
 def test_summarize_vs_verbose_dump(

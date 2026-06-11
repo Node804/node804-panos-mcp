@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal
 
-from mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
+from node804_mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
 from panos.errors import PanDeviceError
 from panos.objects import (
     AddressGroup,
@@ -48,12 +48,23 @@ from ._common import (
 from ._schemas import PanosDescription, PanosName, PanosTagName
 
 # Tag color values are an enumerated set in PAN-OS (color1..color16).
-_TAG_COLORS = tuple(f"color{i}" for i in range(1, 17))
 TagColor = Literal[
-    "color1", "color2", "color3", "color4",
-    "color5", "color6", "color7", "color8",
-    "color9", "color10", "color11", "color12",
-    "color13", "color14", "color15", "color16",
+    "color1",
+    "color2",
+    "color3",
+    "color4",
+    "color5",
+    "color6",
+    "color7",
+    "color8",
+    "color9",
+    "color10",
+    "color11",
+    "color12",
+    "color13",
+    "color14",
+    "color15",
+    "color16",
 ]
 
 
@@ -222,9 +233,7 @@ def register_objects_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        obj = AddressObject(
-            name=name, value=value, type=type, description=description, tag=tag
-        )
+        obj = AddressObject(name=name, value=value, type=type, description=description, tag=tag)
         client.add(obj)
         try:
             obj.create()
@@ -272,9 +281,7 @@ def register_objects_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        obj = AddressGroup(
-            name=name, static_value=members, description=description, tag=tag
-        )
+        obj = AddressGroup(name=name, static_value=members, description=description, tag=tag)
         client.add(obj)
         try:
             obj.create()
@@ -310,9 +317,7 @@ def register_objects_tools(ctx: ToolContext) -> None:
             Field(
                 min_length=1,
                 pattern=r"^\d+(-\d+)?$",
-                description=(
-                    "Destination port or range, e.g. '443' or '8000-8080'."
-                ),
+                description=("Destination port or range, e.g. '443' or '8000-8080'."),
             ),
         ],
         source_port: Annotated[
@@ -417,8 +422,6 @@ def register_objects_tools(ctx: ToolContext) -> None:
 
         Staged in candidate config — call ``commit`` to activate.
         """
-        # _TAG_COLORS is exported for documentation/test introspection.
-        _ = _TAG_COLORS
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client

@@ -17,7 +17,7 @@ import sys
 from dataclasses import dataclass
 from typing import Any
 
-from mcp_toolkit import TlsConfig
+from node804_mcp_toolkit import TlsConfig
 from panos.firewall import Firewall
 from panos.panorama import Panorama
 

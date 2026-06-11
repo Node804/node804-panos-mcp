@@ -20,7 +20,7 @@ from typing import Any
 
 import pytest
 from mcp.server.fastmcp import FastMCP
-from mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink
+from node804_mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink
 
 import panos_mcp.client as client_module
 import panos_mcp.config.firewalls as fw_module
@@ -47,6 +47,7 @@ def _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Any:
     fw_module._entries = []
     reset_client_cache()
     from panos.firewall import Firewall as RealFirewall
+
     client_module.Firewall = RealFirewall
 
 
@@ -78,6 +79,7 @@ def _patch_panos(monkeypatch: pytest.MonkeyPatch, **overrides: Any) -> None:
     class FakeFw:
         def __init__(self, **kwargs: Any) -> None:
             self.hostname = kwargs.get("hostname", "10.0.0.1")
+
         def add(self, child: Any) -> Any:
             child.parent = self
             return child
@@ -153,7 +155,9 @@ class TestNetworkHelpers:
 
 class TestCountRulesByAction:
     @pytest.mark.asyncio
-    async def test_groups_by_action_and_excludes_disabled(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_groups_by_action_and_excludes_disabled(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         rules = [
             _FakeObj(name="r1", action="allow", disabled=False),
             _FakeObj(name="r2", action="allow", disabled=False),
@@ -208,7 +212,8 @@ class TestFindRuleByName:
         register_aggregation_tools(ctx)
 
         result = await _call(
-            mcp, "find_rule_by_name",
+            mcp,
+            "find_rule_by_name",
             pattern="match",
             rule_types=["security"],
             firewall="fw1",
@@ -232,7 +237,9 @@ class TestFindRuleByName:
 
 class TestFindAddressObject:
     @pytest.mark.asyncio
-    async def test_ip_membership_dispatches_to_ip_strategy(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_ip_membership_dispatches_to_ip_strategy(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         addresses = [
             _FakeObj(name="web-srv-1", ip_netmask="10.0.0.5/32"),
             _FakeObj(name="web-srv-2", ip_netmask="10.0.0.0/24"),
@@ -413,9 +420,7 @@ class TestPanoramaSummarizeSecurityPolicy:
             "panos_mcp.tools._common.get_client",
             lambda *a, **k: pano,
         )
-        monkeypatch.setattr(
-            DeviceGroup, "refreshall", staticmethod(lambda *a, **k: [dg])
-        )
+        monkeypatch.setattr(DeviceGroup, "refreshall", staticmethod(lambda *a, **k: [dg]))
 
         def _refreshall(parent: Any, *args: Any, **kwargs: Any) -> list[Any]:
             # Parent is the PreRulebase/PostRulebase whose parent is either
@@ -434,18 +439,29 @@ class TestPanoramaSummarizeSecurityPolicy:
 
         pre_rules = [
             _FakeObj(
-                name="dg-pre-1", action="allow",
-                fromzone=["trust"], tozone=["untrust"],
-                source=["any"], destination=["any"], application=["any"],
-                disabled=False, group=None, profile_setting=None,
+                name="dg-pre-1",
+                action="allow",
+                fromzone=["trust"],
+                tozone=["untrust"],
+                source=["any"],
+                destination=["any"],
+                application=["any"],
+                disabled=False,
+                group=None,
+                profile_setting=None,
             ),
         ]
         post_rules = [
             _FakeObj(
-                name="dg-post-1", action="deny",
-                fromzone=["dmz"], tozone=["untrust"],
-                source=["10.0.0.0/24"], destination=["any"], application=["tor"],
-                disabled=False, group="strict",
+                name="dg-post-1",
+                action="deny",
+                fromzone=["dmz"],
+                tozone=["untrust"],
+                source=["10.0.0.0/24"],
+                destination=["any"],
+                application=["tor"],
+                disabled=False,
+                group="strict",
             ),
         ]
         self._patch_panorama(
@@ -461,8 +477,10 @@ class TestPanoramaSummarizeSecurityPolicy:
         register_aggregation_tools(ctx)
 
         result = await _call(
-            mcp, "panorama_summarize_security_policy",
-            device_group="Lafayette Plant", firewall="fw1",
+            mcp,
+            "panorama_summarize_security_policy",
+            device_group="Lafayette Plant",
+            firewall="fw1",
         )
 
         assert result["device_group"] == "Lafayette Plant"
@@ -486,18 +504,29 @@ class TestPanoramaSummarizeSecurityPolicy:
 
         shared_pre = [
             _FakeObj(
-                name="shared-pre-1", action="allow",
-                fromzone=["any"], tozone=["any"],
-                source=["any"], destination=["any"], application=["any"],
-                disabled=False, group=None, profile_setting=None,
+                name="shared-pre-1",
+                action="allow",
+                fromzone=["any"],
+                tozone=["any"],
+                source=["any"],
+                destination=["any"],
+                application=["any"],
+                disabled=False,
+                group=None,
+                profile_setting=None,
             ),
         ]
         dg_pre = [
             _FakeObj(
-                name="dg-pre-1", action="deny",
-                fromzone=["trust"], tozone=["untrust"],
-                source=["any"], destination=["any"], application=["tor"],
-                disabled=False, group="strict",
+                name="dg-pre-1",
+                action="deny",
+                fromzone=["trust"],
+                tozone=["untrust"],
+                source=["any"],
+                destination=["any"],
+                application=["tor"],
+                disabled=False,
+                group="strict",
             ),
         ]
         self._patch_panorama(
@@ -515,8 +544,11 @@ class TestPanoramaSummarizeSecurityPolicy:
         register_aggregation_tools(ctx)
 
         result = await _call(
-            mcp, "panorama_summarize_security_policy",
-            device_group="OT-FWs", firewall="fw1", include_shared=True,
+            mcp,
+            "panorama_summarize_security_policy",
+            device_group="OT-FWs",
+            firewall="fw1",
+            include_shared=True,
         )
 
         assert result["include_shared"] is True
@@ -539,7 +571,8 @@ class TestPanoramaSummarizeSecurityPolicy:
 
         pano = Panorama("h", "u", "p")
         monkeypatch.setattr(
-            "panos_mcp.tools._common.get_client", lambda *a, **k: pano,
+            "panos_mcp.tools._common.get_client",
+            lambda *a, **k: pano,
         )
         monkeypatch.setattr(DeviceGroup, "refreshall", staticmethod(lambda *a, **k: []))
         _seed_firewall()
@@ -547,8 +580,10 @@ class TestPanoramaSummarizeSecurityPolicy:
         register_aggregation_tools(ctx)
 
         result = await _call(
-            mcp, "panorama_summarize_security_policy",
-            device_group="Does-Not-Exist", firewall="fw1",
+            mcp,
+            "panorama_summarize_security_policy",
+            device_group="Does-Not-Exist",
+            firewall="fw1",
         )
         assert "error" in result
         assert "Does-Not-Exist" in result["error"]
@@ -572,7 +607,8 @@ class TestPanoramaSummarizeSecurityPolicy:
 
         fw = Firewall("h", "u", "p")
         monkeypatch.setattr(
-            "panos_mcp.tools._common.get_client", lambda *a, **k: fw,
+            "panos_mcp.tools._common.get_client",
+            lambda *a, **k: fw,
         )
 
         def _boom(*_a: object, **_k: object) -> list[Any]:
@@ -584,8 +620,10 @@ class TestPanoramaSummarizeSecurityPolicy:
         register_aggregation_tools(ctx)
 
         result = await _call(
-            mcp, "panorama_summarize_security_policy",
-            device_group="anything", firewall="fw1",
+            mcp,
+            "panorama_summarize_security_policy",
+            device_group="anything",
+            firewall="fw1",
         )
         assert "error" in result
         assert "not a panorama" in result["error"]
@@ -615,6 +653,7 @@ class TestEnrichSecurityRuleDicts:
 
     def test_has_inspection_true_when_group_set(self) -> None:
         from panos_mcp.tools._common import enrich_security_rule_dicts
+
         out = enrich_security_rule_dicts([{"group": "strict"}])
         assert out[0]["has_inspection"] is True
 
@@ -626,9 +665,8 @@ class TestEnrichSecurityRuleDicts:
         as "no inspection" — the bug this rename was introduced to fix.
         """
         from panos_mcp.tools._common import enrich_security_rule_dicts
-        out = enrich_security_rule_dicts([
-            {"virus": ["default"], "spyware": ["Rea Anti-Spyware"]}
-        ])
+
+        out = enrich_security_rule_dicts([{"virus": ["default"], "spyware": ["Rea Anti-Spyware"]}])
         assert out[0]["has_inspection"] is True
 
     def test_has_inspection_true_for_each_individual_profile_field(self) -> None:
@@ -639,12 +677,14 @@ class TestEnrichSecurityRuleDicts:
             _INDIVIDUAL_PROFILE_FIELDS,
             enrich_security_rule_dicts,
         )
+
         for field in _INDIVIDUAL_PROFILE_FIELDS:
             out = enrich_security_rule_dicts([{field: ["default"]}])
             assert out[0]["has_inspection"] is True, field
 
     def test_has_inspection_false_when_all_absent(self) -> None:
         from panos_mcp.tools._common import enrich_security_rule_dicts
+
         out = enrich_security_rule_dicts([{"name": "r1"}])
         assert out[0]["has_inspection"] is False
         assert out[0]["has_log_setting"] is False
@@ -655,11 +695,20 @@ class TestEnrichSecurityRuleDicts:
         could fake a profile attachment.
         """
         from panos_mcp.tools._common import enrich_security_rule_dicts
-        out = enrich_security_rule_dicts([{
-            "virus": [], "spyware": [], "vulnerability": [],
-            "url_filtering": [], "file_blocking": [],
-            "data_filtering": [], "wildfire_analysis": [],
-        }])
+
+        out = enrich_security_rule_dicts(
+            [
+                {
+                    "virus": [],
+                    "spyware": [],
+                    "vulnerability": [],
+                    "url_filtering": [],
+                    "file_blocking": [],
+                    "data_filtering": [],
+                    "wildfire_analysis": [],
+                }
+            ]
+        )
         assert out[0]["has_inspection"] is False
 
     def test_definition_agrees_with_summarize_rules(self) -> None:
@@ -669,13 +718,13 @@ class TestEnrichSecurityRuleDicts:
         tell different stories.
         """
         from panos_mcp.tools._common import enrich_security_rule_dicts
+
         rules = [
             # Profile group → has inspection.
             {"name": "a", "action": "allow", "disabled": False, "group": "g1"},
             # Individual profile attachment → has inspection (the case the
             # old ``has_profile`` heuristic missed entirely).
-            {"name": "b", "action": "allow", "disabled": False,
-             "virus": ["default"]},
+            {"name": "b", "action": "allow", "disabled": False, "virus": ["default"]},
             # Bare allow → no inspection.
             {"name": "c", "action": "allow", "disabled": False},
         ]
@@ -691,16 +740,19 @@ class TestFilterByAttrsPureLogic:
 
     def test_none_is_passthrough(self) -> None:
         from panos_mcp.tools._common import filter_by_attrs
+
         items: list[dict[str, Any]] = [{"name": "a"}, {"name": "b"}]
         assert filter_by_attrs(items, None) == items
 
     def test_empty_dict_is_passthrough(self) -> None:
         from panos_mcp.tools._common import filter_by_attrs
+
         items: list[dict[str, Any]] = [{"name": "a"}]
         assert filter_by_attrs(items, {}) == items
 
     def test_list_field_matches_any_element(self) -> None:
         from panos_mcp.tools._common import filter_by_attrs
+
         items = [
             {"name": "r1", "source": ["10.0.0.0/24", "any"]},
             {"name": "r2", "source": ["192.168.0.0/16"]},
@@ -710,6 +762,7 @@ class TestFilterByAttrsPureLogic:
 
     def test_bool_field_matches_string_form(self) -> None:
         from panos_mcp.tools._common import filter_by_attrs
+
         items = [
             {"name": "r1", "disabled": True},
             {"name": "r2", "disabled": False},
@@ -719,6 +772,7 @@ class TestFilterByAttrsPureLogic:
 
     def test_case_insensitive_match(self) -> None:
         from panos_mcp.tools._common import filter_by_attrs
+
         items = [{"name": "r1", "action": "Allow"}]
         assert filter_by_attrs(items, {"action": "ALLOW"}) == items
 
@@ -729,6 +783,7 @@ class TestFilterByAttrsPureLogic:
         didn't enrich its output.
         """
         from panos_mcp.tools._common import filter_by_attrs
+
         items = [
             {"name": "r1"},  # no source field
             {"name": "r2", "source": ["any"]},
@@ -738,6 +793,7 @@ class TestFilterByAttrsPureLogic:
 
     def test_all_conditions_must_match(self) -> None:
         from panos_mcp.tools._common import filter_by_attrs
+
         items = [
             {"name": "r1", "action": "allow", "application": ["any"]},
             {"name": "r2", "action": "deny", "application": ["any"]},

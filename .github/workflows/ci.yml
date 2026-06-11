@@ -10,26 +10,28 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.13"]
+        python-version: ["3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      # Install mcp-toolkit from PyPI when available, or from a known source
-      # repo otherwise. Adjust the MCP_TOOLKIT_REPO env var (or repo secret)
-      # if the toolkit lives elsewhere.
-      - name: Install mcp-toolkit
+          cache: pip
+      - name: Install package and dependencies
+        # node804-mcp-toolkit is a declared dependency, so it resolves from
+        # PyPI automatically. While it is not yet published, pre-install it
+        # from the source repo as a fallback so CI is not blocked.
         env:
           MCP_TOOLKIT_REPO: ${{ vars.MCP_TOOLKIT_REPO || 'epopleachim/mcp-toolkit-py' }}
         run: |
           python -m pip install --upgrade pip
-          # Try PyPI first; fall back to a git install from the configured repo.
-          pip install mcp-toolkit || pip install "git+https://github.com/${MCP_TOOLKIT_REPO}.git"
-      - name: Install panos-mcp
-        run: pip install -e ".[dev]"
+          pip install node804-mcp-toolkit \
+            || pip install "git+https://github.com/${MCP_TOOLKIT_REPO}.git"
+          pip install -e ".[dev]"
       - name: Lint
         run: ruff check .
+      - name: Format check
+        run: ruff format --check .
       - name: Type check
         run: mypy src
       - name: Test

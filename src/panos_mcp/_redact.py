@@ -52,12 +52,8 @@ def redact_secrets(text: str) -> str:
     """
     if not text:
         return text
-    text = _KEY_PARAM_RE.sub(
-        lambda m: f"{m.group('sep')}{m.group('name')}={REDACTED}", text
-    )
-    text = _BARE_KEY_RE.sub(
-        lambda m: f"{m.group('name')}={REDACTED}", text
-    )
+    text = _KEY_PARAM_RE.sub(lambda m: f"{m.group('sep')}{m.group('name')}={REDACTED}", text)
+    text = _BARE_KEY_RE.sub(lambda m: f"{m.group('name')}={REDACTED}", text)
     return text
 
 
