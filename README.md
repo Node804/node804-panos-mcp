@@ -89,6 +89,28 @@ Responses are wrapped as `{total, count, items}` so the AI knows when pagination
 
 Single-record tools (`get_firewall_info`, `get_ha_status`, etc.) accept `verbose` and `fields`.
 
+### Measured savings
+
+Token counts below were measured against synthetic fixtures sized to mid-range deployments (100 security rules, 500 address objects). Encoding: `cl100k_base` (GPT-4 / Claude approximation). Every scenario is a regression-guarded test in `tests/benchmark/` — the build fails if a future change widens a response shape past the budget.
+
+| Scenario | Naive approach | Tokens | Better approach | Tokens | Saving |
+| --- | --- | ---: | --- | ---: | ---: |
+| Find an address object by IP | `get_address_objects` (dump 500) | 21,207 | `find_address_object("10.0.0.5")` | 88 | **241× smaller** |
+| Inventory snapshot | `get_address_objects` (dump 500) | 21,207 | `count_objects_by_type` | 27 | **785× smaller** |
+| Audit security policy | `get_security_rules` (verbose, 100 rules) | 19,627 | `summarize_security_policy` | 58 | **338× smaller** |
+| Audit security policy | `get_security_rules` (lean, 100 rules) | 5,095 | `summarize_security_policy` | 58 | **88× smaller** |
+| Find rules matching a pattern | `get_security_rules` (lean dump) | 5,095 | `find_rule_by_name("rule-001")` | 249 | **20× smaller** |
+| Filter rules by pattern | `get_security_rules` (no filter) | 5,095 | `get_security_rules(pattern="rule-00")` | 523 | **10× smaller** |
+| Lean default vs verbose | `get_security_rules(verbose=true)` | 19,627 | `get_security_rules` (default) | 5,095 | **74% reduction** |
+
+Run the benchmark suite yourself:
+
+```bash
+pytest -v -s -m benchmark
+```
+
+The headline number: **a policy audit that would cost ~20K tokens via the naive "dump everything" approach costs ~60 tokens via `summarize_security_policy`.** That's the difference between burning a meaningful slice of a Claude conversation budget on a single question and answering it for free.
+
 ---
 
 ## Audit logging
