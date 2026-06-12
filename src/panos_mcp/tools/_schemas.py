@@ -53,4 +53,44 @@ PanosDescription = Annotated[
 ]
 
 
-__all__ = ["PANOS_NAME_PATTERN", "PanosDescription", "PanosName", "PanosTagName"]
+# --- Rule input types -------------------------------------------------------
+# These are shared across rule-CRUD tools so input contracts stay consistent
+# between security, NAT, PBF, QoS, and decryption rules.
+
+
+MemberValue = Annotated[
+    str,
+    Field(
+        min_length=1,
+        max_length=255,
+        description=(
+            "A member of a rule list field (zone, address, application, "
+            "service). May be a PAN-OS object/group name or the special "
+            "literal 'any'. Object names that contain characters outside "
+            "the PAN-OS-safe charset will be rejected by the firewall."
+        ),
+    ),
+]
+"""Loose type for rule member values.
+
+Unlike :data:`PanosName`, this allows the literal ``"any"`` plus inline
+address strings ("10.0.0.0/24") and application/service names that the
+firewall already validates server-side. XML construction in rule tools
+applies escapeXml-equivalent escaping defensively.
+"""
+
+
+MemberList = Annotated[
+    list[MemberValue],
+    Field(min_length=1, description="At least one member value."),
+]
+
+
+__all__ = [
+    "PANOS_NAME_PATTERN",
+    "MemberList",
+    "MemberValue",
+    "PanosDescription",
+    "PanosName",
+    "PanosTagName",
+]
