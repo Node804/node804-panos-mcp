@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.13"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: panos-mcp-py
+      # Sibling toolkit checkout so the editable path dep resolves in CI.
+      - uses: actions/checkout@v4
+        with:
+          repository: epopleachim/mcp-toolkit-py
+          path: mcp-toolkit-py
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        working-directory: panos-mcp-py
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ../mcp-toolkit-py
+          pip install -e ".[dev]"
+      - name: Lint
+        working-directory: panos-mcp-py
+        run: ruff check .
+      - name: Type check
+        working-directory: panos-mcp-py
+        run: mypy src
+      - name: Test
+        working-directory: panos-mcp-py
+        run: pytest -v -m "not integration and not benchmark"
