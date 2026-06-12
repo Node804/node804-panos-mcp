@@ -25,7 +25,6 @@ from panos_mcp.tools.objects import register_objects_tools
 from panos_mcp.tools.security import register_security_tools
 from panos_mcp.tools.system import register_system_tools
 
-
 # --- Test fixtures ---------------------------------------------------------
 
 
@@ -243,7 +242,7 @@ class TestGetSecurityRules:
         class FakeFw:
             def __init__(self, **kwargs: Any) -> None:
                 self.hostname = kwargs.get("hostname", "x")
-            def add(self, child: Any) -> Any:  # noqa: D401
+            def add(self, child: Any) -> Any:
                 child.parent = self
                 return child
 
