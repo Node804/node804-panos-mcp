@@ -72,7 +72,7 @@ QOS_RULES_XPATH = (
     "/config/devices/entry[@name='localhost.localdomain']/vsys/entry[@name='vsys1']"
     "/rulebase/qos/rules"
 )
-"""XPath to the QoS rulebase. Constant — single vsys assumed (matches TS fork)."""
+"""XPath to the QoS rulebase. Constant — assumes the default single-vsys layout."""
 
 
 def qos_rule_xpath(rule_name: str) -> str:

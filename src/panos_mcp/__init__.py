@@ -1,8 +1,11 @@
 """Token-efficient MCP server for Palo Alto Networks PAN-OS firewalls and Panorama.
 
-Greenfield Python rebuild of the TypeScript fork at ../Palo-MCP/, designed around
-lean responses, default-deny RBAC, and aggregation tools that replace dump-and-filter
-patterns. See plan in C:/Users/mpope/.claude/plans/purring-fluttering-giraffe.md.
+Designed around three principles:
+  1. Lean responses by default — typical 40-70% token reduction vs unfiltered output.
+  2. Default-deny RBAC — only read tools are exposed unless PANOS_MODE opts in.
+  3. TLS verification on by default — self-signed certs require explicit opt-in.
+
+See the README for installation, configuration, and the full tool catalog.
 """
 
 # pan-os-python 1.12.x still imports `distutils`, which Python 3.12 removed.

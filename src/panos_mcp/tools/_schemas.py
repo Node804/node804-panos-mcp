@@ -16,7 +16,7 @@ from typing import Annotated
 from pydantic import Field
 
 PANOS_NAME_PATTERN = r"^[A-Za-z0-9._\- ]+$"
-"""Charset allowed by PAN-OS for object/rule names. Same regex as the TS fork."""
+"""Charset allowed by PAN-OS for object/rule names."""
 
 
 PanosName = Annotated[

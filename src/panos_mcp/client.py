@@ -5,9 +5,10 @@ the host + api_key, the factory constructs a ``Firewall`` or ``Panorama``
 instance with the active TLS config, and the result is cached for the
 lifetime of the server process.
 
-The TS fork built every URL by hand. We use ``pan-os-python`` so config
-operations are object-method calls (``firewall.refresh_system_info()``,
-``firewall.add(AddressObject(...))``) instead of XPath strings.
+Built on ``pan-os-python``: config operations are object-method calls
+(``firewall.refresh_system_info()``, ``firewall.add(AddressObject(...))``)
+rather than hand-built XPath strings, so the MCP layer stays focused on
+response shaping and access control.
 
 Phase 2 only exposes the factory and a ``probe()`` helper used by the
 ``server_status`` tool. Read/write tools come online in Phase 3+.

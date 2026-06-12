@@ -18,6 +18,8 @@ server constructs one and passes it to every ``register_*_tools(ctx)`` call.
 
 from __future__ import annotations
 
+import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 from xml.etree.ElementTree import Element
@@ -62,7 +64,7 @@ class ToolContext:
 def element_to_dict(element: Element | None) -> dict[str, Any]:
     """Convert an ElementTree.Element to a plain dict.
 
-    Conversion rules (matches what fast-xml-parser produces in the TS fork):
+    Conversion rules:
       - element attributes become ``@_<name>`` keys
       - element text (when present alongside children) becomes ``#text``
       - leaf elements with text become the text string
@@ -160,11 +162,29 @@ def wrap_panos_error(err: Exception, operation: str, name: str) -> dict[str, Any
     }
 
 
+async def run_blocking[T](callable_fn: Callable[..., T], *args: Any, **kwargs: Any) -> T:
+    """Run a synchronous pan-os-python call in a thread executor.
+
+    pan-os-python is synchronous; ``firewall.commit()``, ``op()``, and
+    ``xapi.set()`` block the calling thread. Running them inline in a
+    coroutine handler stalls FastMCP's event loop for the call duration —
+    which for a commit can be tens of seconds to minutes. Routing them
+    through the default thread executor keeps the event loop responsive
+    so other tool calls (e.g. progress checks) can proceed.
+
+    Use for any tool that calls pan-os-python in a way that might take
+    more than a few hundred milliseconds.
+    """
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, lambda: callable_fn(*args, **kwargs))
+
+
 __all__ = [
     "ToolContext",
     "element_to_dict",
     "op_to_dict",
     "panos_object_dicts",
+    "run_blocking",
     "wrap_panos_error",
     "write_success",
 ]

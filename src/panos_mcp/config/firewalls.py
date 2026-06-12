@@ -36,7 +36,7 @@ import keyring
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 KEYRING_SERVICE: Final = "panos-mcp"
-"""Service name used for OS keychain entries. Matches the TS fork at ../Palo-MCP."""
+"""Service name used for OS keychain entries."""
 
 
 _PANOS_NAME_REGEX = re.compile(r"^[A-Za-z0-9._\- ]+$")
@@ -71,8 +71,8 @@ class FirewallEntry(BaseModel):
     @field_validator("host")
     @classmethod
     def _normalize_host(cls, v: str) -> str:
-        # Strip http(s):// prefix and trailing slashes — same normalization
-        # the TS fork applies. Keeps the API client's URL construction simple.
+        # Strip http(s):// prefix and trailing slashes — keeps the API
+        # client's URL construction simple and predictable.
         cleaned = v.strip()
         cleaned = re.sub(r"^https?://", "", cleaned, flags=re.IGNORECASE)
         cleaned = cleaned.rstrip("/")
