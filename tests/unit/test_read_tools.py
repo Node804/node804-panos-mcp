@@ -14,7 +14,7 @@ from typing import Any
 
 import pytest
 from mcp.server.fastmcp import FastMCP
-from mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink
+from node804_mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink
 
 import panos_mcp.client as client_module
 import panos_mcp.config.firewalls as fw_module
@@ -40,6 +40,7 @@ def _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Any:
     reset_client_cache()
     # Restore the real Firewall class in case a test patched it.
     from panos.firewall import Firewall as RealFirewall
+
     client_module.Firewall = RealFirewall
 
 
@@ -60,6 +61,7 @@ def _patch_firewall_class(monkeypatch: pytest.MonkeyPatch, fake_class: Any) -> N
     we patch the symbol re-exported in our client module.
     """
     import panos_mcp.client as client_module
+
     monkeypatch.setattr(client_module, "Firewall", fake_class)
 
 
@@ -79,24 +81,27 @@ class TestGetFirewallInfo:
         class FakeFw:
             hostname = "10.0.0.1"
             api_key = "k"
+
             def __init__(self, **kwargs: Any) -> None:
                 self.hostname = kwargs.get("hostname", "10.0.0.1")
 
             def op(self, cmd: str, **kwargs: Any) -> dict[str, Any]:
                 # op_to_dict accepts a dict directly when our converter sees one.
-                return {"system": {
-                    "hostname": "fw1",
-                    "model": "PA-220",
-                    "serial": "00112233",
-                    "sw-version": "11.1.0",
-                    "uptime": "5 days",
-                    "ip-address": "10.0.0.1",
-                    "multi-vsys": "no",
-                    # Verbose-only fields:
-                    "av-version": "4321-1234",
-                    "platform-family": "pa-200",
-                    "device-certificate-status": "Valid",
-                }}
+                return {
+                    "system": {
+                        "hostname": "fw1",
+                        "model": "PA-220",
+                        "serial": "00112233",
+                        "sw-version": "11.1.0",
+                        "uptime": "5 days",
+                        "ip-address": "10.0.0.1",
+                        "multi-vsys": "no",
+                        # Verbose-only fields:
+                        "av-version": "4321-1234",
+                        "platform-family": "pa-200",
+                        "device-certificate-status": "Valid",
+                    }
+                }
 
         _patch_firewall_class(monkeypatch, FakeFw)
         _seed_firewall()
@@ -168,6 +173,7 @@ class TestGetAddressObjects:
         # Patch refreshall to return our fake objects regardless of arguments.
         _patch_firewall_class(monkeypatch, FakeFw)
         from panos.objects import AddressObject
+
         monkeypatch.setattr(AddressObject, "refreshall", staticmethod(lambda *a, **k: fake_objects))
 
         _seed_firewall()
@@ -200,6 +206,7 @@ class TestGetAddressObjects:
 
         _patch_firewall_class(monkeypatch, FakeFw)
         from panos.objects import AddressObject
+
         monkeypatch.setattr(AddressObject, "refreshall", staticmethod(lambda *a, **k: fake_objects))
 
         _seed_firewall()
@@ -216,7 +223,9 @@ class TestGetAddressObjects:
 
 class TestGetSecurityRules:
     @pytest.mark.asyncio
-    async def test_lean_excludes_uuid_and_audit_comment(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_lean_excludes_uuid_and_audit_comment(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         class FakeRule:
             def __init__(self, name: str) -> None:
                 self.name = name
@@ -242,12 +251,14 @@ class TestGetSecurityRules:
         class FakeFw:
             def __init__(self, **kwargs: Any) -> None:
                 self.hostname = kwargs.get("hostname", "x")
+
             def add(self, child: Any) -> Any:
                 child.parent = self
                 return child
 
         _patch_firewall_class(monkeypatch, FakeFw)
         from panos.policies import SecurityRule
+
         monkeypatch.setattr(SecurityRule, "refreshall", staticmethod(lambda *a, **k: rules))
 
         _seed_firewall()
@@ -286,48 +297,76 @@ class TestGetSecurityRules:
                 return dict(self._about)
 
         rules = [
-            _Rule("with-group", {
-                "name": "with-group", "action": "allow", "disabled": False,
-                "group": "strict-profile",  # has profile via group
-                "log_setting": "to-siem",   # has log forwarding
-            }),
-            _Rule("with-individual-profiles", {
-                "name": "with-individual-profiles", "action": "allow",
-                "disabled": False,
-                # No profile group, but L7 profile attachments live as
-                # top-level ``.about()`` keys — the Rea-style pattern that
-                # the old flag missed. ``has_inspection`` must be True.
-                "virus": ["default"],
-                "spyware": ["Rea Anti-Spyware Profile"],
-                "url_filtering": ["Rea URL Filter"],
-            }),
-            _Rule("bare", {
-                "name": "bare", "action": "allow", "disabled": False,
-                # No profile group, no individual attachments, no logging →
-                # all flags false.
-                "group": None, "log_setting": None,
-                "virus": None, "spyware": None, "vulnerability": None,
-                "url_filtering": None, "file_blocking": None,
-                "data_filtering": None, "wildfire_analysis": None,
-            }),
-            _Rule("empty-strings", {
-                "name": "empty-strings", "action": "allow", "disabled": False,
-                # Empty strings / empty lists are falsy — confirm we don't
-                # treat them as set.
-                "group": "", "log_setting": "",
-                "virus": [], "spyware": [],
-            }),
+            _Rule(
+                "with-group",
+                {
+                    "name": "with-group",
+                    "action": "allow",
+                    "disabled": False,
+                    "group": "strict-profile",  # has profile via group
+                    "log_setting": "to-siem",  # has log forwarding
+                },
+            ),
+            _Rule(
+                "with-individual-profiles",
+                {
+                    "name": "with-individual-profiles",
+                    "action": "allow",
+                    "disabled": False,
+                    # No profile group, but L7 profile attachments live as
+                    # top-level ``.about()`` keys — the Rea-style pattern that
+                    # the old flag missed. ``has_inspection`` must be True.
+                    "virus": ["default"],
+                    "spyware": ["Rea Anti-Spyware Profile"],
+                    "url_filtering": ["Rea URL Filter"],
+                },
+            ),
+            _Rule(
+                "bare",
+                {
+                    "name": "bare",
+                    "action": "allow",
+                    "disabled": False,
+                    # No profile group, no individual attachments, no logging →
+                    # all flags false.
+                    "group": None,
+                    "log_setting": None,
+                    "virus": None,
+                    "spyware": None,
+                    "vulnerability": None,
+                    "url_filtering": None,
+                    "file_blocking": None,
+                    "data_filtering": None,
+                    "wildfire_analysis": None,
+                },
+            ),
+            _Rule(
+                "empty-strings",
+                {
+                    "name": "empty-strings",
+                    "action": "allow",
+                    "disabled": False,
+                    # Empty strings / empty lists are falsy — confirm we don't
+                    # treat them as set.
+                    "group": "",
+                    "log_setting": "",
+                    "virus": [],
+                    "spyware": [],
+                },
+            ),
         ]
 
         class FakeFw:
             def __init__(self, **kwargs: Any) -> None:
                 self.hostname = kwargs.get("hostname", "x")
+
             def add(self, child: Any) -> Any:
                 child.parent = self
                 return child
 
         _patch_firewall_class(monkeypatch, FakeFw)
         from panos.policies import SecurityRule
+
         monkeypatch.setattr(SecurityRule, "refreshall", staticmethod(lambda *a, **k: rules))
 
         _seed_firewall()
@@ -393,12 +432,14 @@ class TestGetSecurityRules:
         class FakeFw:
             def __init__(self, **kwargs: Any) -> None:
                 self.hostname = kwargs.get("hostname", "x")
+
             def add(self, child: Any) -> Any:
                 child.parent = self
                 return child
 
         _patch_firewall_class(monkeypatch, FakeFw)
         from panos.policies import SecurityRule
+
         monkeypatch.setattr(SecurityRule, "refreshall", staticmethod(lambda *a, **k: rules))
 
         _seed_firewall()
@@ -439,35 +480,57 @@ class TestGetSecurityRules:
             def __init__(self, about: dict[str, Any]) -> None:
                 self._about = about
                 self.name = about["name"]
+
             def about(self) -> dict[str, Any]:
                 return dict(self._about)
 
         rules = [
-            _Rule({"name": "lab-net", "action": "allow",
-                   "source": ["10.0.0.0/24"], "application": ["any"]}),
-            _Rule({"name": "dmz-net", "action": "allow",
-                   "source": ["10.1.0.0/24"], "application": ["web-browsing"]}),
-            _Rule({"name": "multi", "action": "allow",
-                   "source": ["192.168.1.0/24", "10.0.0.0/24"],
-                   "application": ["ssh"]}),
+            _Rule(
+                {
+                    "name": "lab-net",
+                    "action": "allow",
+                    "source": ["10.0.0.0/24"],
+                    "application": ["any"],
+                }
+            ),
+            _Rule(
+                {
+                    "name": "dmz-net",
+                    "action": "allow",
+                    "source": ["10.1.0.0/24"],
+                    "application": ["web-browsing"],
+                }
+            ),
+            _Rule(
+                {
+                    "name": "multi",
+                    "action": "allow",
+                    "source": ["192.168.1.0/24", "10.0.0.0/24"],
+                    "application": ["ssh"],
+                }
+            ),
         ]
 
         class FakeFw:
             def __init__(self, **kwargs: Any) -> None:
                 self.hostname = kwargs.get("hostname", "x")
+
             def add(self, child: Any) -> Any:
                 child.parent = self
                 return child
 
         _patch_firewall_class(monkeypatch, FakeFw)
         from panos.policies import SecurityRule
+
         monkeypatch.setattr(SecurityRule, "refreshall", staticmethod(lambda *a, **k: rules))
         _seed_firewall()
         ctx, mcp = _make_ctx()
         register_security_tools(ctx)
 
         result = await _call(
-            mcp, "get_security_rules", firewall="fw1",
+            mcp,
+            "get_security_rules",
+            firewall="fw1",
             attrs={"source": "10.0.0.0/24"},
         )
         names = sorted(r["name"] for r in result["items"])
@@ -485,34 +548,47 @@ class TestGetSecurityRules:
             def __init__(self, about: dict[str, Any]) -> None:
                 self._about = about
                 self.name = about["name"]
+
             def about(self) -> dict[str, Any]:
                 return dict(self._about)
 
         rules = [
-            _Rule({"name": "any-allow", "action": "allow",
-                   "application": ["any"], "source": ["any"]}),
-            _Rule({"name": "any-deny", "action": "deny",
-                   "application": ["any"], "source": ["any"]}),
-            _Rule({"name": "web-allow", "action": "allow",
-                   "application": ["web-browsing"], "source": ["any"]}),
+            _Rule(
+                {"name": "any-allow", "action": "allow", "application": ["any"], "source": ["any"]}
+            ),
+            _Rule(
+                {"name": "any-deny", "action": "deny", "application": ["any"], "source": ["any"]}
+            ),
+            _Rule(
+                {
+                    "name": "web-allow",
+                    "action": "allow",
+                    "application": ["web-browsing"],
+                    "source": ["any"],
+                }
+            ),
         ]
 
         class FakeFw:
             def __init__(self, **kwargs: Any) -> None:
                 self.hostname = kwargs.get("hostname", "x")
+
             def add(self, child: Any) -> Any:
                 child.parent = self
                 return child
 
         _patch_firewall_class(monkeypatch, FakeFw)
         from panos.policies import SecurityRule
+
         monkeypatch.setattr(SecurityRule, "refreshall", staticmethod(lambda *a, **k: rules))
         _seed_firewall()
         ctx, mcp = _make_ctx()
         register_security_tools(ctx)
 
         result = await _call(
-            mcp, "get_security_rules", firewall="fw1",
+            mcp,
+            "get_security_rules",
+            firewall="fw1",
             attrs={"application": "any", "action": "allow"},
         )
         names = sorted(r["name"] for r in result["items"])
@@ -532,6 +608,7 @@ class TestGetSecurityRules:
             def __init__(self, about: dict[str, Any]) -> None:
                 self._about = about
                 self.name = about["name"]
+
             def about(self) -> dict[str, Any]:
                 return dict(self._about)
 
@@ -544,19 +621,23 @@ class TestGetSecurityRules:
         class FakeFw:
             def __init__(self, **kwargs: Any) -> None:
                 self.hostname = kwargs.get("hostname", "x")
+
             def add(self, child: Any) -> Any:
                 child.parent = self
                 return child
 
         _patch_firewall_class(monkeypatch, FakeFw)
         from panos.policies import SecurityRule
+
         monkeypatch.setattr(SecurityRule, "refreshall", staticmethod(lambda *a, **k: rules))
         _seed_firewall()
         ctx, mcp = _make_ctx()
         register_security_tools(ctx)
 
         result = await _call(
-            mcp, "get_security_rules", firewall="fw1",
+            mcp,
+            "get_security_rules",
+            firewall="fw1",
             attrs={"has_inspection": "false"},
         )
         names = sorted(r["name"] for r in result["items"])
@@ -577,6 +658,7 @@ class TestGetSecurityRules:
             def __init__(self, about: dict[str, Any]) -> None:
                 self._about = about
                 self.name = about["name"]
+
             def about(self) -> dict[str, Any]:
                 return dict(self._about)
 
@@ -588,19 +670,23 @@ class TestGetSecurityRules:
         class FakeFw:
             def __init__(self, **kwargs: Any) -> None:
                 self.hostname = kwargs.get("hostname", "x")
+
             def add(self, child: Any) -> Any:
                 child.parent = self
                 return child
 
         _patch_firewall_class(monkeypatch, FakeFw)
         from panos.policies import SecurityRule
+
         monkeypatch.setattr(SecurityRule, "refreshall", staticmethod(lambda *a, **k: rules))
         _seed_firewall()
         ctx, mcp = _make_ctx()
         register_security_tools(ctx)
 
         result = await _call(
-            mcp, "get_security_rules", firewall="fw1",
+            mcp,
+            "get_security_rules",
+            firewall="fw1",
             attrs={"has_profile": "false"},
         )
         assert "error" in result
@@ -623,25 +709,35 @@ class TestGetSecurityRules:
             def __init__(self, about: dict[str, Any]) -> None:
                 self._about = about
                 self.name = about["name"]
+
             def about(self) -> dict[str, Any]:
                 return dict(self._about)
 
         rules = [
-            _Rule({"name": "match-me", "action": "allow",
-                   "source": ["10.5.5.5/32"], "application": ["any"]}),
-            _Rule({"name": "skip-me", "action": "allow",
-                   "source": ["other"], "application": ["any"]}),
+            _Rule(
+                {
+                    "name": "match-me",
+                    "action": "allow",
+                    "source": ["10.5.5.5/32"],
+                    "application": ["any"],
+                }
+            ),
+            _Rule(
+                {"name": "skip-me", "action": "allow", "source": ["other"], "application": ["any"]}
+            ),
         ]
 
         class FakeFw:
             def __init__(self, **kwargs: Any) -> None:
                 self.hostname = kwargs.get("hostname", "x")
+
             def add(self, child: Any) -> Any:
                 child.parent = self
                 return child
 
         _patch_firewall_class(monkeypatch, FakeFw)
         from panos.policies import SecurityRule
+
         monkeypatch.setattr(SecurityRule, "refreshall", staticmethod(lambda *a, **k: rules))
         _seed_firewall()
         ctx, mcp = _make_ctx()
@@ -651,7 +747,9 @@ class TestGetSecurityRules:
         # (so we can't see it being stripped), but we can verify that the
         # response is still lean-shaped and that filtering worked.
         result = await _call(
-            mcp, "get_security_rules", firewall="fw1",
+            mcp,
+            "get_security_rules",
+            firewall="fw1",
             attrs={"source": "10.5.5.5"},
         )
         names = [r["name"] for r in result["items"]]
@@ -660,15 +758,14 @@ class TestGetSecurityRules:
         assert all("uuid" not in r for r in result["items"])
 
     @pytest.mark.asyncio
-    async def test_empty_attrs_is_passthrough(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_empty_attrs_is_passthrough(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """``attrs=None`` and ``attrs={}`` both return every rule unchanged."""
 
         class _Rule:
             def __init__(self, about: dict[str, Any]) -> None:
                 self._about = about
                 self.name = about["name"]
+
             def about(self) -> dict[str, Any]:
                 return dict(self._about)
 
@@ -677,12 +774,14 @@ class TestGetSecurityRules:
         class FakeFw:
             def __init__(self, **kwargs: Any) -> None:
                 self.hostname = kwargs.get("hostname", "x")
+
             def add(self, child: Any) -> Any:
                 child.parent = self
                 return child
 
         _patch_firewall_class(monkeypatch, FakeFw)
         from panos.policies import SecurityRule
+
         monkeypatch.setattr(SecurityRule, "refreshall", staticmethod(lambda *a, **k: rules))
         _seed_firewall()
         ctx, mcp = _make_ctx()
@@ -690,6 +789,9 @@ class TestGetSecurityRules:
 
         for attrs_val in (None, {}):
             result = await _call(
-                mcp, "get_security_rules", firewall="fw1", attrs=attrs_val,
+                mcp,
+                "get_security_rules",
+                firewall="fw1",
+                attrs=attrs_val,
             )
             assert result["count"] == 3

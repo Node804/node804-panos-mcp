@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
+from node804_mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
 
 from ..responses.schemas import (
     SHAPE_AV_VERSION,
@@ -77,8 +77,12 @@ def register_threat_tools(ctx: ToolContext) -> None:
         )
         items = _entries(result, "content-updates", "entry") or _entries(result, "entry")
         return apply_shape(
-            items, shape=SHAPE_CONTENT_VERSIONS, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            items,
+            shape=SHAPE_CONTENT_VERSIONS,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -106,8 +110,12 @@ def register_threat_tools(ctx: ToolContext) -> None:
         )
         items = _entries(result, "pan-url-categories", "entry") or _entries(result, "entry")
         return apply_shape(
-            items, shape=SHAPE_URL_CATEGORY, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            items,
+            shape=SHAPE_URL_CATEGORY,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
 

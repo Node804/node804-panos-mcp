@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from mcp_toolkit import TlsConfig
+from node804_mcp_toolkit import TlsConfig
 
 import panos_mcp.client as client_module
 import panos_mcp.config.firewalls as fw_module
@@ -21,6 +21,7 @@ def _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Any:
     monkeypatch.delenv("PANOS_API_KEY", raising=False)
     # Stub out the network call that _build_client makes for auto-detection.
     from panos.base import PanDevice
+
     monkeypatch.setattr(
         PanDevice,
         "refresh_system_info",
@@ -113,7 +114,9 @@ class TestTlsPlumbing:
         get_client("fw1", tls=TlsConfig(verify=False))
         assert captured["verify"] is False
 
-    def test_custom_ca_passes_path_string(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    def test_custom_ca_passes_path_string(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
         ca = tmp_path / "ca.pem"
         ca.write_bytes(b"x")
         captured: dict[str, Any] = {}
@@ -136,24 +139,30 @@ class TestTlsPlumbing:
 class TestAutoDetection:
     """Verify that _build_client returns Panorama when the device model says so."""
 
-    def test_panorama_model_returns_panorama_instance(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_panorama_model_returns_panorama_instance(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         from panos.base import PanDevice
         from panos.panorama import Panorama as RealPanorama
 
         monkeypatch.setattr(
-            PanDevice, "refresh_system_info",
+            PanDevice,
+            "refresh_system_info",
             lambda self: ("11.2.0", "Panorama", "0123456789"),
         )
         _seed("pan1", "10.0.0.1", "k")
         c = get_client("pan1", tls=TlsConfig())
         assert isinstance(c, RealPanorama)
 
-    def test_m_series_model_returns_panorama_instance(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_m_series_model_returns_panorama_instance(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         from panos.base import PanDevice
         from panos.panorama import Panorama as RealPanorama
 
         monkeypatch.setattr(
-            PanDevice, "refresh_system_info",
+            PanDevice,
+            "refresh_system_info",
             lambda self: ("11.2.0", "M-200", "0123456789"),
         )
         _seed("pan2", "10.0.0.2", "k")
@@ -172,7 +181,8 @@ class TestAutoDetection:
         from panos.firewall import Firewall as RealFirewall
 
         monkeypatch.setattr(
-            PanDevice, "refresh_system_info",
+            PanDevice,
+            "refresh_system_info",
             lambda self: (_ for _ in ()).throw(ConnectionError("unreachable")),
         )
         _seed("fw1", "10.0.0.1", "k")

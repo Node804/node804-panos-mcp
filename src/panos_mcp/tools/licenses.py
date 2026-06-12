@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
+from node804_mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
 
 from ..responses.schemas import SHAPE_LICENSE, SHAPE_LICENSE_USAGE
 from ..responses.shapers import apply_shape, shape_single
@@ -35,17 +35,24 @@ def register_licenses_tools(ctx: ToolContext) -> None:
         pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
-        """Installed licenses with feature, expiry, and authcode."""
+        """Installed licenses with feature and expiry.
+
+        The activation ``authcode`` is a reusable credential and is omitted
+        from the default response; pass ``verbose=true`` or
+        ``fields=["authcode"]`` to include it.
+        """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        result = op_to_dict(
-            client, "<request><license><info></info></license></request>"
-        )
+        result = op_to_dict(client, "<request><license><info></info></license></request>")
         items = _license_entries(result)
         return apply_shape(
-            items, shape=SHAPE_LICENSE, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            items,
+            shape=SHAPE_LICENSE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)

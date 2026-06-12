@@ -14,7 +14,7 @@ thorough coverage. We exercise:
 
 from __future__ import annotations
 
-from mcp_toolkit import Pagination
+from node804_mcp_toolkit import Pagination
 
 from panos_mcp.responses.shapers import LeanShape, apply_shape, shape_single
 

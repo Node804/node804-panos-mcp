@@ -19,18 +19,16 @@ from typing import Any
 
 import pytest
 from mcp.server.fastmcp import FastMCP
-from mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink
+from node804_mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink
 from panos.panorama import DeviceGroup, Panorama
 from panos.policies import (
     DecryptionRule,
     NatRule,
     PolicyBasedForwarding,
-    PostRulebase,
     PreRulebase,
     SecurityRule,
 )
 
-import panos_mcp.client as client_module
 import panos_mcp.config.firewalls as fw_module
 from panos_mcp.client import reset_client_cache
 from panos_mcp.config.firewalls import FirewallEntry
@@ -93,7 +91,8 @@ def _wire_panorama(
     dgs = [DeviceGroup(name) for name in device_groups]
 
     monkeypatch.setattr(
-        "panos_mcp.tools._common.get_client", lambda *a, **k: pano,
+        "panos_mcp.tools._common.get_client",
+        lambda *a, **k: pano,
     )
     monkeypatch.setattr(DeviceGroup, "refreshall", staticmethod(lambda *a, **k: dgs))
 
@@ -105,6 +104,7 @@ def _wire_panorama(
             dg_name = grandparent.name if isinstance(grandparent, DeviceGroup) else "<shared>"
             rb_label = "pre" if isinstance(parent, PreRulebase) else "post"
             return rules_by_parent.get((cls, dg_name, rb_label), [])
+
         return staticmethod(_refresh)
 
     for cls in (SecurityRule, NatRule, PolicyBasedForwarding, DecryptionRule):
@@ -156,9 +156,7 @@ class TestCountRulesPerDeviceGroup:
         assert "shared" not in result
 
     @pytest.mark.asyncio
-    async def test_include_shared_adds_shared_block(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_include_shared_adds_shared_block(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _wire_panorama(
             monkeypatch,
             device_groups=["DG-1"],
@@ -172,8 +170,10 @@ class TestCountRulesPerDeviceGroup:
         register_panorama_tools(ctx)
 
         result = await _call(
-            mcp, "panorama_count_rules_per_device_group",
-            firewall="pano", include_shared=True,
+            mcp,
+            "panorama_count_rules_per_device_group",
+            firewall="pano",
+            include_shared=True,
         )
         assert result["shared"]["pre"]["security"] == 1
         assert result["totals"]["security"] == 2
@@ -191,7 +191,8 @@ class TestCountRulesPerDeviceGroup:
         pano = Panorama("h", "u", "p")
         dg = DeviceGroup("DG-1")
         monkeypatch.setattr(
-            "panos_mcp.tools._common.get_client", lambda *a, **k: pano,
+            "panos_mcp.tools._common.get_client",
+            lambda *a, **k: pano,
         )
         monkeypatch.setattr(DeviceGroup, "refreshall", staticmethod(lambda *a, **k: [dg]))
 
@@ -199,6 +200,7 @@ class TestCountRulesPerDeviceGroup:
             def _refresh(*_a: Any, **_kw: Any) -> list[Any]:
                 call_counts[label] += 1
                 return []
+
             return staticmethod(_refresh)
 
         monkeypatch.setattr(SecurityRule, "refreshall", _count("sec"))
@@ -211,8 +213,10 @@ class TestCountRulesPerDeviceGroup:
         register_panorama_tools(ctx)
 
         await _call(
-            mcp, "panorama_count_rules_per_device_group",
-            firewall="pano", rule_types=["security"],
+            mcp,
+            "panorama_count_rules_per_device_group",
+            firewall="pano",
+            rule_types=["security"],
         )
         # One DG × two rulebases × security only = 2 calls; other classes untouched.
         assert call_counts == {"sec": 2, "nat": 0, "pbf": 0, "dec": 0}
@@ -229,8 +233,10 @@ class TestCountRulesPerDeviceGroup:
         # MCP validates Literal at the schema layer, so call the underlying fn
         # directly with an invalid type to exercise the in-tool guard.
         result = await _call(
-            mcp, "panorama_count_rules_per_device_group",
-            firewall="pano", rule_types=["bogus"],
+            mcp,
+            "panorama_count_rules_per_device_group",
+            firewall="pano",
+            rule_types=["bogus"],
         )
         assert "error" in result
         assert "bogus" in result["error"]
@@ -241,24 +247,37 @@ class TestCountRulesPerDeviceGroup:
 
 class TestWalkAllRules:
     @pytest.mark.asyncio
-    async def test_returns_items_tagged_with_origin(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_returns_items_tagged_with_origin(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _wire_panorama(
             monkeypatch,
             device_groups=["Lafayette Plant", "OT-FWs"],
             rules_by_parent={
                 (SecurityRule, "Lafayette Plant", "pre"): [
-                    _FakeObj(name="laf-pre-1", action="allow",
-                             source=["10.0.0.0/24"], application=["any"], disabled=False),
+                    _FakeObj(
+                        name="laf-pre-1",
+                        action="allow",
+                        source=["10.0.0.0/24"],
+                        application=["any"],
+                        disabled=False,
+                    ),
                 ],
                 (SecurityRule, "Lafayette Plant", "post"): [
-                    _FakeObj(name="laf-post-1", action="deny",
-                             source=["any"], application=["any"], disabled=False),
+                    _FakeObj(
+                        name="laf-post-1",
+                        action="deny",
+                        source=["any"],
+                        application=["any"],
+                        disabled=False,
+                    ),
                 ],
                 (SecurityRule, "OT-FWs", "pre"): [
-                    _FakeObj(name="ot-pre-1", action="allow",
-                             source=["any"], application=["modbus"], disabled=False),
+                    _FakeObj(
+                        name="ot-pre-1",
+                        action="allow",
+                        source=["any"],
+                        application=["modbus"],
+                        disabled=False,
+                    ),
                 ],
             },
         )
@@ -267,8 +286,10 @@ class TestWalkAllRules:
         register_panorama_tools(ctx)
 
         result = await _call(
-            mcp, "panorama_walk_all_rules",
-            firewall="pano", rule_types=["security"],
+            mcp,
+            "panorama_walk_all_rules",
+            firewall="pano",
+            rule_types=["security"],
         )
 
         assert result["scope"]["device_groups"] == ["Lafayette Plant", "OT-FWs"]
@@ -292,9 +313,7 @@ class TestWalkAllRules:
         }
 
     @pytest.mark.asyncio
-    async def test_attrs_filter_works_across_dgs(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_attrs_filter_works_across_dgs(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """An audit query like ``attrs={"source": "10.0.0.0/24"}`` should
         only return rules matching that condition regardless of which DG
         they live in — the savings vs N per-DG calls scale with DG count.
@@ -304,18 +323,28 @@ class TestWalkAllRules:
             device_groups=["DG-A", "DG-B", "DG-C"],
             rules_by_parent={
                 (SecurityRule, "DG-A", "pre"): [
-                    _FakeObj(name="hit-a", action="allow",
-                             source=["10.0.0.0/24"], application=["any"]),
-                    _FakeObj(name="miss-a", action="allow",
-                             source=["192.168.0.0/16"], application=["any"]),
+                    _FakeObj(
+                        name="hit-a", action="allow", source=["10.0.0.0/24"], application=["any"]
+                    ),
+                    _FakeObj(
+                        name="miss-a",
+                        action="allow",
+                        source=["192.168.0.0/16"],
+                        application=["any"],
+                    ),
                 ],
                 (SecurityRule, "DG-B", "pre"): [
-                    _FakeObj(name="hit-b", action="allow",
-                             source=["10.0.0.0/24", "any"], application=["any"]),
+                    _FakeObj(
+                        name="hit-b",
+                        action="allow",
+                        source=["10.0.0.0/24", "any"],
+                        application=["any"],
+                    ),
                 ],
                 (SecurityRule, "DG-C", "pre"): [
-                    _FakeObj(name="miss-c", action="allow",
-                             source=["172.16.0.0/12"], application=["any"]),
+                    _FakeObj(
+                        name="miss-c", action="allow", source=["172.16.0.0/12"], application=["any"]
+                    ),
                 ],
             },
         )
@@ -324,8 +353,10 @@ class TestWalkAllRules:
         register_panorama_tools(ctx)
 
         result = await _call(
-            mcp, "panorama_walk_all_rules",
-            firewall="pano", rule_types=["security"],
+            mcp,
+            "panorama_walk_all_rules",
+            firewall="pano",
+            rule_types=["security"],
             attrs={"source": "10.0.0.0/24"},
         )
         names = sorted(i["name"] for i in result["items"])
@@ -352,8 +383,11 @@ class TestWalkAllRules:
         register_panorama_tools(ctx)
 
         result = await _call(
-            mcp, "panorama_walk_all_rules",
-            firewall="pano", rule_types=["security"], device_groups=["DG-A"],
+            mcp,
+            "panorama_walk_all_rules",
+            firewall="pano",
+            rule_types=["security"],
+            device_groups=["DG-A"],
         )
         assert {i["name"] for i in result["items"]} == {"a-1"}
         assert result["scope"]["device_groups"] == ["DG-A"]
@@ -368,8 +402,10 @@ class TestWalkAllRules:
         register_panorama_tools(ctx)
 
         result = await _call(
-            mcp, "panorama_walk_all_rules",
-            firewall="pano", device_groups=["Does-Not-Exist"],
+            mcp,
+            "panorama_walk_all_rules",
+            firewall="pano",
+            device_groups=["Does-Not-Exist"],
         )
         assert "error" in result
         assert "Does-Not-Exist" in result["error"]
@@ -387,12 +423,18 @@ class TestWalkAllRules:
             device_groups=["DG-1"],
             rules_by_parent={
                 (SecurityRule, "DG-1", "pre"): [
-                    _FakeObj(name="sec-1", action="allow",
-                             source=["any"], application=["any"], disabled=False),
+                    _FakeObj(
+                        name="sec-1",
+                        action="allow",
+                        source=["any"],
+                        application=["any"],
+                        disabled=False,
+                    ),
                 ],
                 (NatRule, "DG-1", "pre"): [
-                    _FakeObj(name="nat-1", source=["10.0.0.0/24"],
-                             destination=["any"], service="any"),
+                    _FakeObj(
+                        name="nat-1", source=["10.0.0.0/24"], destination=["any"], service="any"
+                    ),
                 ],
             },
         )
@@ -401,8 +443,10 @@ class TestWalkAllRules:
         register_panorama_tools(ctx)
 
         result = await _call(
-            mcp, "panorama_walk_all_rules",
-            firewall="pano", rule_types=["security", "nat"],
+            mcp,
+            "panorama_walk_all_rules",
+            firewall="pano",
+            rule_types=["security", "nat"],
         )
         by_type = {i["rule_type"]: i for i in result["items"]}
         assert set(by_type) == {"security", "nat"}
@@ -432,18 +476,19 @@ class TestWalkAllRules:
         register_panorama_tools(ctx)
 
         result = await _call(
-            mcp, "panorama_walk_all_rules",
-            firewall="pano", rule_types=["security"], include_shared=True,
+            mcp,
+            "panorama_walk_all_rules",
+            firewall="pano",
+            rule_types=["security"],
+            include_shared=True,
         )
         by_origin = {(i["device_group"], i["name"]) for i in result["items"]}
         assert by_origin == {("DG-1", "local"), ("<shared>", "global")}
         assert result["scope"]["include_shared"] is True
 
     @pytest.mark.asyncio
-    async def test_pagination_caps_response_size(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        from mcp_toolkit import Pagination
+    async def test_pagination_caps_response_size(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from node804_mcp_toolkit import Pagination
 
         rules = [_FakeObj(name=f"r-{i}", action="allow") for i in range(250)]
         _wire_panorama(
@@ -456,8 +501,10 @@ class TestWalkAllRules:
         register_panorama_tools(ctx)
 
         result = await _call(
-            mcp, "panorama_walk_all_rules",
-            firewall="pano", rule_types=["security"],
+            mcp,
+            "panorama_walk_all_rules",
+            firewall="pano",
+            rule_types=["security"],
             pagination=Pagination(limit=50, offset=0),
         )
         assert result["count"] == 50

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
+from node804_mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
 from panos.errors import PanDeviceError
 from panos.policies import NatRule, Rulebase
 
@@ -40,8 +40,12 @@ def register_nat_tools(ctx: ToolContext) -> None:
         client.add(rulebase)
         rules = NatRule.refreshall(rulebase)
         return apply_shape(
-            panos_object_dicts(rules), shape=SHAPE_NAT_RULE,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(rules),
+            shape=SHAPE_NAT_RULE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.FULL)

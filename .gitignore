@@ -13,3 +13,6 @@ htmlcov/
 .env
 firewalls.json
 audit*.log
+
+# Generated duplication/analysis reports (jscpd, etc.)
+report/

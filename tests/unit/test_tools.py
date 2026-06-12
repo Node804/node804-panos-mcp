@@ -12,7 +12,7 @@ from typing import Any
 
 import pytest
 from mcp.server.fastmcp import FastMCP
-from mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink
+from node804_mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink
 
 import panos_mcp.config.firewalls as fw_module
 from panos_mcp.config.firewalls import FirewallEntry

@@ -59,7 +59,9 @@ def _security_rule(i: int) -> dict[str, Any]:
             "web-browsing",
             "ssl",
             "social-networking",
-        ] if i % 3 == 0 else ["application-default"],
+        ]
+        if i % 3 == 0
+        else ["application-default"],
         "service": ["application-default"],
         "category": ["any"],
         "action": "allow" if i % 4 != 0 else "deny",

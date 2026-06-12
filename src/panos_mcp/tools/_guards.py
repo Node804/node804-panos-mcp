@@ -46,7 +46,9 @@ def raw_config_enabled() -> bool:
     server start.  Accepts ``true``/``1``/``yes`` (case-insensitive).
     """
     return os.environ.get("PANOS_ENABLE_RAW_CONFIG", "").strip().lower() in {
-        "true", "1", "yes",
+        "true",
+        "1",
+        "yes",
     }
 
 
@@ -56,7 +58,9 @@ def raw_ops_enabled() -> bool:
     Mirrors :func:`raw_config_enabled` for the op-command escape hatch.
     """
     return os.environ.get("PANOS_ENABLE_RAW_OPS", "").strip().lower() in {
-        "true", "1", "yes",
+        "true",
+        "1",
+        "yes",
     }
 
 
@@ -110,10 +114,7 @@ def _check_xpath_allowlist(xpath: str) -> str | None:
     if not prefixes:
         return None
     if not any(xpath.startswith(p) for p in prefixes):
-        return (
-            f"xpath '{xpath}' is not under the allow-list "
-            f"(PANOS_RAW_XPATH_ALLOW={raw!r})."
-        )
+        return f"xpath '{xpath}' is not under the allow-list (PANOS_RAW_XPATH_ALLOW={raw!r})."
     return None
 
 
@@ -128,6 +129,74 @@ def check_raw_xpath(xpath: str) -> str | None:
     reason = _check_xpath_denylist(xpath) or _check_xpath_allowlist(xpath)
     if reason is not None:
         print(f"[panos-mcp] BLOCKED raw-config call: {reason}", file=sys.stderr)
+    return reason
+
+
+# --- Read-side XPath denylist ---------------------------------------------
+
+# Config subtrees the always-on read tools (``get_config_xpath``,
+# ``run_show_command``) must never surface, because they hold secret material
+# an LLM should never receive: certificate private keys, admin password
+# hashes, and authentication secrets. Matched as a case-sensitive substring
+# against the requested xpath (or the full <show> command body). This mirrors
+# the write denylist but is framed for reads.
+#
+# Note: a bare full-config dump (``<show><config><running></running>...``)
+# with no xpath does not contain these substrings and is not caught here; it
+# is large and rarely useful to an LLM, but operators wanting to forbid it
+# entirely should keep ADMIN/raw tools disabled (the default).
+_DENIED_READ_XPATH_SUBSTRINGS: Final[tuple[str, ...]] = (
+    "/mgt-config",  # admin accounts + password phashes
+    "/certificate",  # cert entries incl. private-key material
+    "/authentication-profile",
+    "/authentication-sequence",
+    "phash",  # password-hash leaf, wherever it appears
+    "passwd",  # password leaf
+)
+
+
+def _read_denylist_hit(text: str) -> str | None:
+    """Return the first denied read-substring present in ``text``, else None."""
+    norm = text.strip()
+    for needle in _DENIED_READ_XPATH_SUBSTRINGS:
+        if needle in norm:
+            return needle
+    return None
+
+
+def check_read_xpath(xpath: str) -> str | None:
+    """Reject reads of secret-bearing config subtrees (``get_config_xpath``).
+
+    Returns the rejection reason when the xpath should be refused, or ``None``
+    to allow it. Logs blocked attempts to stderr.
+    """
+    needle = _read_denylist_hit(xpath)
+    if needle is None:
+        return None
+    reason = (
+        f"xpath '{xpath}' reads a protected subtree ('{needle}') that may "
+        "contain private keys, password hashes, or authentication secrets. "
+        "Reading it through the MCP is not permitted."
+    )
+    print(f"[panos-mcp] BLOCKED read-config call: {reason}", file=sys.stderr)
+    return reason
+
+
+def check_read_command(command: str) -> str | None:
+    """Reject ``<show>`` commands that read secret-bearing config subtrees.
+
+    Catches targeted ``<show><config>...<xpath>`` reads of protected subtrees.
+    Returns the rejection reason or ``None``.
+    """
+    needle = _read_denylist_hit(command)
+    if needle is None:
+        return None
+    reason = (
+        f"command references a protected subtree ('{needle}') that may "
+        "contain private keys, password hashes, or authentication secrets. "
+        "Reading it through the MCP is not permitted."
+    )
+    print(f"[panos-mcp] BLOCKED read-op call: {reason}", file=sys.stderr)
     return reason
 
 
@@ -194,6 +263,8 @@ def is_show_command(command: str) -> bool:
 __all__ = [
     "check_op_command",
     "check_raw_xpath",
+    "check_read_command",
+    "check_read_xpath",
     "is_show_command",
     "raw_config_enabled",
     "raw_ops_enabled",

@@ -36,7 +36,7 @@ import os
 import sys
 
 from mcp.server.fastmcp import FastMCP
-from mcp_toolkit import Mode, ModeGate, describe_tls, open_sink, resolve_tls_config
+from node804_mcp_toolkit import Mode, ModeGate, describe_tls, open_sink, resolve_tls_config
 
 from . import __version__
 from .config.firewalls import load_firewall_config

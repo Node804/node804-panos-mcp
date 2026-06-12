@@ -1,10 +1,33 @@
 [project]
-name = "panos-mcp"
-version = "0.1.0"
+name = "node804-panos-mcp"
+dynamic = ["version"]
 description = "Token-efficient MCP server for Palo Alto Networks PAN-OS firewalls and Panorama"
 readme = "README.md"
 requires-python = ">=3.13"
 license = "ISC"
+keywords = [
+    "mcp",
+    "model-context-protocol",
+    "panos",
+    "pan-os",
+    "palo-alto",
+    "panorama",
+    "firewall",
+    "network-security",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: ISC License (ISCL)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: System :: Networking :: Firewalls",
+    "Topic :: System :: Systems Administration",
+    "Typing :: Typed",
+]
 dependencies = [
     # Upper bounds are major-version caps to protect against silent breakage
     # when an upstream ships a 2.0 with API changes. Loosen when an upstream
@@ -22,8 +45,8 @@ dependencies = [
     "httpx>=0.28.1,<1.0",
     "keyring>=25.0,<30",
     "python-dotenv>=1.0.0,<2.0",
-    # mcp-toolkit must be installed separately — see README "Quick start".
-    # When published to PyPI, add: "mcp-toolkit>=0.1.0,<1.0",
+    # Shared RBAC / TLS / shaping utilities. Published alongside this package.
+    "node804-mcp-toolkit>=0.1.0,<1.0",
 ]
 
 [[project.authors]]
@@ -55,8 +78,16 @@ dev = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.version]
+path = "src/panos_mcp/__init__.py"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/panos_mcp"]
+
+[tool.hatch.build.targets.sdist]
+# Keep generated reports, local agent settings, and CI scaffolding out of the
+# source distribution; ship only what's needed to build and test the package.
+exclude = ["report", ".claude", ".github", ".mypy_cache", ".ruff_cache"]
 
 [tool.ruff]
 line-length = 100
@@ -64,9 +95,13 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+# '×' (U+00D7) is used intentionally as the multiplication sign in cost
+# docstrings (e.g. "DGs × rule-types × 2 roundtrips"); don't flag it as an
+# ambiguous look-alike for 'x'.
+allowed-confusables = ["×"]
 # B008: Pydantic frozen models as default args are safe (immutable). The
-# Pagination()/Pattern()/etc. defaults from mcp_toolkit are intentional and
-# match the FastMCP idiom used across the suite.
+# Pagination()/Pattern()/etc. defaults from node804_mcp_toolkit are intentional
+# and match the FastMCP idiom used across the suite.
 ignore = ["E501", "B008"]
 
 [tool.mypy]
@@ -79,7 +114,7 @@ disallow_untyped_defs = true
 # silence type errors in our own code, just stop mypy from complaining
 # that those imports are untyped.
 [[tool.mypy.overrides]]
-module = ["panos.*", "mcp.*", "setuptools", "setuptools.*", "keyring"]
+module = ["panos.*", "pan.*", "mcp.*", "setuptools", "setuptools.*", "keyring"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

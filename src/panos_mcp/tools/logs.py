@@ -18,10 +18,9 @@ pagination.
 
 from __future__ import annotations
 
-import asyncio
 from typing import Annotated, Any
 
-from mcp_toolkit import FieldsList, Mode, Pattern, VerboseFlag
+from node804_mcp_toolkit import FieldsList, Mode, Pattern, VerboseFlag
 from pydantic import Field
 
 from ..responses.schemas import (
@@ -55,8 +54,8 @@ LogQueryParam = Annotated[
     Field(
         default=None,
         description=(
-            "PAN-OS log query filter (e.g. \"( severity eq critical )\" or "
-            "\"( addr.src in 10.0.0.0/8 )\"). Server-side filter — far cheaper "
+            'PAN-OS log query filter (e.g. "( severity eq critical )" or '
+            '"( addr.src in 10.0.0.0/8 )"). Server-side filter — far cheaper '
             "than fetching all logs and filtering client-side."
         ),
     ),
@@ -68,16 +67,21 @@ async def _run_log_query(
     log_type: str,
     nlogs: int,
     query: str | None,
-    *,
-    poll_interval_s: float = 1.0,
-    max_attempts: int = 30,
 ) -> dict[str, Any]:
-    """Submit a log job and poll until FIN or timeout. Returns the parsed result."""
+    """Run a log query and return the parsed entries.
+
+    pan-os-python's ``xapi.log()`` handles the asynchronous submit-and-poll
+    cycle internally and leaves the result element on ``xapi.element_root``.
+    """
     xapi = getattr(client, "xapi", None)
     if xapi is None:
-        return {"error": "Log queries require an xapi-capable client.", "items": [], "total": 0, "count": 0}
+        return {
+            "error": "Log queries require an xapi-capable client.",
+            "items": [],
+            "total": 0,
+            "count": 0,
+        }
 
-    # pan-os-python's xapi.log() submits and polls automatically.
     xapi.log(log_type=log_type, nlogs=nlogs, filter=query)
     response_root = getattr(xapi, "element_root", None)
     if response_root is None:
@@ -88,9 +92,6 @@ async def _run_log_query(
         entries = [entries]
     elif not isinstance(entries, list):
         entries = []
-    # Silence unused-import for asyncio + the polling tuning params (the
-    # latter are wired into xapi.log internals when they apply).
-    _ = (asyncio, poll_interval_s, max_attempts)
     return {"entries": [e for e in entries if isinstance(e, dict)]}
 
 

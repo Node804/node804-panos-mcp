@@ -247,7 +247,15 @@ SHAPE_IPSEC_TUNNEL = LeanShape(
 )
 
 SHAPE_GP_USER = LeanShape(
-    default_fields=("user", "domain", "computer", "primary-username", "vpn-type", "client", "login-time"),
+    default_fields=(
+        "user",
+        "domain",
+        "computer",
+        "primary-username",
+        "vpn-type",
+        "client",
+        "login-time",
+    ),
     name_field="user",
 )
 
@@ -366,8 +374,11 @@ SHAPE_DECRYPTION_PROFILE = LeanShape(
 
 # --- Licenses --------------------------------------------------------
 
+# authcode is a reusable activation credential — kept out of the lean default
+# so it isn't handed to the LLM (or any transcript log) unless explicitly
+# requested via verbose=true or fields=["authcode"].
 SHAPE_LICENSE = LeanShape(
-    default_fields=("feature", "description", "expires", "issued", "authcode"),
+    default_fields=("feature", "description", "expires", "issued"),
     name_field="feature",
 )
 

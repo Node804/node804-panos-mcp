@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from mcp_toolkit import FieldsList, Mode, VerboseFlag
+from node804_mcp_toolkit import FieldsList, Mode, VerboseFlag
 from panos.errors import PanDeviceError
 from pydantic import Field
 
@@ -27,12 +27,19 @@ from ..responses.schemas import SHAPE_CONFIG_XPATH
 from ..responses.shapers import shape_single
 from ._common import (
     ToolContext,
+    build_running_config_xpath_cmd,
     emit_preflight_audit,
     op_to_dict,
     run_blocking,
     wrap_panos_error,
 )
-from ._guards import check_op_command, is_show_command, raw_ops_enabled
+from ._guards import (
+    check_op_command,
+    check_read_command,
+    check_read_xpath,
+    is_show_command,
+    raw_ops_enabled,
+)
 
 XPathParam = Annotated[
     str,
@@ -41,9 +48,14 @@ XPathParam = Annotated[
         description=(
             "PAN-OS XPath into the config tree (e.g. "
             "'/config/devices/entry[@name=\"localhost.localdomain\"]/network'). "
-            "Must start with '/config'."
+            "Must start with '/config'. Angle brackets are rejected to prevent "
+            "breaking out of the XML envelope."
         ),
-        pattern=r"^/config(/|$)",
+        # Full-match: start at /config and forbid '<'/'>' anywhere after, so a
+        # value can't terminate the <xpath> element and inject op-command XML.
+        # Quotes/brackets/@/= are allowed for predicates; they are safe as XML
+        # text content and the value is additionally XML-escaped before use.
+        pattern=r"^/config(/[^<>]*)?$",
     ),
 ]
 
@@ -58,8 +70,7 @@ XmlShowCommand = Annotated[
         # comment tricks that might slip past the regex.
         pattern=r"^\s*<show\b",
         description=(
-            "Read-only PAN-OS show command, e.g. "
-            "'<show><system><info></info></system></show>'."
+            "Read-only PAN-OS show command, e.g. '<show><system><info></info></system></show>'."
         ),
     ),
 ]
@@ -94,6 +105,7 @@ async def _execute_op(client: Any, command: str) -> dict[str, Any]:
     if isinstance(response, dict):
         return {"success": True, "result": response}
     from ._common import element_to_dict
+
     return {"success": True, "result": element_to_dict(response)}
 
 
@@ -115,14 +127,22 @@ def register_utility_tools(ctx: ToolContext) -> None:
 
         For large subtrees, prefer a more specific xpath — pulling the whole
         ``/config`` tree can return tens of thousands of tokens.
+
+        Reads of secret-bearing subtrees (certificates, ``mgt-config`` admin
+        accounts, authentication profiles) are refused.
         """
+        reason = check_read_xpath(xpath)
+        if reason is not None:
+            return {
+                "success": False,
+                "operation": "get_config_xpath",
+                "name": xpath[:80],
+                "error": reason,
+            }
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        cmd = (
-            f"<show><config><running><xpath>{xpath}</xpath></running></config></show>"
-        )
-        result = op_to_dict(client, cmd)
+        result = op_to_dict(client, build_running_config_xpath_cmd(xpath))
         return shape_single(result, shape=SHAPE_CONFIG_XPATH, verbose=verbose, fields=fields)
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -136,6 +156,10 @@ def register_utility_tools(ctx: ToolContext) -> None:
         ``<show>`` commands are accepted — anything else is rejected at the
         schema layer.  Read-only by PAN-OS contract: show commands do not
         modify config or runtime state.
+
+        Reads of secret-bearing config subtrees (certificates, ``mgt-config``
+        admin accounts, authentication profiles) via ``<show><config>`` are
+        refused.
         """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
@@ -148,6 +172,14 @@ def register_utility_tools(ctx: ToolContext) -> None:
                 "operation": "run_show_command",
                 "name": command[:80],
                 "error": "run_show_command accepts only <show ...> commands.",
+            }
+        reason = check_read_command(command)
+        if reason is not None:
+            return {
+                "success": False,
+                "operation": "run_show_command",
+                "name": command[:80],
+                "error": reason,
             }
         return await _execute_op(client, command)
 
@@ -190,7 +222,9 @@ def register_utility_tools(ctx: ToolContext) -> None:
         # Pre-flight audit so an operator can reconstruct intent even if
         # the firewall hangs or the host is killed mid-call.
         emit_preflight_audit(
-            ctx, tool="run_op_command", firewall=firewall,
+            ctx,
+            tool="run_op_command",
+            firewall=firewall,
             args={
                 "command_head": command[:200] + ("…" if len(command) > 200 else ""),
                 "command_len": len(command),

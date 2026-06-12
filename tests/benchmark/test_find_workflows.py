@@ -49,9 +49,7 @@ def test_find_address_object_vs_dump(
             f"\n  ratio: {ratio:.1f}x smaller"
         )
 
-    assert ratio >= 50, (
-        f"find_address_object regressed: only {ratio:.1f}x smaller than dump"
-    )
+    assert ratio >= 50, f"find_address_object regressed: only {ratio:.1f}x smaller than dump"
 
 
 def test_find_rule_by_name_vs_dump(
@@ -64,8 +62,7 @@ def test_find_rule_by_name_vs_dump(
     matches = [
         {**r, "type": "security"}
         for r in policy_100
-        if isinstance(r.get("name"), str)
-        and needle in str(r["name"]).casefold()
+        if isinstance(r.get("name"), str) and needle in str(r["name"]).casefold()
     ]
     find_response = {"pattern": needle, "count": len(matches), "matches": matches}
     lean_dump = apply_shape(policy_100, shape=SHAPE_SECURITY_RULE)
@@ -83,9 +80,7 @@ def test_find_rule_by_name_vs_dump(
             f"\n  ratio: {ratio:.1f}x smaller"
         )
 
-    assert ratio >= 10, (
-        f"find_rule_by_name regressed: only {ratio:.1f}x smaller than dump"
-    )
+    assert ratio >= 10, f"find_rule_by_name regressed: only {ratio:.1f}x smaller than dump"
 
 
 def test_pattern_param_on_get_security_rules(
@@ -114,6 +109,4 @@ def test_pattern_param_on_get_security_rules(
             f"\n  ratio: {ratio:.1f}x smaller"
         )
 
-    assert ratio >= 5, (
-        f"pattern filter should be >=5x smaller; got {ratio:.1f}x"
-    )
+    assert ratio >= 5, f"pattern filter should be >=5x smaller; got {ratio:.1f}x"

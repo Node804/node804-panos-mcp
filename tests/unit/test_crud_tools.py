@@ -16,7 +16,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from mcp.server.fastmcp import FastMCP
-from mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink
+from node804_mcp_toolkit import Mode, ModeGate, TlsConfig, open_sink
 from panos.errors import PanDeviceError
 
 import panos_mcp.client as client_module
@@ -38,6 +38,7 @@ def _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Any:
     fw_module._entries = []
     reset_client_cache()
     from panos.firewall import Firewall as RealFirewall
+
     client_module.Firewall = RealFirewall
 
 
@@ -129,6 +130,7 @@ class TestAddAddressObject:
         _patch_fw(monkeypatch, _fake_firewall_class())
         # Capture .create() calls on the AddressObject instance
         from panos.objects import AddressObject
+
         create_mock = MagicMock(return_value=None)
         monkeypatch.setattr(AddressObject, "create", create_mock)
 
@@ -148,11 +150,15 @@ class TestAddAddressObject:
         assert create_mock.called
 
     @pytest.mark.asyncio
-    async def test_panos_error_returns_error_response(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_panos_error_returns_error_response(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         _patch_fw(monkeypatch, _fake_firewall_class())
         from panos.objects import AddressObject
+
         monkeypatch.setattr(
-            AddressObject, "create",
+            AddressObject,
+            "create",
             MagicMock(side_effect=PanDeviceError("Object name already exists")),
         )
 
@@ -177,6 +183,7 @@ class TestDeleteAddressObject:
     async def test_delete_succeeds(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_fw(monkeypatch, _fake_firewall_class())
         from panos.objects import AddressObject
+
         monkeypatch.setattr(AddressObject, "delete", MagicMock(return_value=None))
 
         _seed_firewall()
@@ -192,6 +199,7 @@ class TestAddTag:
     async def test_create_with_color_and_comments(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_fw(monkeypatch, _fake_firewall_class())
         from panos.objects import Tag
+
         captured: dict[str, Any] = {}
         original_init = Tag.__init__
 
@@ -240,15 +248,18 @@ class TestInputValidation:
         with pytest.raises(ValidationError):
             adapter.validate_python("evil'/inject")
 
-    @pytest.mark.parametrize("bad", [
-        "name<x>",
-        'name"q',
-        "name/slash",
-        "name\nnewline",
-        "name\twith\ttab",
-        "name(paren)",
-        "evil'with-quote",
-    ])
+    @pytest.mark.parametrize(
+        "bad",
+        [
+            "name<x>",
+            'name"q',
+            "name/slash",
+            "name\nnewline",
+            "name\twith\ttab",
+            "name(paren)",
+            "evil'with-quote",
+        ],
+    )
     def test_special_chars_rejected(self, bad: str) -> None:
         from pydantic import TypeAdapter, ValidationError
 
@@ -258,14 +269,17 @@ class TestInputValidation:
         with pytest.raises(ValidationError):
             adapter.validate_python(bad)
 
-    @pytest.mark.parametrize("ok", [
-        "web-srv",
-        "Site_2.lab",
-        "object name with spaces",
-        "fw-01",
-        "a",
-        "Multi.Dot.Name",
-    ])
+    @pytest.mark.parametrize(
+        "ok",
+        [
+            "web-srv",
+            "Site_2.lab",
+            "object name with spaces",
+            "fw-01",
+            "a",
+            "Multi.Dot.Name",
+        ],
+    )
     def test_safe_chars_accepted(self, ok: str) -> None:
         from pydantic import TypeAdapter
 
@@ -295,10 +309,13 @@ class TestInputValidation:
             adapter.validate_python("a" * 128)
 
     @pytest.mark.asyncio
-    async def test_safe_name_drives_successful_create(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_safe_name_drives_successful_create(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Integration: a safe name flows all the way through to create()."""
         _patch_fw(monkeypatch, _fake_firewall_class())
         from panos.objects import AddressObject
+
         monkeypatch.setattr(AddressObject, "create", MagicMock(return_value=None))
 
         _seed_firewall()
@@ -339,6 +356,7 @@ class TestServiceObjectPortValidation:
     async def test_port_range_accepted(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_fw(monkeypatch, _fake_firewall_class())
         from panos.objects import ServiceObject
+
         monkeypatch.setattr(ServiceObject, "create", MagicMock(return_value=None))
 
         _seed_firewall()

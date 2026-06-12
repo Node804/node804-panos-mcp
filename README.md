@@ -1,5 +1,7 @@
 # panos-mcp
 
+> Published on PyPI as **`node804-panos-mcp`**; the installed command and Python package are `panos-mcp` / `panos_mcp`.
+
 A token-efficient MCP server for **Palo Alto Networks PAN-OS firewalls and Panorama**, built around three principles:
 
 1. **Lean responses by default.** Every list-returning tool exposes only the fields you actually need to answer the question. Verbose responses are opt-in. Typical 40-70% token reduction vs. dump-everything alternatives.
@@ -12,17 +14,15 @@ A token-efficient MCP server for **Palo Alto Networks PAN-OS firewalls and Panor
 
 ## Quick start
 
-### 1. Install `mcp-toolkit`
-
-`panos-mcp` depends on `mcp-toolkit` — a shared utilities package that provides the RBAC, audit logging, and lean-response patterns used across the IT-ops MCP suite. Install it first:
-
-### 2. Install `panos-mcp`
+### 1. Install
 
 When published to PyPI:
 
 ```bash
-pip install panos-mcp
+pip install node804-panos-mcp
 ```
+
+This pulls in its dependency `node804-mcp-toolkit` — a shared utilities package providing the RBAC, audit logging, and lean-response patterns used across the IT-ops MCP suite — automatically.
 
 From source:
 
@@ -33,8 +33,10 @@ pip install -e .
 ```
 
 > If you'd rather not `cd` into the cloned directory, use `pip install -e ./panos-mcp-py` from one level up. The path argument to `pip install -e` is whatever directory contains `pyproject.toml`.
+>
+> Until `node804-mcp-toolkit` is published to PyPI, install it from its source repo first: `pip install git+https://github.com/epopleachim/mcp-toolkit-py.git`
 
-### 3. Configure access to your firewall
+### 2. Configure access to your firewall
 
 Single-firewall mode — set two environment variables:
 
@@ -47,7 +49,7 @@ Multi-firewall mode — see [Multi-firewall configuration](#multi-firewall-confi
 
 > Don't have an API key yet? See [Obtaining a PAN-OS API key](#obtaining-a-pan-os-api-key) below.
 
-### 4. Add to your MCP client
+### 3. Add to your MCP client
 
 For Claude Desktop, in `claude_desktop_config.json`:
 
@@ -132,7 +134,7 @@ export PANOS_MODE=full  # opt in to policy authoring
 
 ## Token efficiency
 
-Every list-returning tool accepts these parameters (from `mcp-toolkit`):
+Every list-returning tool accepts these parameters (from `node804-mcp-toolkit`):
 
 | Parameter | Default | Effect |
 |---|---|---|
@@ -298,6 +300,11 @@ All five are gated at `Mode.READ` — same tier as the underlying inventory read
 | `PANOS_AUDIT_LOG` | jsonl audit log path | disabled |
 | `PANOS_TLS_VERIFY` | `true` / `false` / `1` / `0` / `yes` / `no` | `true` |
 | `PANOS_TLS_CA` | Path to a PEM CA bundle | system trust store |
+| `PANOS_ENABLE_RAW_CONFIG` | Register `set_config` / `delete_config` (requires `PANOS_MODE=admin`) | `false` |
+| `PANOS_ENABLE_RAW_OPS` | Register `run_op_command` (requires `PANOS_MODE=admin`) | `false` |
+| `PANOS_RAW_XPATH_ALLOW` | Comma-separated XPath prefixes that `set_config` / `delete_config` are restricted to | unset (all non-denied) |
+
+The raw escape hatches are **off by default and gated twice**: they only register when their `PANOS_ENABLE_RAW_*` flag is truthy *and* `PANOS_MODE=admin`, and even then an internal denylist blocks destructive verbs and protected config subtrees. See [`tools/_guards.py`](src/panos_mcp/tools/_guards.py).
 
 ---
 
@@ -306,7 +313,7 @@ All five are gated at `Mode.READ` — same tier as the underlying inventory read
 Clone this repo
 
 ```bash
-# Install mcp-toolkit (see Quick start) then:
+# node804-mcp-toolkit installs automatically as a dependency; then:
 
 cd panos-mcp-py
 pip install -e ".[dev]"
@@ -327,12 +334,19 @@ uv run pytest
 
 ---
 
+
+
 ## Acknowledgments
 
 Built on [`pan-os-python`](https://github.com/PaloAltoNetworks/pan-os-python) — Palo Alto Networks' official Python SDK. The PAN-OS object model and API client behavior come from there; this project provides the MCP wrapper, response shaping, RBAC, and audit infrastructure on top.
 
 ---
 
+## AI-Assisted Development
+
+Portions of this project including code, tests, and documentation were developed with the assistance of generative AI (Anthropic's Claude, Chat GPT). All changes are human-reviewed before merge and exercised by the automated test suite, but as with any software, review the code and test against a non-production Freshservice instance before trusting it with write access (`standard` mode or above) to a live tenant.
+
 ## License
 
-ISC — see [LICENSE](LICENSE).
+MIT
+

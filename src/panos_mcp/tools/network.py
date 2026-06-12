@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal
 
-from mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
+from node804_mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
 from panos.errors import PanDeviceError
 from panos.network import (
     StaticRoute,
@@ -31,6 +31,7 @@ from ..responses.schemas import (
 from ..responses.shapers import apply_shape
 from ._common import (
     ToolContext,
+    build_running_config_xpath_cmd,
     op_to_dict,
     panos_object_dicts,
     wrap_panos_error,
@@ -41,7 +42,9 @@ from ._schemas import MemberValue, PanosName
 NextHopType = Literal["ip-address", "next-vr", "none"]
 
 
-def _items_from_op_table(result: dict[str, Any], collection_key: str, item_key: str) -> list[dict[str, Any]]:
+def _items_from_op_table(
+    result: dict[str, Any], collection_key: str, item_key: str
+) -> list[dict[str, Any]]:
     """Extract a list from a typical PAN-OS op response shape.
 
     Many op commands return ``<result><collection><entry>...</entry>...</collection></result>``
@@ -80,8 +83,12 @@ def register_network_tools(ctx: ToolContext) -> None:
             result, "ifnet", "entry"
         )
         return apply_shape(
-            items, shape=SHAPE_INTERFACE, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            items,
+            shape=SHAPE_INTERFACE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -98,8 +105,12 @@ def register_network_tools(ctx: ToolContext) -> None:
             return client
         zones = Zone.refreshall(client)
         return apply_shape(
-            panos_object_dicts(zones), shape=SHAPE_ZONE,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(zones),
+            shape=SHAPE_ZONE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -122,8 +133,12 @@ def register_network_tools(ctx: ToolContext) -> None:
         if not items and isinstance(result.get("entry"), list):
             items = result["entry"]
         return apply_shape(
-            items, shape=SHAPE_ROUTE, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            items,
+            shape=SHAPE_ROUTE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -141,8 +156,12 @@ def register_network_tools(ctx: ToolContext) -> None:
         result = op_to_dict(client, "<show><arp><entry>all</entry></arp></show>")
         items = _items_from_op_table(result, "entries", "entry")
         return apply_shape(
-            items, shape=SHAPE_ARP, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            items,
+            shape=SHAPE_ARP,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -159,8 +178,12 @@ def register_network_tools(ctx: ToolContext) -> None:
             return client
         vlans = Vlan.refreshall(client)
         return apply_shape(
-            panos_object_dicts(vlans), shape=SHAPE_VLAN,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(vlans),
+            shape=SHAPE_VLAN,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -175,15 +198,17 @@ def register_network_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        result = op_to_dict(
-            client, "<show><dhcp><server><lease>all</lease></server></dhcp></show>"
-        )
+        result = op_to_dict(client, "<show><dhcp><server><lease>all</lease></server></dhcp></show>")
         items = _items_from_op_table(result, "entry", "")
         if not items and isinstance(result.get("entry"), list):
             items = result["entry"]
         return apply_shape(
-            items, shape=SHAPE_DHCP_LEASE, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            items,
+            shape=SHAPE_DHCP_LEASE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -203,9 +228,7 @@ def register_network_tools(ctx: ToolContext) -> None:
         if isinstance(client, dict):
             return client
         xpath = "/config/devices/entry[@name='localhost.localdomain']/network/dns-proxy"
-        result = op_to_dict(
-            client, f"<show><config><running><xpath>{xpath}</xpath></running></config></show>"
-        )
+        result = op_to_dict(client, build_running_config_xpath_cmd(xpath))
         proxies_section = result.get("dns-proxy", result) if isinstance(result, dict) else {}
         if isinstance(proxies_section, dict) and "entry" in proxies_section:
             entries_raw = proxies_section["entry"]
@@ -214,8 +237,11 @@ def register_network_tools(ctx: ToolContext) -> None:
             items = []
         return apply_shape(
             [i for i in items if isinstance(i, dict)],
-            shape=SHAPE_DNS_PROXY, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            shape=SHAPE_DNS_PROXY,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -235,11 +261,20 @@ def register_network_tools(ctx: ToolContext) -> None:
         vrs = VirtualRouter.refreshall(client)
         target_vr = next((v for v in vrs if v.name == virtual_router), None)
         if target_vr is None:
-            return {"error": f"Virtual router '{virtual_router}' not found.", "items": [], "total": 0, "count": 0}
+            return {
+                "error": f"Virtual router '{virtual_router}' not found.",
+                "items": [],
+                "total": 0,
+                "count": 0,
+            }
         routes = StaticRoute.refreshall(target_vr)
         return apply_shape(
-            panos_object_dicts(routes), shape=SHAPE_STATIC_ROUTE,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(routes),
+            shape=SHAPE_STATIC_ROUTE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     # ── Static route CRUD (Mode.FULL) ───────────────────────────────────────

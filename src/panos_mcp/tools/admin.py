@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
+from node804_mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
 from panos.device import Administrator, AuthenticationProfile
 
 from ..responses.schemas import SHAPE_ADMIN, SHAPE_ADMIN_ROLE, SHAPE_AUTH_PROFILE
@@ -29,8 +29,12 @@ def register_admin_tools(ctx: ToolContext) -> None:
             return client
         admins = Administrator.refreshall(client)
         return apply_shape(
-            panos_object_dicts(admins), shape=SHAPE_ADMIN,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(admins),
+            shape=SHAPE_ADMIN,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -60,8 +64,12 @@ def register_admin_tools(ctx: ToolContext) -> None:
         else:
             items = []
         return apply_shape(
-            items, shape=SHAPE_ADMIN_ROLE, verbose=verbose, fields=fields,
-            pagination=pagination, pattern=pattern,
+            items,
+            shape=SHAPE_ADMIN_ROLE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -78,8 +86,12 @@ def register_admin_tools(ctx: ToolContext) -> None:
             return client
         profiles = AuthenticationProfile.refreshall(client)
         return apply_shape(
-            panos_object_dicts(profiles), shape=SHAPE_AUTH_PROFILE,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            panos_object_dicts(profiles),
+            shape=SHAPE_AUTH_PROFILE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
 
