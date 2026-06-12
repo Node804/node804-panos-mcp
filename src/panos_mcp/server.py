@@ -45,6 +45,7 @@ from .tools.admin import register_admin_tools
 from .tools.admin_ops import register_admin_ops_tools
 from .tools.aggregations import register_aggregation_tools
 from .tools.certificates import register_certificates_tools
+from .tools.diagnostics import register_diagnostics_tools
 from .tools.firewalls import register_firewall_tools
 from .tools.licenses import register_licenses_tools
 from .tools.logs import register_logs_tools
@@ -86,6 +87,7 @@ register_firewall_tools(ctx)
 
 # Phase 3 read tools.
 register_system_tools(ctx)
+register_diagnostics_tools(ctx)
 register_network_tools(ctx)
 register_security_tools(ctx)
 register_objects_tools(ctx)

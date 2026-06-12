@@ -60,6 +60,51 @@ SHAPE_SYSTEM_RESOURCES = LeanShape(
 )
 
 
+# --- Diagnostics (live troubleshooting) -----------------------------------
+
+# Policy-match / fib-lookup results are version-variable nested structures;
+# keep all fields by default (drop-None only) and strip PAN-OS XML internals.
+SHAPE_POLICY_MATCH = LeanShape(
+    extra_strip_keys=("@_uuid", "@_dirtyId", "@_admin", "@_time", "@_loc"),
+)
+
+# Session-table entry. Lean view shows the original tuple plus NAT
+# translation, so a single row tells you both how a flow arrived and how it
+# left. Field names follow PAN-OS ``show session all`` output; drop-None
+# keeps the row lean when a given field isn't present.
+SHAPE_SESSION = LeanShape(
+    default_fields=(
+        "idx",
+        "id",
+        "application",
+        "state",
+        "type",
+        "src",
+        "dst",
+        "sport",
+        "dport",
+        "proto",
+        "from",
+        "to",
+        "nat",
+        "srcnat",
+        "dstnat",
+        "xsource",
+        "xdst",
+        "xsport",
+        "xdport",
+        "ingress",
+        "egress",
+        "start-time",
+    ),
+    name_field="application",
+)
+
+# Single-session detail keeps everything (drop-None only) — "detail" means
+# the full record.
+SHAPE_SESSION_DETAIL = LeanShape()
+
+
 # --- Network --------------------------------------------------------------
 
 SHAPE_INTERFACE = LeanShape(
@@ -432,6 +477,16 @@ SHAPE_CONFIG_XPATH = LeanShape(
     # Raw XPath reads return arbitrary structure; the lean view just drops
     # PAN-OS internal attribute prefixes that are noise for the AI.
     extra_strip_keys=("@_uuid", "@_dirtyId", "@_loc", "@_overrides"),
+)
+
+
+# --- Aggregations ------------------------------------------------
+
+# Flattened ``show rule-hit-count`` row. Lean view answers "is this rule dead
+# and when was it last used"; verbose adds the creation/modification/reset
+# timestamps for age analysis.
+SHAPE_RULE_HIT_COUNT = LeanShape(
+    default_fields=("name", "hit_count", "last_hit"),
 )
 
 

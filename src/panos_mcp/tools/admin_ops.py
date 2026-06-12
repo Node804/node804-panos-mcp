@@ -187,6 +187,31 @@ def register_admin_ops_tools(ctx: ToolContext) -> None:
             return wrap_panos_error(e, "panorama_push", device_group)
         return _commit_result(raw, device_group, "panorama_push")
 
+    @ctx.gate.tool(ctx.mcp, required=Mode.ADMIN)
+    async def revert_config(
+        firewall: str | None = None,
+    ) -> dict[str, Any]:
+        """Discard ALL uncommitted candidate changes, reverting to the running config.
+
+        The complement to the staged-write workflow: if changes were staged in
+        error (by this MCP or anyone else), this throws away the *entire*
+        candidate config and restores it from the running config. Nothing is
+        committed — live traffic is unaffected — but any other admin's
+        uncommitted work is also discarded. Check ``get_pending_changes`` first
+        to see what would be lost. ADMIN mode only; audited.
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        emit_preflight_audit(ctx, tool="revert_config", firewall=firewall, args={})
+        try:
+            # cmd_xml=True: pan-os-python builds the op XML from the CLI string.
+            # No user input — constant command, no injection surface.
+            await run_blocking(client.op, "revert config", cmd_xml=True)
+        except PanDeviceError as e:
+            return wrap_panos_error(e, "revert_config", "candidate")
+        return write_success("revert_config", "candidate")
+
     # ── Raw-config escape hatches (gated) ───────────────────────────────────
     # set_config / delete_config accept arbitrary xpaths and can — at ADMIN
     # mode — create a superuser admin, replace the trust certificate, or

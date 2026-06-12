@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] — 2026-06-11
+
+### Added — live troubleshooting
+
+Nine tools that close the gap between auditing policy and actually
+troubleshooting it. The read-only ``<test>`` operational commands are now
+first-class ``Mode.READ`` tools instead of being reachable only through the
+ADMIN-gated raw-op escape hatch.
+
+- **`test_security_policy_match`** — which security rule a flow matches, the
+  live ``test security-policy-match``. Answers "is traffic from X to Y
+  allowed, and by which rule?" without changing state.
+- **`test_nat_policy_match`** — matching NAT rule and the resulting
+  translation.
+- **`test_routing_fib_lookup`** — egress interface / next-hop for a
+  destination (``test routing fib-lookup``).
+- **`get_sessions`** — filtered live session table (``show session all filter
+  ...``) by source / destination / port / protocol / application, with the
+  NAT-translation fields (``xsource``, ``xdst``, ``xdport``, ``nat``) in the
+  lean view.
+- **`get_session_detail`** — full per-session record (``show session id N``).
+- **`get_pending_changes`** — uncommitted candidate changes
+  (``show config list changes``); the "is anything staged?" check to run
+  before ``commit``.
+- **`get_config_diff`** — entry-level candidate-vs-running diff at an XPath
+  (added / removed / modified), so the staged-write workflow is reviewable
+  before commit. Subject to the same read-side denylist as
+  ``get_config_xpath``.
+- **`get_rule_hit_counts`** — per-rule hit counts and last-hit timestamps
+  (``show rule-hit-count``).
+- **`unused_rules`** — security rules with zero hits, joined with the
+  rulebase for disabled status — a ready cleanup worklist.
+- **`revert_config`** (ADMIN) — discard all uncommitted candidate changes,
+  reverting to the running config; audited, with a loud warning that it
+  discards every admin's staged work.
+
+Source/destination IP inputs to the diagnostics tools are validated as bare
+IP addresses; all interpolated values are XML-escaped. The per-firewall ops
+return a clear error when pointed at a Panorama target.
+
 ## [0.1.5] — 2026-06-11
 
 First public release, published to PyPI as **`node804-panos-mcp`**.
@@ -160,6 +200,7 @@ package.
 - POSIX file-permission tests skipped on Windows; everything else runs on
   every platform
 
-[Unreleased]: https://github.com/epopleachim/panos-mcp-py/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/epopleachim/panos-mcp-py/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/epopleachim/panos-mcp-py/releases/tag/v0.1.6
 [0.1.5]: https://github.com/epopleachim/panos-mcp-py/releases/tag/v0.1.5
 [0.1.0]: https://github.com/epopleachim/panos-mcp-py/releases/tag/v0.1.0

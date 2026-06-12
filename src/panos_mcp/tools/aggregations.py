@@ -22,7 +22,8 @@ from __future__ import annotations
 import ipaddress
 from typing import Annotated, Any, Literal
 
-from node804_mcp_toolkit import Mode
+from node804_mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
+from panos.errors import PanDeviceError
 from panos.objects import (
     AddressGroup,
     AddressObject,
@@ -44,7 +45,22 @@ from panos.policies import (
 from pydantic import Field
 
 from .._redact import redact_exception
-from ._common import ToolContext, rule_has_inspection
+from ..responses.schemas import SHAPE_RULE_HIT_COUNT
+from ..responses.shapers import apply_shape
+from ._common import ToolContext, op_to_dict, rule_has_inspection
+
+HitCountRuleBase = Annotated[
+    Literal["security", "nat", "pbf", "decryption", "application-override"],
+    Field(description="Which rulebase to read hit counts for (default 'security')."),
+]
+
+HitCountVsys = Annotated[
+    str,
+    Field(
+        pattern=r"^vsys\d+$",
+        description="Virtual system name (default 'vsys1').",
+    ),
+]
 
 RuleTypeFilter = Annotated[
     list[Literal["security", "nat", "pbf", "decryption"]] | None,
@@ -225,6 +241,75 @@ def _truthy_disabled(value: Any) -> bool:
 
 def _rules_to_dicts(rules: list[Any]) -> list[dict[str, Any]]:
     return [r.about() for r in rules]
+
+
+def _as_entry_list(value: Any) -> list[dict[str, Any]]:
+    """Normalize element_to_dict's single-dict-or-list quirk to a list of dicts."""
+    if isinstance(value, list):
+        return [v for v in value if isinstance(v, dict)]
+    if isinstance(value, dict):
+        return [value]
+    return []
+
+
+def _to_int(value: Any) -> int | None:
+    """Best-effort int coercion for PAN-OS numeric strings; None on miss."""
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+# Map PAN-OS hit-count XML element names to the snake_case keys we expose.
+_HIT_COUNT_FIELDS: tuple[tuple[str, str], ...] = (
+    ("hit-count", "hit_count"),
+    ("last-hit-timestamp", "last_hit"),
+    ("first-hit-timestamp", "first_hit"),
+    ("last-reset-timestamp", "last_reset"),
+    ("rule-creation-timestamp", "rule_created"),
+    ("rule-modification-timestamp", "rule_modified"),
+)
+
+
+def _build_hit_count_cmd(vsys: str, rule_base: str) -> str:
+    """Build the nested ``show rule-hit-count`` op command for a vsys/rulebase."""
+    return (
+        "<show><rule-hit-count><vsys><vsys-name>"
+        f"<entry name='{vsys}'><rule-base>"
+        f"<entry name='{rule_base}'><rules><all/></rules></entry>"
+        "</rule-base></entry></vsys-name></vsys></rule-hit-count></show>"
+    )
+
+
+def _parse_hit_counts(result: dict[str, Any]) -> list[dict[str, Any]]:
+    """Flatten a ``show rule-hit-count`` result into ``{name, hit_count, ...}`` rows.
+
+    Drills ``rule-hit-count → vsys → entry → rule-base → entry → rules →
+    entry`` and converts the timestamp/count leaves to ints (epoch seconds;
+    ``0`` means never hit / never reset).
+    """
+    cursor: Any = result.get("rule-hit-count") if isinstance(result, dict) else None
+    for key in ("vsys", "vsys-name"):
+        if isinstance(cursor, dict):
+            cursor = cursor.get(key, cursor)
+    vsys_entries = _as_entry_list(cursor.get("entry") if isinstance(cursor, dict) else None)
+    rows: list[dict[str, Any]] = []
+    for vsys_entry in vsys_entries:
+        rule_base = vsys_entry.get("rule-base")
+        for rb_entry in _as_entry_list(
+            rule_base.get("entry") if isinstance(rule_base, dict) else None
+        ):
+            rules = rb_entry.get("rules")
+            for rule in _as_entry_list(rules.get("entry") if isinstance(rules, dict) else None):
+                name = rule.get("@_name")
+                if not isinstance(name, str):
+                    continue
+                row: dict[str, Any] = {"name": name}
+                for xml_key, out_key in _HIT_COUNT_FIELDS:
+                    if xml_key in rule:
+                        row[out_key] = _to_int(rule.get(xml_key))
+                rows.append(row)
+    return rows
 
 
 # ── Tool registrations ─────────────────────────────────────────────────────
@@ -515,6 +600,120 @@ def register_aggregation_tools(ctx: ToolContext) -> None:
             "service_groups": len(svc_groups),
             "tags": len(tags),
             "application_filters": len(app_filters),
+        }
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def get_rule_hit_counts(
+        rule_base: HitCountRuleBase = "security",
+        vsys: HitCountVsys = "vsys1",
+        firewall: str | None = None,
+        verbose: VerboseFlag = False,
+        fields: FieldsList = None,
+        pagination: Pagination = Pagination(),
+        pattern: Pattern = None,
+    ) -> dict[str, Any]:
+        """Per-rule hit counts and last-hit timestamps — ``show rule-hit-count``.
+
+        The data the audit tools can't infer: which rules actually carry
+        traffic. Lean view returns ``{name, hit_count, last_hit}`` per rule
+        (``last_hit`` is epoch seconds; ``0`` = never hit since last reset);
+        verbose adds first-hit, last-reset, and rule creation/modification
+        timestamps for age analysis. Pair with ``unused_rules`` for a ready
+        cleanup list.
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        try:
+            result = op_to_dict(client, _build_hit_count_cmd(vsys, rule_base))
+        except PanDeviceError as exc:
+            return {
+                "error": (
+                    "get_rule_hit_counts could not read hit counts "
+                    f"({rule_base}/{vsys}): {redact_exception(exc)}"
+                ),
+                "items": [],
+                "total": 0,
+                "count": 0,
+            }
+        rows = _parse_hit_counts(result)
+        return apply_shape(
+            rows,
+            shape=SHAPE_RULE_HIT_COUNT,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
+        )
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def unused_rules(
+        vsys: HitCountVsys = "vsys1",
+        include_disabled: bool = False,
+        firewall: str | None = None,
+    ) -> dict[str, Any]:
+        """Security rules with zero hits — the cleanup worklist the audit tools tee up.
+
+        Joins ``show rule-hit-count`` with the security rulebase to return
+        rules that have never been hit since their last counter reset
+        (``hit_count == 0``), annotated with ``disabled`` status and the
+        rule-creation timestamp so you can tell a genuinely dead rule from one
+        that's simply new. Enabled-but-unused rules are the cleanup
+        candidates; disabled rules are excluded unless
+        ``include_disabled=true``.
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        try:
+            result = op_to_dict(client, _build_hit_count_cmd(vsys, "security"))
+        except PanDeviceError as exc:
+            return {
+                "error": (
+                    f"unused_rules could not read hit counts ({vsys}): {redact_exception(exc)}"
+                ),
+                "unused": [],
+                "total_rules": 0,
+                "unused_count": 0,
+            }
+        rows = _parse_hit_counts(result)
+
+        # Join with the rulebase for disabled status (the hit-count data
+        # doesn't carry it).
+        rulebase = Rulebase()
+        client.add(rulebase)
+        disabled_by_name: dict[str, bool] = {}
+        try:
+            for r in _rules_to_dicts(SecurityRule.refreshall(rulebase)):
+                name = r.get("name")
+                if isinstance(name, str):
+                    disabled_by_name[name] = _truthy_disabled(r.get("disabled"))
+        except PanDeviceError:
+            # Hit counts still useful without the disabled annotation.
+            pass
+
+        unused: list[dict[str, Any]] = []
+        for row in rows:
+            if row.get("hit_count") not in (0, None):
+                continue
+            is_disabled = disabled_by_name.get(row["name"], False)
+            if is_disabled and not include_disabled:
+                continue
+            unused.append(
+                {
+                    "name": row["name"],
+                    "hit_count": row.get("hit_count", 0),
+                    "disabled": is_disabled,
+                    "last_reset": row.get("last_reset"),
+                    "rule_created": row.get("rule_created"),
+                }
+            )
+        return {
+            "vsys": vsys,
+            "include_disabled": include_disabled,
+            "total_rules": len(rows),
+            "unused_count": len(unused),
+            "unused": unused,
         }
 
 

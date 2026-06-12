@@ -28,6 +28,7 @@ from ..responses.shapers import shape_single
 from ._common import (
     ToolContext,
     build_running_config_xpath_cmd,
+    element_to_dict,
     emit_preflight_audit,
     op_to_dict,
     run_blocking,
@@ -104,9 +105,49 @@ async def _execute_op(client: Any, command: str) -> dict[str, Any]:
         return wrap_panos_error(e, "run_op_command", command[:80])
     if isinstance(response, dict):
         return {"success": True, "result": response}
-    from ._common import element_to_dict
-
     return {"success": True, "result": element_to_dict(response)}
+
+
+def _collect_named_entries(obj: Any, acc: dict[str, dict[str, Any]]) -> None:
+    """Recursively collect every dict carrying an ``@_name`` key, by name.
+
+    PAN-OS config nodes (rules, address objects, zones, ...) are ``<entry
+    name="X">`` elements, surfaced by :func:`element_to_dict` as dicts with an
+    ``@_name`` key. Collecting them by name lets us diff candidate vs running
+    at the entry level. Names are assumed unique within the scoped xpath the
+    caller passed; collisions across unrelated subtrees would merge, which is
+    why the tool documents scoping to one subtree.
+    """
+    if isinstance(obj, dict):
+        name = obj.get("@_name")
+        if isinstance(name, str):
+            acc[name] = obj
+        for value in obj.values():
+            _collect_named_entries(value, acc)
+    elif isinstance(obj, list):
+        for item in obj:
+            _collect_named_entries(item, acc)
+
+
+def _config_diff(candidate: dict[str, Any], running: dict[str, Any]) -> dict[str, Any]:
+    """Diff two config subtrees by named entry: added / removed / modified."""
+    cand_entries: dict[str, dict[str, Any]] = {}
+    run_entries: dict[str, dict[str, Any]] = {}
+    _collect_named_entries(candidate, cand_entries)
+    _collect_named_entries(running, run_entries)
+    cand_names = set(cand_entries)
+    run_names = set(run_entries)
+    added = sorted(cand_names - run_names)
+    removed = sorted(run_names - cand_names)
+    modified = sorted(
+        name for name in (cand_names & run_names) if cand_entries[name] != run_entries[name]
+    )
+    return {
+        "identical": candidate == running,
+        "added": added,
+        "removed": removed,
+        "modified": modified,
+    }
 
 
 def register_utility_tools(ctx: ToolContext) -> None:
@@ -182,6 +223,81 @@ def register_utility_tools(ctx: ToolContext) -> None:
                 "error": reason,
             }
         return await _execute_op(client, command)
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def get_pending_changes(
+        firewall: str | None = None,
+    ) -> dict[str, Any]:
+        """List uncommitted candidate-config changes (``show config list changes``).
+
+        Answers "is anything staged, and by which admin?" — the check to run
+        *before* ``commit``. Returns the changed entries/admins PAN-OS reports
+        and a ``has_pending`` flag. Use ``get_config_diff`` to see *what*
+        changed in a specific subtree.
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        try:
+            # cmd_xml=True: let pan-os-python translate the CLI command to the
+            # correct op XML (its structure is awkward to author by hand).
+            result = op_to_dict(client, "show config list changes", cmd_xml=True)
+        except PanDeviceError as e:
+            return wrap_panos_error(e, "get_pending_changes", "candidate")
+        return {"has_pending": bool(result), "pending": result}
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def get_config_diff(
+        xpath: XPathParam,
+        firewall: str | None = None,
+        verbose: VerboseFlag = False,
+    ) -> dict[str, Any]:
+        """Diff candidate vs running config at an XPath — what's staged but not committed.
+
+        Compares the candidate config (``action=get``) against the running
+        config (``action=show``) at ``xpath`` and reports entry-level
+        ``added`` / ``removed`` / ``modified`` names plus an ``identical``
+        flag. Scope the xpath to one subtree (a rulebase, an address-object
+        node) — entries are matched by name, so a narrow xpath gives a clean
+        diff and a bounded response. ``verbose=true`` additionally returns the
+        full candidate and running subtrees.
+
+        Reads of secret-bearing subtrees (certificates, ``mgt-config``,
+        authentication profiles) are refused.
+        """
+        reason = check_read_xpath(xpath)
+        if reason is not None:
+            return {
+                "success": False,
+                "operation": "get_config_diff",
+                "name": xpath[:80],
+                "error": reason,
+            }
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        xapi = getattr(client, "xapi", None)
+        if xapi is None:
+            return {
+                "success": False,
+                "operation": "get_config_diff",
+                "name": xpath[:80],
+                "error": "Config diff requires an xapi-capable client.",
+            }
+        try:
+            # action=get → candidate config; action=show → running config.
+            xapi.get(xpath=xpath)
+            candidate = element_to_dict(getattr(xapi, "element_result", None))
+            xapi.show(xpath=xpath)
+            running = element_to_dict(getattr(xapi, "element_result", None))
+        except PanDeviceError as e:
+            return wrap_panos_error(e, "get_config_diff", xpath[:80])
+        diff = _config_diff(candidate, running)
+        result: dict[str, Any] = {"xpath": xpath, **diff}
+        if verbose:
+            result["candidate"] = candidate
+            result["running"] = running
+        return result
 
     # ── Raw op-command escape hatch (gated) ─────────────────────────────────
     # Only register when the operator has opted in.  Even when registered,

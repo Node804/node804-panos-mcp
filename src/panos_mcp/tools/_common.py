@@ -186,17 +186,23 @@ def build_running_config_xpath_cmd(xpath: str) -> str:
     return f"<show><config><running><xpath>{_xml_escape(xpath)}</xpath></running></config></show>"
 
 
-def op_to_dict(client: Any, cmd: str) -> dict[str, Any]:
+def op_to_dict(client: Any, cmd: str, *, cmd_xml: bool = False) -> dict[str, Any]:
     """Run a PAN-OS op command and return its ``<result>`` content as a dict.
 
     Wraps ``client.op(cmd)`` and unwraps the standard
     ``<response status="success"><result>...</result></response>`` envelope.
     Returns ``{}`` when the response has no result element.
 
+    ``cmd_xml`` defaults to ``False`` — ``cmd`` is sent verbatim as an XML
+    payload. Pass ``cmd_xml=True`` for a CLI-style command string (e.g.
+    ``"show config list changes"``) and let pan-os-python build the XML; use
+    this for config-management verbs whose XML structure is awkward to author
+    by hand. Only pass ``cmd_xml=True`` with trusted/constant command strings.
+
     Tests can mock ``client.op`` to return a dict directly; this function
     handles both real Element responses and pre-converted dicts.
     """
-    response = client.op(cmd, cmd_xml=False)
+    response = client.op(cmd, cmd_xml=cmd_xml)
     if isinstance(response, dict):
         return response
     if isinstance(response, Element):
