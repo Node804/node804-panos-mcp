@@ -4,7 +4,7 @@ dynamic = ["version"]
 description = "Token-efficient MCP server for Palo Alto Networks PAN-OS firewalls and Panorama"
 readme = "README.md"
 requires-python = ">=3.13"
-license = "ISC"
+license = "MIT"
 keywords = [
     "mcp",
     "model-context-protocol",
@@ -19,7 +19,7 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: System Administrators",
     "Intended Audience :: Information Technology",
-    "License :: OSI Approved :: ISC License (ISCL)",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.13",
@@ -54,12 +54,12 @@ name = "Michael Pope"
 email = "me@michaelpope.cv"
 
 [project.urls]
-Homepage = "https://github.com/epopleachim/panos-mcp-py"
-Repository = "https://github.com/epopleachim/panos-mcp-py"
-Issues = "https://github.com/epopleachim/panos-mcp-py/issues"
+Homepage = "https://github.com/Node804/node804-panos-mcp"
+Repository = "https://github.com/Node804/node804-panos-mcp"
+Issues = "https://github.com/Node804/node804-panos-mcp/issues"
 
 [project.scripts]
-panos-mcp = "panos_mcp.server:main"
+node804-panos-mcp = "panos_mcp.server:main"
 
 [project.optional-dependencies]
 dev = [

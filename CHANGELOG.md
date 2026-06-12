@@ -103,7 +103,7 @@ First public release, published to PyPI as **`node804-panos-mcp`**.
 
 Initial release. 123 tools across 14 categories, built on
 [`pan-os-python`](https://github.com/PaloAltoNetworks/pan-os-python) and the
-[`mcp-toolkit`](https://github.com/epopleachim/mcp-toolkit-py) shared utilities
+[`node804-mcp-toolkit`](https://github.com/Node804/node804-mcp-toolkit) shared utilities
 package.
 
 ### Added — RBAC and security posture
@@ -200,7 +200,7 @@ package.
 - POSIX file-permission tests skipped on Windows; everything else runs on
   every platform
 
-[Unreleased]: https://github.com/epopleachim/panos-mcp-py/compare/v0.1.6...HEAD
-[0.1.6]: https://github.com/epopleachim/panos-mcp-py/releases/tag/v0.1.6
-[0.1.5]: https://github.com/epopleachim/panos-mcp-py/releases/tag/v0.1.5
-[0.1.0]: https://github.com/epopleachim/panos-mcp-py/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Node804/node804-panos-mcp/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/Node804/node804-panos-mcp/releases/tag/v0.1.6
+[0.1.5]: https://github.com/Node804/node804-panos-mcp/releases/tag/v0.1.5
+[0.1.0]: https://github.com/Node804/node804-panos-mcp/releases/tag/v0.1.0

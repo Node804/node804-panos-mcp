@@ -1,83 +1,45 @@
-# panos-mcp
+# PAN-OS MCP Server
 
-> Published on PyPI as **`node804-panos-mcp`**; the installed command and Python package are `panos-mcp` / `panos_mcp`.
+[![CI](https://github.com/Node804/node804-panos-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Node804/node804-panos-mcp/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/node804-panos-mcp)](https://pypi.org/project/node804-panos-mcp/)
+[![Python](https://img.shields.io/pypi/pyversions/node804-panos-mcp)](https://pypi.org/project/node804-panos-mcp/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A token-efficient MCP server for **Palo Alto Networks PAN-OS firewalls and Panorama**, built around three principles:
+
+A token-efficient [MCP](https://modelcontextprotocol.io/) server for **Palo Alto Networks PAN-OS firewalls and Panorama**, built around three principles:
 
 1. **Lean responses by default.** Every list-returning tool exposes only the fields you actually need to answer the question. Verbose responses are opt-in. Typical 40-70% token reduction vs. dump-everything alternatives.
 2. **Default-deny RBAC.** With no environment configuration, the server exposes only read tools. Writes, commits, and raw API access require explicit opt-in via `PANOS_MODE`.
 3. **TLS verification on by default.** Self-signed certs require an explicit opt-out or a custom CA bundle — no silent man-in-the-middle exposure.
 
-**123 tools** across system, network, security, objects, NAT, user-ID, admin, VPN, Panorama, logs, threat, certificates, licenses, utility, and aggregation surfaces.
+**137 tools** across system, diagnostics/troubleshooting, network, security, objects, NAT, user-ID, admin, VPN, Panorama, logs, threat, certificates, licenses, utility, and aggregation surfaces.
 
----
+## Permission Modes
 
-## Quick start
+| Mode | Tools | Description |
+|------|-------|-------------|
+| `read` *(default)* | 89 | Read-only inspection, live troubleshooting (policy-match / NAT-match / FIB-lookup tests, session table, config diff, rule hit counts), and aggregation summaries. No writes. |
+| `standard` | 99 | Read + object and tag CRUD (address objects, service objects, tags). No policy rules. |
+| `full` | 130 | Standard + policy rule CRUD (security, NAT, PBF, QoS, decryption, static routes; Panorama pre/post rules). **All writes go to candidate config — no live impact without commit.** |
+| `admin` | 137 | Full + `commit`, push, `revert_config`, and the raw `set_config` / `delete_config` / `run_op_command` escape hatches. **This is the live-impact tier.** |
 
-### 1. Install
+Tools above the active mode are not registered with the MCP server — the LLM never sees them, so there is nothing to call. Default mode is `read`.
 
-When published to PyPI:
+## Setup
 
-```bash
-pip install node804-panos-mcp
-```
+### Prerequisites
 
-This pulls in its dependency `node804-mcp-toolkit` — a shared utilities package providing the RBAC, audit logging, and lean-response patterns used across the IT-ops MCP suite — automatically.
+- **[uv](https://docs.astral.sh/uv/)** (recommended) — manages Python and dependencies for you
+  - or **Python 3.13+** with pip
+- A **PAN-OS firewall or Panorama** with the XML API enabled, plus an API key (see below)
 
-From source:
+### Getting a PAN-OS API key
 
-```bash
-git clone https://github.com/epopleachim/panos-mcp-py.git
-cd panos-mcp-py
-pip install -e .
-```
+PAN-OS issues API keys via the `/api/?type=keygen` endpoint. The key inherits the admin account's RBAC — there is no separate "API role," so a read-only admin's key cannot push config even if `PANOS_MODE=admin`.
 
-> If you'd rather not `cd` into the cloned directory, use `pip install -e ./panos-mcp-py` from one level up. The path argument to `pip install -e` is whatever directory contains `pyproject.toml`.
->
-> Until `node804-mcp-toolkit` is published to PyPI, install it from its source repo first: `pip install git+https://github.com/epopleachim/mcp-toolkit-py.git`
+> **Best practice:** create a dedicated service account (e.g. `apiread`) with a **Superuser (read-only)** dynamic role for `PANOS_MODE=read`. Issue a separate key from an account with write permissions for higher tiers.
 
-### 2. Configure access to your firewall
-
-Single-firewall mode — set two environment variables:
-
-```bash
-export PANOS_HOST=fw.example.com
-export PANOS_API_KEY=LUFRPT1xxx...
-```
-
-Multi-firewall mode — see [Multi-firewall configuration](#multi-firewall-configuration).
-
-> Don't have an API key yet? See [Obtaining a PAN-OS API key](#obtaining-a-pan-os-api-key) below.
-
-### 3. Add to your MCP client
-
-For Claude Desktop, in `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "panos": {
-      "command": "panos-mcp",
-      "env": {
-        "PANOS_HOST": "fw.example.com",
-        "PANOS_API_KEY": "LUFRPT1xxx..."
-      }
-    }
-  }
-}
-```
-
-The server starts in **read-only mode** by default. To enable writes, see [Permission modes](#permission-modes).
-
----
-
-## Obtaining a PAN-OS API key
-
-PAN-OS firewalls and Panorama issue API keys via the `/api/?type=keygen` endpoint. Send an admin username and password and the device returns a long-lived key tied to that account's role and permissions. **The key inherits the admin's RBAC** — there is no separate "API role." A read-only admin's key cannot push config even if `PANOS_MODE=admin`.
-
-Best practice: create a dedicated service account (e.g. `apiread`) with a **Superuser (read-only)** dynamic role, or a custom role that grants only the XML API + config-read permissions you need. Use that account's key for `PANOS_MODE=read`. For higher tiers, issue a separate key from an account with the matching write permissions.
-
-### Option A: curl
+**curl:**
 
 ```bash
 curl -k -X POST "https://fw.example.com/api/?type=keygen" \
@@ -85,52 +47,106 @@ curl -k -X POST "https://fw.example.com/api/?type=keygen" \
   --data-urlencode "password=<password>"
 ```
 
-Response (XML):
-
-```xml
-<response status="success">
-  <result>
-    <key>LUFRPT1xxxxxxxxxxxxxxxxxxxxxxxx==</key>
-  </result>
-</response>
-```
-
-Copy the `<key>` value into `PANOS_API_KEY`. The same endpoint works against Panorama — just point at the Panorama hostname.
-
-### Option B: PowerShell
+**PowerShell:**
 
 ```powershell
 $body = @{ user = 'apiread'; password = '<password>' }
-$resp = Invoke-RestMethod -Method Post -Uri 'https://fw.example.com/api/?type=keygen' -Body $body -SkipCertificateCheck
-$resp.response.result.key
+(Invoke-RestMethod -Method Post -Uri 'https://fw.example.com/api/?type=keygen' -Body $body -SkipCertificateCheck).response.result.key
 ```
 
-(Drop `-SkipCertificateCheck` if the device presents a trusted certificate.)
+Copy the returned `<key>` into `PANOS_API_KEY`. The same endpoint works against Panorama — point it at the Panorama hostname. Keys do not expire by default but are invalidated if the admin's password changes or the account is deleted.
 
-### Notes
+### Environment Variables
 
-- Keys do not expire by default but are invalidated if the admin's password changes or the account is deleted. Rotate with `request api-key expiration` (CLI) or by re-running keygen.
-- Store the key in the OS keychain (multi-firewall mode does this automatically) or in `PANOS_API_KEY`. Never commit it to source control.
-- For Panorama-managed firewalls, you can issue the key against Panorama and use it for any device Panorama manages, or issue per-device keys directly against each firewall.
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `PANOS_HOST` | Yes\* | Single-firewall hostname. \*Not required in multi-firewall mode (see [Multi-firewall configuration](#multi-firewall-configuration)). |
+| `PANOS_API_KEY` | Yes\* | Single-firewall API key. Stored in the OS keychain in multi-firewall mode. |
+| `PANOS_MODE` | No | RBAC mode: `read`, `standard`, `full`, or `admin`. Default: `read`. |
+| `PANOS_TLS_VERIFY` | No | `true` / `false` / `1` / `0` / `yes` / `no`. Default: `true`. |
+| `PANOS_TLS_CA` | No | Path to a custom PEM CA bundle. Default: system trust store. |
+| `PANOS_FIREWALLS_CONFIG` | No | Override path for `firewalls.json`. Default: `~/.config/panos-mcp/firewalls.json`. |
+| `PANOS_AUDIT_LOG` | No | Path to a JSON-lines audit log. Every tool call is logged with sanitized args, success/error state, and timing. Disabled when unset. |
+| `PANOS_ENABLE_RAW_CONFIG` | No | Register `set_config` / `delete_config` (also requires `PANOS_MODE=admin`). Default: `false`. |
+| `PANOS_ENABLE_RAW_OPS` | No | Register `run_op_command` (also requires `PANOS_MODE=admin`). Default: `false`. |
+| `PANOS_RAW_XPATH_ALLOW` | No | Comma-separated XPath prefixes that `set_config` / `delete_config` are restricted to. Default: unset (all non-denied). |
 
----
+The raw escape hatches are **off by default and gated twice**: they register only when their `PANOS_ENABLE_RAW_*` flag is truthy *and* `PANOS_MODE=admin`, and even then an internal denylist blocks destructive verbs and protected config subtrees. See [`tools/_guards.py`](src/panos_mcp/tools/_guards.py).
 
-## Permission modes (`PANOS_MODE`)
+### Install
 
-| Mode | Tools | Capabilities |
-|---|---|---|
-| `read` *(default)* | 76 | Read-only inspection plus aggregation summaries. No writes. |
-| `standard` | 86 | + Object and tag CRUD. Address objects, service objects, tags. No policy rules. |
-| `full` | 117 | + Policy rule CRUD. Security, NAT, PBF, QoS, decryption, static routes. Panorama pre/post rule CRUD. **All writes still go to candidate config — no live impact without commit.** |
-| `admin` | 123 | + Commit. Push. Raw `set_config` / `delete_config` / `run_op_command`. **This is the live-impact tier.** |
-
-Tools above the active mode are not registered with the MCP server — the AI client never sees them. There's nothing to call.
+**Option A — uv (recommended).** No install step: `uvx` fetches the package from PyPI on first run and caches it. Pin the version so upgrades are deliberate:
 
 ```bash
-export PANOS_MODE=full  # opt in to policy authoring
+uvx node804-panos-mcp==0.1.6
 ```
 
----
+**Option B — pip:**
+
+```bash
+pip install node804-panos-mcp
+```
+
+**Option C — from source (development):**
+
+```bash
+git clone https://github.com/Node804/node804-panos-mcp.git
+cd node804-panos-mcp
+uv sync          # or: pip install -e ".[dev]"
+```
+
+Each option provides the `node804-panos-mcp` command and the `panos_mcp` Python module (runnable as `python -m panos_mcp`). The package pulls in its dependency `node804-mcp-toolkit` — shared RBAC, audit-logging, TLS, and lean-response utilities — automatically.
+
+> Until `node804-mcp-toolkit` is published to PyPI, install it from source first: `pip install git+https://github.com/Node804/node804-mcp-toolkit.git`
+
+### Claude Desktop
+
+1. Open your Claude Desktop config file:
+   - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+   - **Mac:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+2. Add the server under `mcpServers` (create the file if it doesn't exist):
+
+```json
+{
+  "mcpServers": {
+    "PAN-OS": {
+      "command": "uvx",
+      "args": ["node804-panos-mcp==0.1.6"],
+      "env": {
+        "PANOS_HOST": "fw.example.com",
+        "PANOS_API_KEY": "LUFRPT1xxx...",
+        "PANOS_MODE": "read"
+      }
+    }
+  }
+}
+```
+
+If you installed with pip instead of uv, use `"command": "python"` with `"args": ["-m", "panos_mcp"]`.
+
+3. Restart Claude Desktop — the server starts automatically when Claude needs it. It starts in **read-only mode** by default; raise `PANOS_MODE` to enable writes.
+
+### Claude Code (CLI)
+
+```bash
+claude mcp add node804-panos-mcp \
+  -e PANOS_HOST=fw.example.com \
+  -e PANOS_API_KEY=LUFRPT1xxx... \
+  -e PANOS_MODE=read \
+  -- uvx node804-panos-mcp==0.1.6
+```
+
+Verify with `claude mcp list`.
+
+### Verifying It Works
+
+Once connected, ask your LLM:
+
+- **"What's my access level?"** → calls `server_status`, showing the active mode, live tool counts, TLS posture, and configured firewalls
+- **"What firewalls are configured?"** → calls `list_firewalls`, confirming the registry and which targets require an explicit `firewall` argument
+
+If either fails, see [Troubleshooting](#troubleshooting).
 
 ## Token efficiency
 
@@ -144,9 +160,7 @@ Every list-returning tool accepts these parameters (from `node804-mcp-toolkit`):
 | `pagination.offset` | `0` | Skip count. Use with `limit` to page through inventories. |
 | `pattern` | `null` | Server-side substring filter on the item's name field. Far cheaper than fetching the inventory and filtering client-side. |
 
-Responses are wrapped as `{total, count, items}` so the AI knows when pagination truncated the result and whether to fetch more.
-
-Single-record tools (`get_firewall_info`, `get_ha_status`, etc.) accept `verbose` and `fields`.
+Responses are wrapped as `{total, count, items}` so the LLM knows when pagination truncated the result and whether to fetch more. Single-record tools (`get_firewall_info`, `get_ha_status`, etc.) accept `verbose` and `fields`.
 
 ### Measured savings
 
@@ -168,9 +182,7 @@ Run the benchmark suite yourself:
 pytest -v -s -m benchmark
 ```
 
-The headline number: **a policy audit that would cost ~20K tokens via the naive "dump everything" approach costs ~60 tokens via `summarize_security_policy`.** That's the difference between burning a meaningful slice of a Claude conversation budget on a single question and answering it for free.
-
----
+The headline number: **a policy audit that would cost ~20K tokens via the naive "dump everything" approach costs ~60 tokens via `summarize_security_policy`.**
 
 ## Audit logging
 
@@ -189,8 +201,6 @@ Each line is one event:
 Sensitive keys (`api_key`, `password`, `secret`, `token`, `auth`) are redacted at any depth before logging. Strings over 2 KB are elided. Write failures warn once and never block tool execution.
 
 The audit log is the only after-the-fact record for admin-mode operations (`commit`, `set_config`, `run_op_command`). Treat it accordingly.
-
----
 
 ## TLS verification
 
@@ -212,8 +222,6 @@ PanOS TLS:   verify=ON (custom CA via PANOS_TLS_CA)
 PanOS TLS:   verify=OFF (PANOS_TLS_VERIFY=false)
 ```
 
----
-
 ## Multi-firewall configuration
 
 For environments managing multiple firewalls or Panorama instances, define them in `~/.config/panos-mcp/firewalls.json` (override with `PANOS_FIREWALLS_CONFIG=/path`):
@@ -221,7 +229,7 @@ For environments managing multiple firewalls or Panorama instances, define them 
 ```json
 {
   "firewalls": [
-    { "name": "hq",    "host": "hq.example.com" },
+    { "name": "hq",       "host": "hq.example.com" },
     { "name": "branch",   "host": "branch.example.com" },
     { "name": "panorama", "host": "panorama.example.com" }
   ]
@@ -232,11 +240,7 @@ API keys live in the OS keychain (macOS Keychain, Windows Credential Manager, Li
 
 **Linux headless servers** without a keychain backend fall back to plaintext storage. The file is written with mode `0o600` (owner read/write only). The startup log emits a warning.
 
-In multi-firewall mode, every tool that talks to a firewall requires an explicit `firewall: <name>` argument — no default is picked.
-
-Call `list_firewalls` from your MCP client to see configured targets and whether `firewall` is required.
-
----
+In multi-firewall mode, every tool that talks to a firewall requires an explicit `firewall: <name>` argument — no default is picked. Call `list_firewalls` to see configured targets and whether `firewall` is required.
 
 ## Tools by category
 
@@ -245,6 +249,7 @@ Each cell shows how many tools that category contributes at that RBAC tier. A `�
 | Category          | Read | Standard | Full | Admin | Total |
 | :---------------- | ---: | -------: | ---: | ----: | ----: |
 | System            |    4 |        — |    — |     — |     4 |
+| Diagnostics       |    5 |        — |    — |     — |     5 |
 | Network           |    8 |        — |    2 |     — |    10 |
 | Security          |    6 |        — |   12 |     — |    18 |
 | Objects & tags    |    6 |       10 |    — |     — |    16 |
@@ -252,30 +257,30 @@ Each cell shows how many tools that category contributes at that RBAC tier. A `�
 | User-ID           |    3 |        — |    — |     — |     3 |
 | Administrators    |    3 |        — |    — |     — |     3 |
 | VPN               |    3 |        — |    — |     — |     3 |
-| Panorama          |   20 |        — |    9 |     — |    29 |
+| Panorama          |   22 |        — |    9 |     — |    31 |
 | Logs              |    5 |        — |    — |     — |     5 |
 | Threat & content  |    4 |        — |    — |     — |     4 |
 | Certificates      |    3 |        — |    4 |     — |     7 |
 | Licenses          |    2 |        — |    — |     — |     2 |
-| Utility           |    1 |        — |    — |     1 |     2 |
+| Utility           |    4 |        — |    — |     1 |     5 |
 | Server diagnostic |    2 |        — |    — |     — |     2 |
-| Aggregations      |    5 |        — |    — |     — |     5 |
-| Commit & raw API  |    — |        — |    — |     5 |     5 |
-| **Total**         | **76** | **+10**  | **+31** | **+6** | **123** |
+| Aggregations      |    8 |        — |    — |     — |     8 |
+| Commit & raw API  |    — |        — |    — |     6 |     6 |
+| **Total**         | **89** | **+10**  | **+31** | **+7** | **137** |
 
 A few entries worth calling out by name:
 
-- **Utility** — `get_config_xpath` (read) for ad-hoc config inspection; `run_op_command` (admin) for the operational-command escape hatch.
-- **Commit & raw API** (admin) — `commit`, `panorama_commit`, `panorama_push_to_devices`, `set_config`, `delete_config`.
+- **Diagnostics** (read) — `test_security_policy_match`, `test_nat_policy_match`, `test_routing_fib_lookup`, `get_sessions`, `get_session_detail`. Live troubleshooting via read-only `<test>` and session ops.
+- **Utility** — `get_config_xpath`, `run_show_command`, `get_pending_changes`, `get_config_diff` (read) for ad-hoc inspection and reviewing staged changes; `run_op_command` (admin) for the operational-command escape hatch.
+- **Aggregations** (read) — includes `get_rule_hit_counts` and `unused_rules` for usage-based rule cleanup.
+- **Commit & raw API** (admin) — `commit`, `panorama_commit`, `panorama_push_to_devices`, `revert_config`, `set_config`, `delete_config`.
 - **Server diagnostic** — `server_status` and `list_firewalls`. Always available, even in `read` mode.
 
 Call `server_status` from your MCP client at runtime to see the active mode, live tool counts, TLS posture, audit destination, and the configured firewall registry.
 
----
-
 ## Aggregation tools
 
-Five purpose-built summarization tools that replace "dump everything and grep" patterns with focused queries. Returning a structured answer is 10-20x cheaper in tokens than returning the full inventory and letting the AI compute the same thing — the largest single source of token savings in the project.
+Purpose-built summarization tools that replace "dump everything and grep" patterns with focused queries. Returning a structured answer is 10-20x cheaper in tokens than returning the full inventory and letting the LLM compute the same thing — the largest single source of token savings in the project.
 
 | Tool | What it answers |
 |---|---|
@@ -284,69 +289,48 @@ Five purpose-built summarization tools that replace "dump everything and grep" p
 | `count_rules_by_action()` | `{"allow": 142, "deny": 38, "drop": 12}` plus enabled/disabled counts. Replaces a 10K-token rule dump with a ~200-token snapshot. |
 | `summarize_security_policy()` | One-call policy audit: rule counts, action breakdown, any-any-any rules (worth reviewing), rules with logging disabled, rules without a profile group, and the set of zones referenced. |
 | `count_objects_by_type()` | Inventory snapshot: address objects by type (ip-netmask vs fqdn vs range), address groups (static vs dynamic), service objects by protocol, plus tag and application-filter totals. |
+| `get_rule_hit_counts(rule_base, vsys)` | Per-rule hit counts and last-hit timestamps (`show rule-hit-count`) — which rules actually carry traffic. |
+| `unused_rules(vsys, include_disabled=False)` | Security rules with zero hits, joined with the rulebase for disabled status — a ready cleanup worklist. |
 
-All five are gated at `Mode.READ` — same tier as the underlying inventory reads.
+All are gated at `Mode.READ` — same tier as the underlying inventory reads.
 
----
+## Troubleshooting
 
-## Environment variables
-
-| Variable | Purpose | Default |
-|---|---|---|
-| `PANOS_HOST` | Single-firewall hostname | unset |
-| `PANOS_API_KEY` | Single-firewall API key | unset |
-| `PANOS_FIREWALLS_CONFIG` | Path to `firewalls.json` | `~/.config/panos-mcp/firewalls.json` |
-| `PANOS_MODE` | RBAC mode (`read` / `standard` / `full` / `admin`) | `read` |
-| `PANOS_AUDIT_LOG` | jsonl audit log path | disabled |
-| `PANOS_TLS_VERIFY` | `true` / `false` / `1` / `0` / `yes` / `no` | `true` |
-| `PANOS_TLS_CA` | Path to a PEM CA bundle | system trust store |
-| `PANOS_ENABLE_RAW_CONFIG` | Register `set_config` / `delete_config` (requires `PANOS_MODE=admin`) | `false` |
-| `PANOS_ENABLE_RAW_OPS` | Register `run_op_command` (requires `PANOS_MODE=admin`) | `false` |
-| `PANOS_RAW_XPATH_ALLOW` | Comma-separated XPath prefixes that `set_config` / `delete_config` are restricted to | unset (all non-denied) |
-
-The raw escape hatches are **off by default and gated twice**: they only register when their `PANOS_ENABLE_RAW_*` flag is truthy *and* `PANOS_MODE=admin`, and even then an internal denylist blocks destructive verbs and protected config subtrees. See [`tools/_guards.py`](src/panos_mcp/tools/_guards.py).
-
----
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `No module named panos_mcp` | Package not installed | Use the `uvx` config (installs automatically), or run `pip install node804-panos-mcp`. |
+| Server starts but tools return an auth error | Invalid or expired API key | Regenerate the key (see [Getting a PAN-OS API key](#getting-a-pan-os-api-key)) and update your config. The key is invalidated if the admin's password changes. |
+| TLS / certificate verification errors on connect | Firewall presents a self-signed or internal-CA cert | Set `PANOS_TLS_CA` to your CA bundle, or `PANOS_TLS_VERIFY=false` to disable verification (emits a startup warning). |
+| Tools you expect are missing | Mode is too restrictive | Check `server_status` for the active mode, then raise `PANOS_MODE` (`read` → `standard` → `full` → `admin`). |
+| Writes succeed but nothing changes on the firewall | Changes are staged in candidate config | Call `commit` (admin mode). Use `get_pending_changes` / `get_config_diff` to review what's staged first. |
+| "firewall is required" errors | Multi-firewall mode with no target | Pass `firewall: <name>`; run `list_firewalls` to see configured targets. |
+| `set_config` / `run_op_command` not available in admin mode | Raw escape hatches are off by default | Set `PANOS_ENABLE_RAW_CONFIG=true` / `PANOS_ENABLE_RAW_OPS=true` *and* `PANOS_MODE=admin`. |
+| A vsys-scoped query returns the wrong vsys's data | Tools default to `vsys1` | This release targets `vsys1`; for other virtual systems use `get_config_xpath` with an explicit vsys path until a `vsys` parameter lands. |
 
 ## Development
 
-Clone this repo
-
 ```bash
-# node804-mcp-toolkit installs automatically as a dependency; then:
-
-cd panos-mcp-py
-pip install -e ".[dev]"
+git clone https://github.com/Node804/node804-panos-mcp.git
+cd node804-panos-mcp
+pip install -e ".[dev]"          # or: uv sync --extra dev
 
 pytest -v                                        # full test suite
 pytest -v -m "not integration and not benchmark" # CI-equivalent
-ruff check .                                     # lint
+ruff check . && ruff format --check .            # lint + format
 mypy src                                         # type check
-panos-mcp                                        # boot the server
+node804-panos-mcp                                # boot the server
 ```
 
-If you have [`uv`](https://github.com/astral-sh/uv):
-
-```bash
-uv sync --extra dev
-uv run pytest
-```
-
----
-
-
+`node804-mcp-toolkit` installs automatically as a dependency. Until it's on PyPI, install it from source first (see [Install](#install)).
 
 ## Acknowledgments
 
 Built on [`pan-os-python`](https://github.com/PaloAltoNetworks/pan-os-python) — Palo Alto Networks' official Python SDK. The PAN-OS object model and API client behavior come from there; this project provides the MCP wrapper, response shaping, RBAC, and audit infrastructure on top.
 
----
-
 ## AI-Assisted Development
 
-Portions of this project including code, tests, and documentation were developed with the assistance of generative AI (Anthropic's Claude, Chat GPT). All changes are human-reviewed before merge and exercised by the automated test suite, but as with any software, review the code and test against a non-production Freshservice instance before trusting it with write access (`standard` mode or above) to a live tenant.
+Portions of this project — including code, tests, and documentation — were developed with the assistance of generative AI (Anthropic's Claude, ChatGPT). All changes are human-reviewed before merge and exercised by the automated test suite, but as with any software, review the code and test against a non-production firewall or Panorama before trusting it with write access (`standard` mode or above) to a live device.
 
 ## License
 
 MIT
-
