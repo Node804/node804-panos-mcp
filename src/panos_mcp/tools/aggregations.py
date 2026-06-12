@@ -32,16 +32,20 @@ from panos.objects import (
     ServiceObject,
     Tag,
 )
+from panos.panorama import DeviceGroup, Panorama
 from panos.policies import (
     DecryptionRule,
     NatRule,
     PolicyBasedForwarding,
+    PostRulebase,
+    PreRulebase,
     Rulebase,
     SecurityRule,
 )
 from pydantic import Field
 
-from ._common import ToolContext
+from .._redact import redact_exception
+from ._common import ToolContext, rule_has_inspection
 
 RuleTypeFilter = Annotated[
     list[Literal["security", "nat", "pbf", "decryption"]] | None,
@@ -174,7 +178,10 @@ def _summarize_rules(rules: list[dict[str, Any]]) -> dict[str, Any]:
             # Both unset — PAN-OS defaults log_end=true, so this is implicit.
             pass
 
-        if not r.get("group") and not r.get("profile_setting"):
+        # Use the shared inspection check so the per-rule ``has_inspection``
+        # flag and this aggregate count can never disagree about what "has a
+        # profile" means.  See ``_common.rule_has_inspection`` for the rule.
+        if not rule_has_inspection(r):
             no_profile += 1
 
         src = r.get("source")
@@ -201,7 +208,7 @@ def _summarize_rules(rules: list[dict[str, Any]]) -> dict[str, Any]:
         "by_action": by_action,
         "any_any_rules": any_any,
         "rules_with_logging_off": no_log,
-        "rules_without_profiles": no_profile,
+        "rules_without_inspection": no_profile,
         "zones_referenced": sorted(zones),
     }
 
@@ -353,6 +360,110 @@ def register_aggregation_tools(ctx: ToolContext) -> None:
         client.add(rulebase)
         rules = _rules_to_dicts(SecurityRule.refreshall(rulebase))
         return _summarize_rules(rules)
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def panorama_summarize_security_policy(
+        device_group: str,
+        firewall: str | None = None,
+        include_shared: bool = False,
+    ) -> dict[str, Any]:
+        """Same audit dimensions as ``summarize_security_policy``, scoped to a Panorama device group.
+
+        Without this tool the AI has to call ``panorama_get_pre_rules`` and
+        ``panorama_get_post_rules`` per DG and aggregate client-side — cost
+        scales with rule count × DG count. This collapses every DG's audit
+        into a single ~600-token response.
+
+        Reports the same metrics as the firewall version (counts by action,
+        any-any rules, logging-off, missing profiles, zones referenced) over
+        the device group's pre + post security rulebases. When
+        ``include_shared=True``, Panorama-level shared pre and post rules are
+        folded into the combined summary too, matching what a firewall in
+        the DG actually evaluates after a push.
+
+        Response contains:
+          - ``device_group`` — the requested DG.
+          - ``include_shared`` — what was requested.
+          - ``summary`` — combined stats over every rule in scope.
+          - ``per_rulebase`` — same stats split by ``pre``, ``post``, and
+            (when included) ``shared_pre`` / ``shared_post``, so a flagged
+            condition can be traced back without a follow-up fetch.
+
+        Does **not** walk parent device groups in the hierarchy — that would
+        roughly double the call cost for the typical case. Callers that need
+        the fully-flattened effective rulebase can chain
+        ``panorama_get_device_group_hierarchy`` and call this tool per
+        ancestor.
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        # Trust resolution: ``ctx.resolve`` returns a ``Panorama`` for any
+        # entry detected as one, and the sibling Panorama walkers
+        # (``panorama_count_rules_per_device_group``, ``panorama_walk_all_rules``)
+        # likewise issue ``DeviceGroup.refreshall(client)`` without a redundant
+        # ``isinstance`` gate. The earlier guard here mis-rejected legitimate
+        # Panorama targets when the imported ``panos.panorama.Panorama`` symbol
+        # didn't identity-match the resolved client's class (e.g. when the same
+        # module was imported via two different paths). If ``client`` truly
+        # isn't a Panorama, ``DeviceGroup.refreshall`` will raise and the empty
+        # result below surfaces a clean "device group not found" instead.
+        try:
+            device_groups = DeviceGroup.refreshall(client)
+        except Exception as exc:
+            return {
+                "error": (
+                    "panorama_summarize_security_policy could not enumerate "
+                    f"device groups on this target: {redact_exception(exc)}"
+                ),
+                "device_group": device_group,
+            }
+        dg = next((d for d in device_groups if d.name == device_group), None)
+        if dg is None:
+            return {
+                "error": f"Device group '{device_group}' not found.",
+                "device_group": device_group,
+            }
+
+        def _rules(parent: Any, rulebase_cls: Any) -> list[dict[str, Any]]:
+            # Reuses pan-os-python's parent/child wiring: attaching a fresh
+            # PreRulebase/PostRulebase to the parent gives the correct xpath
+            # for either the device-group or shared scope.
+            rb = rulebase_cls()
+            parent.add(rb)
+            try:
+                return _rules_to_dicts(SecurityRule.refreshall(rb))
+            except Exception:
+                # Don't let one rulebase failure (e.g. empty/missing) blank
+                # the whole report — record an empty list and continue.
+                return []
+
+        per_rulebase: dict[str, dict[str, Any]] = {}
+        combined: list[dict[str, Any]] = []
+
+        for label, parent, cls in (
+            ("pre", dg, PreRulebase),
+            ("post", dg, PostRulebase),
+        ):
+            rules = _rules(parent, cls)
+            per_rulebase[label] = _summarize_rules(rules)
+            combined.extend(rules)
+
+        if include_shared:
+            for label, cls in (
+                ("shared_pre", PreRulebase),
+                ("shared_post", PostRulebase),
+            ):
+                rules = _rules(client, cls)
+                per_rulebase[label] = _summarize_rules(rules)
+                combined.extend(rules)
+
+        return {
+            "device_group": device_group,
+            "include_shared": include_shared,
+            "summary": _summarize_rules(combined),
+            "per_rulebase": per_rulebase,
+        }
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
     async def count_objects_by_type(

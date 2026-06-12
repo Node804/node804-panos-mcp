@@ -261,3 +261,435 @@ class TestGetSecurityRules:
             assert "audit_comment" not in r
             assert "tag" not in r
             assert r["action"] == "allow"
+            # Derived audit booleans must be in the lean default.
+            assert "has_inspection" in r
+            assert "has_log_setting" in r
+
+    @pytest.mark.asyncio
+    async def test_derived_audit_flags_in_default_response(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Default response surfaces ``has_inspection`` / ``has_log_setting``
+        so the AI can answer "which rules lack inspection?" without going
+        verbose. Regression for the audit-blindspot bug where neither flag
+        existed in the default whitelist, and for the follow-on fix where
+        the flag missed individual L7 profile attachments and reported
+        100% false positives in environments that don't use profile groups.
+        """
+
+        class _Rule:
+            def __init__(self, name: str, about: dict[str, Any]) -> None:
+                self.name = name
+                self._about = about
+
+            def about(self) -> dict[str, Any]:
+                return dict(self._about)
+
+        rules = [
+            _Rule("with-group", {
+                "name": "with-group", "action": "allow", "disabled": False,
+                "group": "strict-profile",  # has profile via group
+                "log_setting": "to-siem",   # has log forwarding
+            }),
+            _Rule("with-individual-profiles", {
+                "name": "with-individual-profiles", "action": "allow",
+                "disabled": False,
+                # No profile group, but L7 profile attachments live as
+                # top-level ``.about()`` keys — the Rea-style pattern that
+                # the old flag missed. ``has_inspection`` must be True.
+                "virus": ["default"],
+                "spyware": ["Rea Anti-Spyware Profile"],
+                "url_filtering": ["Rea URL Filter"],
+            }),
+            _Rule("bare", {
+                "name": "bare", "action": "allow", "disabled": False,
+                # No profile group, no individual attachments, no logging →
+                # all flags false.
+                "group": None, "log_setting": None,
+                "virus": None, "spyware": None, "vulnerability": None,
+                "url_filtering": None, "file_blocking": None,
+                "data_filtering": None, "wildfire_analysis": None,
+            }),
+            _Rule("empty-strings", {
+                "name": "empty-strings", "action": "allow", "disabled": False,
+                # Empty strings / empty lists are falsy — confirm we don't
+                # treat them as set.
+                "group": "", "log_setting": "",
+                "virus": [], "spyware": [],
+            }),
+        ]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -> None:
+                self.hostname = kwargs.get("hostname", "x")
+            def add(self, child: Any) -> Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, "refreshall", staticmethod(lambda *a, **k: rules))
+
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        result = await _call(mcp, "get_security_rules", firewall="fw1")
+        by_name = {r["name"]: r for r in result["items"]}
+
+        assert by_name["with-group"]["has_inspection"] is True
+        assert by_name["with-group"]["has_log_setting"] is True
+
+        assert by_name["with-individual-profiles"]["has_inspection"] is True
+        assert by_name["with-individual-profiles"]["has_log_setting"] is False
+
+        assert by_name["bare"]["has_inspection"] is False
+        assert by_name["bare"]["has_log_setting"] is False
+
+        assert by_name["empty-strings"]["has_inspection"] is False
+        assert by_name["empty-strings"]["has_log_setting"] is False
+
+        # Raw underlying fields stay verbose-only — they're still strippable
+        # by the lean shape even though the derived booleans are in the
+        # default whitelist.
+        assert "group" not in by_name["with-group"]
+        assert "log_setting" not in by_name["with-group"]
+        assert "virus" not in by_name["with-individual-profiles"]
+
+    @pytest.mark.asyncio
+    async def test_disabled_is_always_a_bool_across_the_listing(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Regression for the schema-consistency bug: previously the lean
+        response showed ``disabled: true`` on the one disabled rule and
+        omitted the field entirely on every enabled rule (because
+        ``.about()`` returns ``None`` and ``drop_when_none`` strips it).
+        The AI then can't tell "enabled" from "field missing" by reading
+        the response. Now ``disabled`` is always a real bool on every rule.
+        """
+
+        class _Rule:
+            def __init__(self, about: dict[str, Any]) -> None:
+                self._about = about
+                self.name = about["name"]
+
+            def about(self) -> dict[str, Any]:
+                return dict(self._about)
+
+        rules = [
+            # Enabled with explicit False — should stay False.
+            _Rule({"name": "explicit-enabled", "action": "allow", "disabled": False}),
+            # Enabled by omission — .about() returns None. Must coerce to False
+            # rather than being dropped by drop_when_none.
+            _Rule({"name": "implicit-enabled", "action": "allow", "disabled": None}),
+            # Disabled with bool True — must stay True.
+            _Rule({"name": "explicit-disabled", "action": "allow", "disabled": True}),
+            # Disabled with PAN-OS XML "yes" string — coerce to True.
+            _Rule({"name": "xml-yes", "action": "allow", "disabled": "yes"}),
+            # Enabled with PAN-OS XML "no" string — coerce to False.
+            _Rule({"name": "xml-no", "action": "allow", "disabled": "no"}),
+        ]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -> None:
+                self.hostname = kwargs.get("hostname", "x")
+            def add(self, child: Any) -> Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, "refreshall", staticmethod(lambda *a, **k: rules))
+
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        result = await _call(mcp, "get_security_rules", firewall="fw1")
+        # Every rule must carry the field; the type must always be bool.
+        for r in result["items"]:
+            assert "disabled" in r, (
+                f"rule {r.get('name')!r} dropped its disabled field — "
+                "schema inconsistency would mask enabled-vs-missing."
+            )
+            assert isinstance(r["disabled"], bool), (
+                f"rule {r.get('name')!r} has non-bool disabled={r['disabled']!r}"
+            )
+
+        by_name = {r["name"]: r["disabled"] for r in result["items"]}
+        assert by_name == {
+            "explicit-enabled": False,
+            "implicit-enabled": False,
+            "explicit-disabled": True,
+            "xml-yes": True,
+            "xml-no": False,
+        }
+
+    @pytest.mark.asyncio
+    async def test_attrs_filter_matches_list_field_substring(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """``attrs={"source": "10.0.0.0/24"}`` returns only rules whose
+        source list contains that token. Server-side filtering on a
+        non-name field is exactly the audit case the toolkit's name-only
+        pattern can't cover.
+        """
+
+        class _Rule:
+            def __init__(self, about: dict[str, Any]) -> None:
+                self._about = about
+                self.name = about["name"]
+            def about(self) -> dict[str, Any]:
+                return dict(self._about)
+
+        rules = [
+            _Rule({"name": "lab-net", "action": "allow",
+                   "source": ["10.0.0.0/24"], "application": ["any"]}),
+            _Rule({"name": "dmz-net", "action": "allow",
+                   "source": ["10.1.0.0/24"], "application": ["web-browsing"]}),
+            _Rule({"name": "multi", "action": "allow",
+                   "source": ["192.168.1.0/24", "10.0.0.0/24"],
+                   "application": ["ssh"]}),
+        ]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -> None:
+                self.hostname = kwargs.get("hostname", "x")
+            def add(self, child: Any) -> Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, "refreshall", staticmethod(lambda *a, **k: rules))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        result = await _call(
+            mcp, "get_security_rules", firewall="fw1",
+            attrs={"source": "10.0.0.0/24"},
+        )
+        names = sorted(r["name"] for r in result["items"])
+        assert names == ["lab-net", "multi"]
+        # total reflects the post-filter set, not the original count.
+        assert result["total"] == 2
+
+    @pytest.mark.asyncio
+    async def test_attrs_filter_ands_multiple_conditions(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """All conditions in ``attrs`` must match — equivalent to AND."""
+
+        class _Rule:
+            def __init__(self, about: dict[str, Any]) -> None:
+                self._about = about
+                self.name = about["name"]
+            def about(self) -> dict[str, Any]:
+                return dict(self._about)
+
+        rules = [
+            _Rule({"name": "any-allow", "action": "allow",
+                   "application": ["any"], "source": ["any"]}),
+            _Rule({"name": "any-deny", "action": "deny",
+                   "application": ["any"], "source": ["any"]}),
+            _Rule({"name": "web-allow", "action": "allow",
+                   "application": ["web-browsing"], "source": ["any"]}),
+        ]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -> None:
+                self.hostname = kwargs.get("hostname", "x")
+            def add(self, child: Any) -> Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, "refreshall", staticmethod(lambda *a, **k: rules))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        result = await _call(
+            mcp, "get_security_rules", firewall="fw1",
+            attrs={"application": "any", "action": "allow"},
+        )
+        names = sorted(r["name"] for r in result["items"])
+        assert names == ["any-allow"]
+
+    @pytest.mark.asyncio
+    async def test_attrs_filter_works_against_derived_booleans(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """``attrs={"has_inspection": "false"}`` must filter on the booleans
+        added by enrich_security_rule_dicts — i.e. enrichment runs *before*
+        filtering. This is the most common audit query ("which rules are
+        missing inspection?").
+        """
+
+        class _Rule:
+            def __init__(self, about: dict[str, Any]) -> None:
+                self._about = about
+                self.name = about["name"]
+            def about(self) -> dict[str, Any]:
+                return dict(self._about)
+
+        rules = [
+            _Rule({"name": "guarded", "action": "allow", "group": "strict"}),
+            _Rule({"name": "bare-1", "action": "allow"}),
+            _Rule({"name": "bare-2", "action": "deny"}),
+        ]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -> None:
+                self.hostname = kwargs.get("hostname", "x")
+            def add(self, child: Any) -> Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, "refreshall", staticmethod(lambda *a, **k: rules))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        result = await _call(
+            mcp, "get_security_rules", firewall="fw1",
+            attrs={"has_inspection": "false"},
+        )
+        names = sorted(r["name"] for r in result["items"])
+        assert names == ["bare-1", "bare-2"]
+
+    @pytest.mark.asyncio
+    async def test_attrs_rejects_old_renamed_key_with_clear_error(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """``attrs={"has_profile": "false"}`` must hard-fail with a message
+        naming the replacement key, not silently return zero rows. Silent
+        empty results to an AI audit caller look like a clean bill of
+        health — the same class of failure the original ``has_profile``
+        logic produced. The tool now rejects the old key at entry.
+        """
+
+        class _Rule:
+            def __init__(self, about: dict[str, Any]) -> None:
+                self._about = about
+                self.name = about["name"]
+            def about(self) -> dict[str, Any]:
+                return dict(self._about)
+
+        rules = [
+            _Rule({"name": "guarded", "action": "allow", "group": "strict"}),
+            _Rule({"name": "bare", "action": "allow"}),
+        ]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -> None:
+                self.hostname = kwargs.get("hostname", "x")
+            def add(self, child: Any) -> Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, "refreshall", staticmethod(lambda *a, **k: rules))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        result = await _call(
+            mcp, "get_security_rules", firewall="fw1",
+            attrs={"has_profile": "false"},
+        )
+        assert "error" in result
+        # The message must name the new key so the caller knows the fix.
+        assert "has_inspection" in result["error"]
+        assert "has_profile" in result["error"]
+        assert result["items"] == []
+        assert result["count"] == 0
+
+    @pytest.mark.asyncio
+    async def test_attrs_can_filter_on_verbose_only_field_without_verbose(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Filtering on a verbose-only field (``source``) must work with
+        ``verbose=False`` — i.e. the filter sees the full enriched dict
+        before lean projection strips columns out.
+        """
+
+        class _Rule:
+            def __init__(self, about: dict[str, Any]) -> None:
+                self._about = about
+                self.name = about["name"]
+            def about(self) -> dict[str, Any]:
+                return dict(self._about)
+
+        rules = [
+            _Rule({"name": "match-me", "action": "allow",
+                   "source": ["10.5.5.5/32"], "application": ["any"]}),
+            _Rule({"name": "skip-me", "action": "allow",
+                   "source": ["other"], "application": ["any"]}),
+        ]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -> None:
+                self.hostname = kwargs.get("hostname", "x")
+            def add(self, child: Any) -> Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, "refreshall", staticmethod(lambda *a, **k: rules))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        # verbose=False is the default; ``source`` IS in the default whitelist
+        # (so we can't see it being stripped), but we can verify that the
+        # response is still lean-shaped and that filtering worked.
+        result = await _call(
+            mcp, "get_security_rules", firewall="fw1",
+            attrs={"source": "10.5.5.5"},
+        )
+        names = [r["name"] for r in result["items"]]
+        assert names == ["match-me"]
+        # And lean shape still applies — no verbose-only fields leak.
+        assert all("uuid" not in r for r in result["items"])
+
+    @pytest.mark.asyncio
+    async def test_empty_attrs_is_passthrough(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """``attrs=None`` and ``attrs={}`` both return every rule unchanged."""
+
+        class _Rule:
+            def __init__(self, about: dict[str, Any]) -> None:
+                self._about = about
+                self.name = about["name"]
+            def about(self) -> dict[str, Any]:
+                return dict(self._about)
+
+        rules = [_Rule({"name": f"r{i}", "action": "allow"}) for i in range(3)]
+
+        class FakeFw:
+            def __init__(self, **kwargs: Any) -> None:
+                self.hostname = kwargs.get("hostname", "x")
+            def add(self, child: Any) -> Any:
+                child.parent = self
+                return child
+
+        _patch_firewall_class(monkeypatch, FakeFw)
+        from panos.policies import SecurityRule
+        monkeypatch.setattr(SecurityRule, "refreshall", staticmethod(lambda *a, **k: rules))
+        _seed_firewall()
+        ctx, mcp = _make_ctx()
+        register_security_tools(ctx)
+
+        for attrs_val in (None, {}):
+            result = await _call(
+                mcp, "get_security_rules", firewall="fw1", attrs=attrs_val,
+            )
+            assert result["count"] == 3

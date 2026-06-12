@@ -162,9 +162,13 @@ def load_firewall_config() -> None:
                 _FileEntry(name=e.name, host=e.host, api_key=None) for e in file_entries
             ]
         except Exception as err:
+            # Redact in case the underlying keyring backend echoed a key
+            # value (some backends raise with the offending value in tow).
+            from .._redact import redact_exception
+
             print(
-                f"[panos-mcp] WARNING: keychain migration failed ({err}). "
-                "Keys remain in plaintext.",
+                f"[panos-mcp] WARNING: keychain migration failed "
+                f"({redact_exception(err)}). Keys remain in plaintext.",
                 file=sys.stderr,
             )
 

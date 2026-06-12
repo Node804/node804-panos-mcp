@@ -45,6 +45,8 @@ export PANOS_API_KEY=LUFRPT1xxx...
 
 Multi-firewall mode — see [Multi-firewall configuration](#multi-firewall-configuration).
 
+> Don't have an API key yet? See [Obtaining a PAN-OS API key](#obtaining-a-pan-os-api-key) below.
+
 ### 4. Add to your MCP client
 
 For Claude Desktop, in `claude_desktop_config.json`:
@@ -64,6 +66,50 @@ For Claude Desktop, in `claude_desktop_config.json`:
 ```
 
 The server starts in **read-only mode** by default. To enable writes, see [Permission modes](#permission-modes).
+
+---
+
+## Obtaining a PAN-OS API key
+
+PAN-OS firewalls and Panorama issue API keys via the `/api/?type=keygen` endpoint. Send an admin username and password and the device returns a long-lived key tied to that account's role and permissions. **The key inherits the admin's RBAC** — there is no separate "API role." A read-only admin's key cannot push config even if `PANOS_MODE=admin`.
+
+Best practice: create a dedicated service account (e.g. `apiread`) with a **Superuser (read-only)** dynamic role, or a custom role that grants only the XML API + config-read permissions you need. Use that account's key for `PANOS_MODE=read`. For higher tiers, issue a separate key from an account with the matching write permissions.
+
+### Option A: curl
+
+```bash
+curl -k -X POST "https://fw.example.com/api/?type=keygen" \
+  --data-urlencode "user=apiread" \
+  --data-urlencode "password=<password>"
+```
+
+Response (XML):
+
+```xml
+<response status="success">
+  <result>
+    <key>LUFRPT1xxxxxxxxxxxxxxxxxxxxxxxx==</key>
+  </result>
+</response>
+```
+
+Copy the `<key>` value into `PANOS_API_KEY`. The same endpoint works against Panorama — just point at the Panorama hostname.
+
+### Option B: PowerShell
+
+```powershell
+$body = @{ user = 'apiread'; password = '<password>' }
+$resp = Invoke-RestMethod -Method Post -Uri 'https://fw.example.com/api/?type=keygen' -Body $body -SkipCertificateCheck
+$resp.response.result.key
+```
+
+(Drop `-SkipCertificateCheck` if the device presents a trusted certificate.)
+
+### Notes
+
+- Keys do not expire by default but are invalidated if the admin's password changes or the account is deleted. Rotate with `request api-key expiration` (CLI) or by re-running keygen.
+- Store the key in the OS keychain (multi-firewall mode does this automatically) or in `PANOS_API_KEY`. Never commit it to source control.
+- For Panorama-managed firewalls, you can issue the key against Panorama and use it for any device Panorama manages, or issue per-device keys directly against each firewall.
 
 ---
 

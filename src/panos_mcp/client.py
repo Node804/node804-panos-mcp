@@ -21,6 +21,7 @@ from mcp_toolkit import TlsConfig
 from panos.firewall import Firewall
 from panos.panorama import Panorama
 
+from ._redact import redact_exception
 from .config.firewalls import FirewallEntry, resolve_firewall
 
 
@@ -65,9 +66,11 @@ def _build_client(entry: FirewallEntry, tls: TlsConfig) -> Firewall | Panorama:
     try:
         version, model, serial = client.refresh_system_info()
     except Exception as exc:
+        # Render via redact_exception in case pan-python/requests leaked
+        # the request URL (which carries ?key=<API_KEY>) into the message.
         print(
             f"[panos-mcp] WARNING: system-info probe failed for '{entry.name}' "
-            f"({exc}); treating as Firewall.",
+            f"({redact_exception(exc)}); treating as Firewall.",
             file=sys.stderr,
         )
         return client

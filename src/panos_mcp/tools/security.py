@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import Annotated, Any, Literal
 
 from mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
+from pan.xapi import PanXapiError
 from panos.errors import PanDeviceError
 from panos.policies import (
     PolicyBasedForwarding,
@@ -38,7 +39,11 @@ from ..responses.schemas import (
 )
 from ..responses.shapers import apply_shape
 from ._common import (
+    AttrFilter,
     ToolContext,
+    check_renamed_attr_keys,
+    enrich_security_rule_dicts,
+    filter_by_attrs,
     op_to_dict,
     panos_object_dicts,
     wrap_panos_error,
@@ -59,35 +64,81 @@ MoveWhere = Literal["top", "bottom", "before", "after"]
 QosClass = Literal["1", "2", "3", "4", "5", "6", "7", "8"]
 
 
-def _security_profile_objects(client: Any) -> list[dict[str, Any]]:
-    """Aggregate the seven distinct security profile types into one list."""
-    from panos.objects import (
-        AntiSpywareProfile,
-        AntivirusProfile,
-        DataFilteringProfile,
-        FileBlockingProfile,
-        UrlFilteringProfile,
-        VulnerabilityProfile,
-        WildfireAnalysisProfile,
-    )
+# Threat security profiles (antivirus, anti-spyware, vulnerability, etc.) are
+# not modeled as classes by pan-os-python 1.12.5 — ``panos.objects`` only
+# exposes ``SecurityProfileGroup`` and ``LogForwardingProfile``. So we read
+# them straight from the XML config. Each tuple maps the friendly type name we
+# report to the XML element name under the ``profiles`` node.
+_PROFILE_XML_TYPES = (
+    ("antivirus", "virus"),
+    ("anti-spyware", "spyware"),
+    ("vulnerability", "vulnerability"),
+    ("url-filtering", "url-filtering"),
+    ("file-blocking", "file-blocking"),
+    ("wildfire-analysis", "wildfire-analysis"),
+    ("data-filtering", "data-filtering"),
+)
 
-    profile_types = [
-        ("antivirus", AntivirusProfile),
-        ("anti-spyware", AntiSpywareProfile),
-        ("vulnerability", VulnerabilityProfile),
-        ("url-filtering", UrlFilteringProfile),
-        ("file-blocking", FileBlockingProfile),
-        ("wildfire-analysis", WildfireAnalysisProfile),
-        ("data-filtering", DataFilteringProfile),
-    ]
+
+def _profiles_xpath(client: Any) -> str:
+    """Config xpath of the ``profiles`` node for a Firewall or Panorama target.
+
+    Panorama shared profiles live at ``/config/shared/profiles``; a firewall's
+    live under its vsys. We never raise here — an unexpected client type falls
+    back to the shared path, which simply returns no entries on a firewall.
+    """
+    from panos.base import Root
+    from panos.panorama import Panorama
+
+    if isinstance(client, Panorama):
+        return "/config/shared/profiles"
+    vsys = getattr(client, "vsys", None) or "vsys1"
+    return client.xpath_root(Root.VSYS, vsys) + "/profiles"
+
+
+def _security_profile_objects(client: Any) -> list[dict[str, Any]]:
+    """Aggregate the seven distinct security profile types into one list.
+
+    Reads the ``profiles`` config subtree once via the XML API and flattens
+    each known profile type into ``{name, description, type, ...}`` dicts.
+    """
+    xpath = _profiles_xpath(client)
+    cmd = f"<show><config><running><xpath>{xpath}</xpath></running></config></show>"
+    try:
+        result = op_to_dict(client, cmd)
+    except (PanDeviceError, PanXapiError) as exc:
+        # Panorama (and PAN-OS firewalls) don't materialize empty config
+        # subtrees, so when *nothing* is configured at this scope — e.g.
+        # security profiles only exist at a device group, never at Shared —
+        # the ``show config running xpath`` op returns
+        # ``<response status="error"><msg>No such node</msg></response>``
+        # and pan-python raises ``PanXapiError``. That's the same "empty"
+        # signal as a present-but-childless ``<profiles/>`` node; surface
+        # it as an empty list rather than letting it bubble up as a tool
+        # error that misleads the caller into thinking the call failed.
+        if "no such node" in str(exc).lower():
+            return []
+        raise
+    profiles = result.get("profiles")
+    if not isinstance(profiles, dict):
+        return []
+
     out: list[dict[str, Any]] = []
-    for type_name, cls in profile_types:
-        try:
-            profiles = cls.refreshall(client)
-        except Exception:
+    for type_name, xml_tag in _PROFILE_XML_TYPES:
+        node = profiles.get(xml_tag)
+        if not isinstance(node, dict):
             continue
-        for p in profiles:
-            data = p.about()
+        entries = node.get("entry")
+        if entries is None:
+            continue
+        if not isinstance(entries, list):
+            entries = [entries]
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            data = dict(entry)
+            # element_to_dict stores the entry's name attribute as "@_name".
+            data["name"] = data.pop("@_name", None)
             data["type"] = type_name
             out.append(data)
     return out
@@ -130,22 +181,47 @@ def register_security_tools(ctx: ToolContext) -> None:
         fields: FieldsList = None,
         pagination: Pagination = Pagination(),
         pattern: Pattern = None,
+        attrs: AttrFilter = None,
     ) -> dict[str, Any]:
         """Security policy rulebase.
 
         Default response includes the fields most relevant to "what does this
         rule allow/deny": zones, source/destination, application/service,
-        action, and disabled flag. Verbose adds profile groups, log settings,
-        UUIDs, audit comments, and tags.
+        action, and disabled flag — plus two derived audit booleans:
+        ``has_inspection`` (true when a profile group is bound OR any
+        individual L7 profile — ``virus``, ``spyware``, ``vulnerability``,
+        ``url_filtering``, ``file_blocking``, ``data_filtering``,
+        ``wildfire_analysis`` — is attached) and ``has_log_setting`` (true
+        when a log forwarding profile is attached). Verbose adds the raw
+        underlying fields (``group``, the individual profile keys,
+        ``log_setting``, ``log_start``/``log_end``) plus UUIDs, audit
+        comments, and tags.
+
+        Use ``attrs`` for server-side filtering on rule attributes other than
+        name — e.g. ``{"source": "10.0.0.0/24"}`` or
+        ``{"application": "any", "has_inspection": "false"}``. Filtering
+        server-side is dramatically cheaper than fetching the full rulebase
+        and post-filtering, especially for audits over large policies.
         """
+        renamed = check_renamed_attr_keys(attrs)
+        if renamed is not None:
+            return renamed
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
         rulebase = Rulebase()
         client.add(rulebase)
         rules = SecurityRule.refreshall(rulebase)
+        # Enrichment runs first so attrs can match against derived booleans
+        # (``has_inspection``, ``has_log_setting``) and the coerced ``disabled``.
+        # The attribute filter runs before ``apply_shape`` so callers can
+        # filter on verbose-only fields (e.g. ``source``) without flipping
+        # ``verbose=true`` just to get the haystack into the response.
+        enriched = enrich_security_rule_dicts(panos_object_dicts(rules))
+        filtered = filter_by_attrs(enriched, attrs)
         return apply_shape(
-            panos_object_dicts(rules), shape=SHAPE_SECURITY_RULE,
+            filtered,
+            shape=SHAPE_SECURITY_RULE,
             verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
         )
 
