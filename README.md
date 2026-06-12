@@ -6,7 +6,7 @@ A token-efficient MCP server for **Palo Alto Networks PAN-OS firewalls and Panor
 2. **Default-deny RBAC.** With no environment configuration, the server exposes only read tools. Writes, commits, and raw API access require explicit opt-in via `PANOS_MODE`.
 3. **TLS verification on by default.** Self-signed certs require an explicit opt-out or a custom CA bundle — no silent man-in-the-middle exposure.
 
-**118 tools** across system, network, security, objects, NAT, user-ID, admin, VPN, Panorama, logs, threat, certificates, licenses, and utility surfaces.
+**123 tools** across system, network, security, objects, NAT, user-ID, admin, VPN, Panorama, logs, threat, certificates, licenses, utility, and aggregation surfaces.
 
 ---
 
@@ -60,10 +60,10 @@ The server starts in **read-only mode** by default. To enable writes, see [Permi
 
 | Mode | Tools | Capabilities |
 |---|---|---|
-| `read` *(default)* | 71 | Read-only inspection. Get rules, objects, logs, status. No writes. |
-| `standard` | 81 | + Object and tag CRUD. Address objects, service objects, tags. No policy rules. |
-| `full` | 112 | + Policy rule CRUD. Security, NAT, PBF, QoS, decryption, static routes. Panorama pre/post rule CRUD. **All writes still go to candidate config — no live impact without commit.** |
-| `admin` | 118 | + Commit. Push. Raw `set_config` / `delete_config` / `run_op_command`. **This is the live-impact tier.** |
+| `read` *(default)* | 76 | Read-only inspection plus aggregation summaries. No writes. |
+| `standard` | 86 | + Object and tag CRUD. Address objects, service objects, tags. No policy rules. |
+| `full` | 117 | + Policy rule CRUD. Security, NAT, PBF, QoS, decryption, static routes. Panorama pre/post rule CRUD. **All writes still go to candidate config — no live impact without commit.** |
+| `admin` | 123 | + Commit. Push. Raw `set_config` / `delete_config` / `run_op_command`. **This is the live-impact tier.** |
 
 Tools above the active mode are not registered with the MCP server — the AI client never sees them. There's nothing to call.
 
@@ -178,8 +178,9 @@ Each cell shows how many tools that category contributes at that RBAC tier. A `�
 | Licenses          |    2 |        — |    — |     — |     2 |
 | Utility           |    1 |        — |    — |     1 |     2 |
 | Server diagnostic |    2 |        — |    — |     — |     2 |
+| Aggregations      |    5 |        — |    — |     — |     5 |
 | Commit & raw API  |    — |        — |    — |     5 |     5 |
-| **Total**         | **71** | **+10**  | **+31** | **+6** | **118** |
+| **Total**         | **76** | **+10**  | **+31** | **+6** | **123** |
 
 A few entries worth calling out by name:
 
@@ -191,17 +192,19 @@ Call `server_status` from your MCP client at runtime to see the active mode, liv
 
 ---
 
-## Aggregation tools (planned)
+## Aggregation tools
 
-The roadmap includes purpose-built aggregation tools that replace "dump everything and grep" patterns with targeted queries:
+Five purpose-built summarization tools that replace "dump everything and grep" patterns with focused queries. Returning a structured answer is 10-20x cheaper in tokens than returning the full inventory and letting the AI compute the same thing — the largest single source of token savings in the project.
 
-- `find_rule_by_name(pattern)` — returns matching rules with full detail
-- `find_address_object(pattern_or_ip)` — locate an object by name pattern or by IP membership
-- `count_rules_by_action()` — `{allow: 142, deny: 38, drop: 12}` without dumping 200 rules
-- `summarize_security_policy()` — top-level stats (rule counts, zones, profile coverage, any-any rules)
-- `count_objects_by_type()` — inventory totals across address/service/tag
+| Tool | What it answers |
+|---|---|
+| `find_rule_by_name(pattern, rule_types=None)` | Search rule names across security, NAT, PBF, and decryption rulebases. Case-insensitive substring match; each result is tagged with its rule type. |
+| `find_address_object(query)` | Find address objects by name substring **or** by IP membership. If the query parses as an IP/CIDR, returns objects whose ip-netmask, ip-range, or ip-wildcard value overlaps the query. Otherwise matches names. |
+| `count_rules_by_action()` | `{"allow": 142, "deny": 38, "drop": 12}` plus enabled/disabled counts. Replaces a 10K-token rule dump with a ~200-token snapshot. |
+| `summarize_security_policy()` | One-call policy audit: rule counts, action breakdown, any-any-any rules (worth reviewing), rules with logging disabled, rules without a profile group, and the set of zones referenced. |
+| `count_objects_by_type()` | Inventory snapshot: address objects by type (ip-netmask vs fqdn vs range), address groups (static vs dynamic), service objects by protocol, plus tag and application-filter totals. |
 
-These reduce 10-20× the token cost of common investigation questions.
+All five are gated at `Mode.READ` — same tier as the underlying inventory reads.
 
 ---
 

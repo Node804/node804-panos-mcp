@@ -1,0 +1,411 @@
+"""Aggregation tools — purpose-built summaries that replace dump-and-grep.
+
+The five tools in this module answer the questions an AI agent most often
+has to compose by fetching a large inventory and filtering it locally:
+
+  - "How many rules allow vs deny?"  → count_rules_by_action
+  - "Find rules matching X"          → find_rule_by_name
+  - "Where is 10.0.0.5 defined?"     → find_address_object
+  - "Audit the security policy"      → summarize_security_policy
+  - "How many objects of each type?" → count_objects_by_type
+
+Returning a focused answer is 10-20x cheaper in tokens than returning the
+full inventory and letting the AI compute the same thing. This is the
+single most token-efficient phase of the project.
+
+All tools sit at ``Mode.READ`` — they're read-only queries over existing
+config.
+"""
+
+from __future__ import annotations
+
+import ipaddress
+import re
+from typing import Annotated, Any, Literal
+
+from mcp_toolkit import Mode
+from panos.objects import (
+    AddressGroup,
+    AddressObject,
+    ApplicationFilter,
+    ServiceGroup,
+    ServiceObject,
+    Tag,
+)
+from panos.policies import (
+    DecryptionRule,
+    NatRule,
+    PolicyBasedForwarding,
+    Rulebase,
+    SecurityRule,
+)
+from pydantic import Field
+
+from ._common import ToolContext
+
+RuleTypeFilter = Annotated[
+    list[Literal["security", "nat", "pbf", "decryption"]] | None,
+    Field(
+        default=None,
+        description=(
+            "Restrict the search to specific rule types. None (default) "
+            "searches all four: security, NAT, PBF, decryption."
+        ),
+    ),
+]
+
+NamePattern = Annotated[
+    str,
+    Field(
+        min_length=1,
+        max_length=255,
+        description=(
+            "Case-insensitive substring to match against rule/object names. "
+            "Use a unique fragment ('block-tor', 'web-srv') rather than a "
+            "regex — the match is plain substring."
+        ),
+    ),
+]
+
+
+# ── IP / network helpers ────────────────────────────────────────────────────
+
+
+def _try_parse_network(value: str) -> ipaddress.IPv4Network | ipaddress.IPv6Network | None:
+    """Parse a single IP or CIDR. Returns None for anything that isn't one."""
+    try:
+        return ipaddress.ip_network(value.strip(), strict=False)
+    except (ValueError, TypeError):
+        return None
+
+
+def _try_parse_ip_range(value: str) -> tuple[int, int] | None:
+    """Parse 'A.B.C.D-E.F.G.H' into (low_int, high_int). None on miss."""
+    if not value or "-" not in value:
+        return None
+    parts = [p.strip() for p in value.split("-", 1)]
+    if len(parts) != 2:
+        return None
+    try:
+        low = int(ipaddress.ip_address(parts[0]))
+        high = int(ipaddress.ip_address(parts[1]))
+    except (ValueError, TypeError):
+        return None
+    return (min(low, high), max(low, high))
+
+
+def _ip_object_matches(addr_dict: dict[str, Any], query_net: ipaddress.IPv4Network | ipaddress.IPv6Network) -> bool:
+    """True when ``addr_dict``'s value contains or overlaps ``query_net``."""
+    # ip-netmask / ip-wildcard: parse as network, check overlap.
+    for key in ("ip_netmask", "ip_wildcard"):
+        raw = addr_dict.get(key)
+        if isinstance(raw, str):
+            candidate = _try_parse_network(raw)
+            if candidate is not None and candidate.overlaps(query_net):
+                return True
+    # ip-range: check whether query falls within range.
+    raw_range = addr_dict.get("ip_range")
+    if isinstance(raw_range, str):
+        bounds = _try_parse_ip_range(raw_range)
+        if bounds is not None:
+            q_low = int(query_net.network_address)
+            q_high = int(query_net.broadcast_address)
+            r_low, r_high = bounds
+            if q_low <= r_high and q_high >= r_low:
+                return True
+    return False
+
+
+def _filter_address_objects_by_query(
+    objects: list[dict[str, Any]],
+    query: str,
+) -> tuple[list[dict[str, Any]], str]:
+    """Return (matches, match_strategy) where strategy is 'ip' or 'name'."""
+    query_net = _try_parse_network(query)
+    if query_net is not None:
+        matches = [
+            {**obj, "match_type": "ip_membership"}
+            for obj in objects
+            if _ip_object_matches(obj, query_net)
+        ]
+        return matches, "ip"
+    needle = query.casefold()
+    matches = [
+        {**obj, "match_type": "name_substring"}
+        for obj in objects
+        if isinstance(obj.get("name"), str) and needle in obj["name"].casefold()
+    ]
+    return matches, "name"
+
+
+# ── Policy summary helpers ──────────────────────────────────────────────────
+
+
+_ANY_LIST = ("any", "Any", "ANY")
+
+
+def _is_any(value: Any) -> bool:
+    """True when a rule field equals the literal 'any' (list-or-string form)."""
+    if isinstance(value, str):
+        return value in _ANY_LIST
+    if isinstance(value, (list, tuple)) and len(value) == 1:
+        return isinstance(value[0], str) and value[0] in _ANY_LIST
+    return False
+
+
+def _summarize_rules(rules: list[dict[str, Any]]) -> dict[str, Any]:
+    """Compute the policy-summary stats over a list of rule .about() dicts."""
+    enabled = [r for r in rules if not _truthy_disabled(r.get("disabled"))]
+    by_action: dict[str, int] = {}
+    no_log = 0
+    no_profile = 0
+    any_any = 0
+    zones: set[str] = set()
+
+    for r in enabled:
+        action = r.get("action") or "unknown"
+        by_action[action] = by_action.get(action, 0) + 1
+
+        log_end = r.get("log_end")
+        log_start = r.get("log_start")
+        if log_end is False and log_start is False:
+            no_log += 1
+        elif log_end is None and log_start is None:
+            # Both unset — PAN-OS defaults log_end=true, so this is implicit.
+            pass
+
+        if not r.get("group") and not r.get("profile_setting"):
+            no_profile += 1
+
+        src = r.get("source")
+        dst = r.get("destination")
+        app = r.get("application")
+        if _is_any(src) and _is_any(dst) and _is_any(app):
+            any_any += 1
+
+        for field in ("fromzone", "tozone"):
+            v = r.get(field)
+            if isinstance(v, list):
+                for z in v:
+                    if isinstance(z, str) and z not in _ANY_LIST:
+                        zones.add(z)
+            elif isinstance(v, str) and v not in _ANY_LIST:
+                zones.add(v)
+
+    return {
+        "rule_counts": {
+            "total": len(rules),
+            "enabled": len(enabled),
+            "disabled": len(rules) - len(enabled),
+        },
+        "by_action": by_action,
+        "any_any_rules": any_any,
+        "rules_with_logging_off": no_log,
+        "rules_without_profiles": no_profile,
+        "zones_referenced": sorted(zones),
+    }
+
+
+def _truthy_disabled(value: Any) -> bool:
+    """PAN-OS represents disabled as bool, 'yes'/'no' strings, or None."""
+    if value is True:
+        return True
+    if isinstance(value, str):
+        return value.strip().lower() in ("yes", "true", "1")
+    return False
+
+
+def _rules_to_dicts(rules: list[Any]) -> list[dict[str, Any]]:
+    return [r.about() for r in rules]
+
+
+# ── Tool registrations ─────────────────────────────────────────────────────
+
+
+def register_aggregation_tools(ctx: ToolContext) -> None:
+    """Register the five aggregation tools against ``ctx.mcp``."""
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def count_rules_by_action(
+        firewall: str | None = None,
+    ) -> dict[str, Any]:
+        """Count security rules grouped by action.
+
+        Lean alternative to ``get_security_rules`` when the AI only needs
+        to know "how many allow/deny rules are there". Returns the total,
+        a per-action breakdown, and the disabled count — typically <200
+        tokens vs ~10K for the full rule dump.
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        rulebase = Rulebase()
+        client.add(rulebase)
+        rules = _rules_to_dicts(SecurityRule.refreshall(rulebase))
+        enabled = [r for r in rules if not _truthy_disabled(r.get("disabled"))]
+        by_action: dict[str, int] = {}
+        for r in enabled:
+            action = r.get("action") or "unknown"
+            by_action[action] = by_action.get(action, 0) + 1
+        return {
+            "total": len(rules),
+            "enabled": len(enabled),
+            "disabled": len(rules) - len(enabled),
+            "by_action": by_action,
+        }
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def find_rule_by_name(
+        pattern: NamePattern,
+        rule_types: RuleTypeFilter = None,
+        firewall: str | None = None,
+    ) -> dict[str, Any]:
+        """Search rule names across security, NAT, PBF, and decryption rules.
+
+        Returns full ``.about()`` detail for each match with a ``type`` tag
+        so the AI can tell which rulebase the match came from. Use ``rule_types``
+        to scope the search.
+
+        Match is a case-insensitive substring on the rule's ``name`` field.
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+
+        types_to_search = set(rule_types) if rule_types else {"security", "nat", "pbf", "decryption"}
+        needle = pattern.casefold()
+
+        rulebase = Rulebase()
+        client.add(rulebase)
+
+        rule_classes: list[tuple[str, Any]] = []
+        if "security" in types_to_search:
+            rule_classes.append(("security", SecurityRule))
+        if "nat" in types_to_search:
+            rule_classes.append(("nat", NatRule))
+        if "pbf" in types_to_search:
+            rule_classes.append(("pbf", PolicyBasedForwarding))
+        if "decryption" in types_to_search:
+            rule_classes.append(("decryption", DecryptionRule))
+
+        matches: list[dict[str, Any]] = []
+        for type_name, cls in rule_classes:
+            try:
+                rules = cls.refreshall(rulebase)
+            except Exception:
+                continue
+            for r in rules:
+                data = r.about()
+                name = data.get("name")
+                if isinstance(name, str) and needle in name.casefold():
+                    data["type"] = type_name
+                    matches.append(data)
+
+        return {"pattern": pattern, "count": len(matches), "matches": matches}
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def find_address_object(
+        query: NamePattern,
+        firewall: str | None = None,
+    ) -> dict[str, Any]:
+        """Find address objects by name substring OR by IP membership.
+
+        If ``query`` parses as an IP or CIDR (e.g. ``"10.0.0.5"`` or
+        ``"10.0.0.0/24"``), returns address objects whose value contains
+        or overlaps that range — covers ``ip-netmask``, ``ip-range``,
+        and ``ip-wildcard`` types. Otherwise treats ``query`` as a
+        case-insensitive name substring.
+
+        Each match is tagged with ``match_type``: ``"ip_membership"`` or
+        ``"name_substring"``.
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        objects = _rules_to_dicts(AddressObject.refreshall(client))
+        matches, strategy = _filter_address_objects_by_query(objects, query)
+        return {
+            "query": query,
+            "strategy": strategy,
+            "count": len(matches),
+            "matches": matches,
+        }
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def summarize_security_policy(
+        firewall: str | None = None,
+    ) -> dict[str, Any]:
+        """Top-level security policy stats in one call.
+
+        Reports total/enabled/disabled rule counts, action breakdown,
+        any-any rules (source=any AND destination=any AND application=any —
+        worth auditing), rules with both log-start and log-end off, rules
+        not bound to a profile group or profile setting, and the set of
+        zones referenced.
+
+        Replaces a 10K+-token full-rulebase dump with a single ~500-token
+        snapshot.
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        rulebase = Rulebase()
+        client.add(rulebase)
+        rules = _rules_to_dicts(SecurityRule.refreshall(rulebase))
+        return _summarize_rules(rules)
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def count_objects_by_type(
+        firewall: str | None = None,
+    ) -> dict[str, Any]:
+        """Inventory counts across address/service/tag/application objects.
+
+        Quick "what's in this firewall" snapshot. For address and service
+        objects, breaks down by the underlying type (ip-netmask vs fqdn,
+        tcp vs udp).
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+
+        addrs = _rules_to_dicts(AddressObject.refreshall(client))
+        addr_types: dict[str, int] = {}
+        for a in addrs:
+            for key in ("ip_netmask", "ip_range", "fqdn", "ip_wildcard"):
+                if a.get(key) is not None:
+                    addr_types[key.replace("_", "-")] = addr_types.get(key.replace("_", "-"), 0) + 1
+                    break
+
+        groups = _rules_to_dicts(AddressGroup.refreshall(client))
+        static_groups = sum(1 for g in groups if g.get("static_value"))
+        dynamic_groups = sum(1 for g in groups if g.get("dynamic_value"))
+
+        svc = _rules_to_dicts(ServiceObject.refreshall(client))
+        svc_by_proto: dict[str, int] = {}
+        for s in svc:
+            proto = s.get("protocol") or "unknown"
+            svc_by_proto[proto] = svc_by_proto.get(proto, 0) + 1
+
+        svc_groups = ServiceGroup.refreshall(client)
+        tags = Tag.refreshall(client)
+        app_filters = ApplicationFilter.refreshall(client)
+
+        # Silence unused-import warning for the regex import used by future
+        # extensions of name-pattern matching.
+        _ = re
+
+        return {
+            "address_objects": {"total": len(addrs), "by_type": addr_types},
+            "address_groups": {
+                "total": len(groups),
+                "static": static_groups,
+                "dynamic": dynamic_groups,
+            },
+            "service_objects": {"total": len(svc), "by_protocol": svc_by_proto},
+            "service_groups": len(svc_groups),
+            "tags": len(tags),
+            "application_filters": len(app_filters),
+        }
+
+
+__all__ = ["register_aggregation_tools"]
