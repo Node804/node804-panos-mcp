@@ -1,23 +1,32 @@
-"""Phase 0 smoke tests — confirm the package imports and the hello-world tool exists.
+"""Smoke tests — confirm the package imports and the server module wires up.
 
-Real coverage starts in Phase 1 (toolkit) and Phase 3 (read tools). These tests
-just prove the bootstrap is wired correctly.
+Real coverage lives in test_firewalls, test_client, test_tools (Phase 2)
+and the per-module suites added in later phases.
 """
 
+from __future__ import annotations
+
 from panos_mcp import __version__
-from panos_mcp.server import mcp, server_info
 
 
 def test_version_is_set() -> None:
     assert __version__ == "0.1.0"
 
 
-def test_server_info_returns_phase_marker() -> None:
-    info = server_info()
-    assert info["name"] == "panos-mcp"
-    assert info["version"] == __version__
-    assert "0 (bootstrap" in info["phase"]
+def test_server_module_imports() -> None:
+    """The server module wires gate, audit, tls, and registers the always-on tools.
 
+    Importing the module triggers all of that as side effects. If any wiring
+    breaks, the import itself will fail with a clear traceback.
+    """
+    from panos_mcp.server import audit_sink, gate, mcp, tls_config
 
-def test_mcp_server_named_correctly() -> None:
     assert mcp.name == "panos-mcp"
+    assert gate.env_var == "PANOS_MODE"
+    assert audit_sink is not None
+    assert tls_config is not None
+
+    # The two always-on tools should be in the gate's enabled set.
+    enabled = gate.summary()["enabled_tools"]
+    assert "server_status" in enabled
+    assert "list_firewalls" in enabled
