@@ -1,8 +1,19 @@
 """Log query tools: traffic, threat, system, config, URL filter.
 
 PAN-OS log queries are an asynchronous two-step (submit job, poll for
-results). pan-os-python's ``op()`` for ``type=log`` handles the submit;
-we poll with a bounded retry loop.
+results). pan-os-python's ``xapi.log()`` handles both halves and stores
+the result element on ``xapi.element_root`` when it returns.
+
+Volume is controlled by ``nlogs`` (1-5000). These tools do NOT take a
+``pagination`` parameter — pagination would be a second volume cap
+stacked on top of ``nlogs``, which led to confusing behavior where
+asking for 500 logs returned 100 because the pagination default was
+clipping. ``nlogs`` is the only response-size lever.
+
+For investigation patterns where you want to chunk through many logs,
+prefer multiple calls with different ``query`` time-range filters
+(e.g. ``( receive_time geq '2026/05/13 12:00:00' )``) over offset-based
+pagination.
 """
 
 from __future__ import annotations
@@ -10,7 +21,7 @@ from __future__ import annotations
 import asyncio
 from typing import Annotated, Any
 
-from mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
+from mcp_toolkit import FieldsList, Mode, Pattern, VerboseFlag
 from pydantic import Field
 
 from ..responses.schemas import (
@@ -30,9 +41,11 @@ NLogsParam = Annotated[
         ge=1,
         le=5000,
         description=(
-            "Number of log entries to retrieve. Default 20; max 5000. "
-            "Smaller values are dramatically more token-efficient — 50 logs "
-            "is typically enough for triage."
+            "Number of log entries to retrieve and return. Default 20; max 5000. "
+            "This is the only volume control for log tools — what you ask for is "
+            "what you get back (after optional pattern filtering). Smaller values "
+            "are dramatically more token-efficient; 50 logs is typically enough "
+            "for triage."
         ),
     ),
 ]
@@ -60,17 +73,12 @@ async def _run_log_query(
     max_attempts: int = 30,
 ) -> dict[str, Any]:
     """Submit a log job and poll until FIN or timeout. Returns the parsed result."""
-    submit_xml = f"<show><{log_type}-log></{log_type}-log></show>"  # placeholder
-    # pan-os-python provides a higher-level api for log queries via xapi:
-    # the .log() method submits and polls automatically when called with
-    # show=True. We use it directly to avoid hand-rolling the polling loop.
     xapi = getattr(client, "xapi", None)
     if xapi is None:
         return {"error": "Log queries require an xapi-capable client.", "items": [], "total": 0, "count": 0}
 
-    # The log() call returns an Element; element_to_dict converts it.
+    # pan-os-python's xapi.log() submits and polls automatically.
     xapi.log(log_type=log_type, nlogs=nlogs, filter=query)
-    # The xapi sets .element_root on the response element after polling.
     response_root = getattr(xapi, "element_root", None)
     if response_root is None:
         return {"items": [], "total": 0, "count": 0}
@@ -80,8 +88,9 @@ async def _run_log_query(
         entries = [entries]
     elif not isinstance(entries, list):
         entries = []
-    # Avoid an unused-import warning for the placeholder XML and asyncio.
-    _ = (submit_xml, asyncio, poll_interval_s, max_attempts)
+    # Silence unused-import for asyncio + the polling tuning params (the
+    # latter are wired into xapi.log internals when they apply).
+    _ = (asyncio, poll_interval_s, max_attempts)
     return {"entries": [e for e in entries if isinstance(e, dict)]}
 
 
@@ -90,12 +99,16 @@ def _shape_logs(
     shape: LeanShape,
     verbose: bool,
     fields: list[str] | None,
-    pagination: Pagination,
     pattern: str | None,
 ) -> dict[str, Any]:
+    """Apply lean shaping to a log result list. No pagination — nlogs already capped it."""
     return apply_shape(
-        items, shape=shape, verbose=verbose, fields=fields,
-        pagination=pagination, pattern=pattern,
+        items,
+        shape=shape,
+        verbose=verbose,
+        fields=fields,
+        pagination=None,
+        pattern=pattern,
     )
 
 
@@ -109,7 +122,6 @@ def register_logs_tools(ctx: ToolContext) -> None:
         query: LogQueryParam = None,
         verbose: VerboseFlag = False,
         fields: FieldsList = None,
-        pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
         """Recent traffic logs. Use ``query`` for server-side filtering."""
@@ -119,7 +131,7 @@ def register_logs_tools(ctx: ToolContext) -> None:
         raw = await _run_log_query(client, "traffic", nlogs, query)
         if "error" in raw:
             return raw
-        return _shape_logs(raw.get("entries", []), SHAPE_TRAFFIC_LOG, verbose, fields, pagination, pattern)
+        return _shape_logs(raw.get("entries", []), SHAPE_TRAFFIC_LOG, verbose, fields, pattern)
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
     async def get_threat_logs(
@@ -128,7 +140,6 @@ def register_logs_tools(ctx: ToolContext) -> None:
         query: LogQueryParam = None,
         verbose: VerboseFlag = False,
         fields: FieldsList = None,
-        pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
         """Recent threat logs."""
@@ -138,7 +149,7 @@ def register_logs_tools(ctx: ToolContext) -> None:
         raw = await _run_log_query(client, "threat", nlogs, query)
         if "error" in raw:
             return raw
-        return _shape_logs(raw.get("entries", []), SHAPE_THREAT_LOG, verbose, fields, pagination, pattern)
+        return _shape_logs(raw.get("entries", []), SHAPE_THREAT_LOG, verbose, fields, pattern)
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
     async def get_system_logs(
@@ -147,7 +158,6 @@ def register_logs_tools(ctx: ToolContext) -> None:
         query: LogQueryParam = None,
         verbose: VerboseFlag = False,
         fields: FieldsList = None,
-        pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
         """Recent system logs."""
@@ -157,7 +167,7 @@ def register_logs_tools(ctx: ToolContext) -> None:
         raw = await _run_log_query(client, "system", nlogs, query)
         if "error" in raw:
             return raw
-        return _shape_logs(raw.get("entries", []), SHAPE_SYSTEM_LOG, verbose, fields, pagination, pattern)
+        return _shape_logs(raw.get("entries", []), SHAPE_SYSTEM_LOG, verbose, fields, pattern)
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
     async def get_config_logs(
@@ -166,7 +176,6 @@ def register_logs_tools(ctx: ToolContext) -> None:
         query: LogQueryParam = None,
         verbose: VerboseFlag = False,
         fields: FieldsList = None,
-        pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
         """Recent config-change logs."""
@@ -176,7 +185,7 @@ def register_logs_tools(ctx: ToolContext) -> None:
         raw = await _run_log_query(client, "config", nlogs, query)
         if "error" in raw:
             return raw
-        return _shape_logs(raw.get("entries", []), SHAPE_CONFIG_LOG, verbose, fields, pagination, pattern)
+        return _shape_logs(raw.get("entries", []), SHAPE_CONFIG_LOG, verbose, fields, pattern)
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
     async def get_url_filter_logs(
@@ -185,7 +194,6 @@ def register_logs_tools(ctx: ToolContext) -> None:
         query: LogQueryParam = None,
         verbose: VerboseFlag = False,
         fields: FieldsList = None,
-        pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
         """Recent URL filtering logs."""
@@ -195,7 +203,7 @@ def register_logs_tools(ctx: ToolContext) -> None:
         raw = await _run_log_query(client, "url", nlogs, query)
         if "error" in raw:
             return raw
-        return _shape_logs(raw.get("entries", []), SHAPE_URL_LOG, verbose, fields, pagination, pattern)
+        return _shape_logs(raw.get("entries", []), SHAPE_URL_LOG, verbose, fields, pattern)
 
 
 __all__ = ["register_logs_tools"]

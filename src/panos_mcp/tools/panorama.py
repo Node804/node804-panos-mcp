@@ -405,7 +405,11 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
-        """Collector group configuration in Panorama."""
+        """Collector group configuration in Panorama.
+
+        Returns an empty list when no collector groups are configured
+        (PAN-OS responds with "No such node" in that case).
+        """
         # Not modeled in pan-os-python; pull via xpath show.
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
@@ -413,9 +417,13 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         xpath = (
             "/config/devices/entry[@name='localhost.localdomain']/log-collector-group"
         )
-        result = op_to_dict(
-            client, f"<show><config><running><xpath>{xpath}</xpath></running></config></show>"
-        )
+        try:
+            result = op_to_dict(
+                client, f"<show><config><running><xpath>{xpath}</xpath></running></config></show>"
+            )
+        except PanDeviceError:
+            # "No such node" when no collector groups are configured.
+            result = {}
         groups = _entries(result, "log-collector-group", "entry")
         return apply_shape(
             groups, shape=SHAPE_COLLECTOR_GROUP, verbose=verbose, fields=fields,
@@ -432,14 +440,22 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
-        """Status of the most recent config push to managed devices."""
+        """Status of the most recent config push to managed devices.
+
+        Retrieves push jobs from ``show jobs all`` and filters for
+        CommitAll / push-type entries.
+        """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        result = op_to_dict(
-            client, "<show><config><push><status></status></push></config></show>"
-        )
-        items = _entries(result, "entry") or _entries(result, "devices", "entry")
+        result = op_to_dict(client, "<show><jobs><all></all></jobs></show>")
+        all_jobs = _entries(result, "job") or _entries(result, "entry")
+        # Keep only push-type jobs (CommitAll, Push, etc.)
+        push_types = {"CommitAll", "Push", "Validate"}
+        items = [
+            j for j in all_jobs
+            if isinstance(j, dict) and j.get("type") in push_types
+        ]
         return apply_shape(
             items, shape=SHAPE_PUSH_STATUS, verbose=verbose, fields=fields,
             pagination=pagination, pattern=pattern,

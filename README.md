@@ -18,10 +18,21 @@ A token-efficient MCP server for **Palo Alto Networks PAN-OS firewalls and Panor
 
 ### 2. Install `panos-mcp`
 
+When published to PyPI:
+
+```bash
+pip install panos-mcp
+```
+
+From source:
+
 ```bash
 git clone https://github.com/epopleachim/panos-mcp-py.git
-pip install -e ./panos-mcp-py
+cd panos-mcp-py
+pip install -e .
 ```
+
+> If you'd rather not `cd` into the cloned directory, use `pip install -e ./panos-mcp-py` from one level up. The path argument to `pip install -e` is whatever directory contains `pyproject.toml`.
 
 ### 3. Configure access to your firewall
 
