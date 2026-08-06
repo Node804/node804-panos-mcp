@@ -39,6 +39,8 @@ PAN-OS issues API keys via the `/api/?type=keygen` endpoint. The key inherits th
 
 > **Best practice:** create a dedicated service account (e.g. `apiread`) with a **Superuser (read-only)** dynamic role for `PANOS_MODE=read`. Issue a separate key from an account with write permissions for higher tiers.
 
+> **Custom (role-based) admin accounts:** if the key belongs to a *custom* admin role rather than a dynamic Superuser role, check the role's **Privacy** settings (Admin Role Profile → **Web UI** tab → **Privacy**). When **Show Full IP Addresses** is disabled, PAN-OS masks source and destination IPs to their `/24` network in every log and report — including the data served over the XML API — so the MCP will return e.g. `172.28.31.0/24` instead of the host address. Enable **Show Full IP Addresses** (and **Show User Names In Logs And Reports** for usernames), then commit. On a Panorama-authenticated key this is a Panorama admin role, so a Panorama commit applies it — no device push needed. This masking is applied by PAN-OS, not the MCP; the server passes the API's values through unchanged.
+
 **curl:**
 
 ```bash
@@ -66,6 +68,7 @@ Copy the returned `<key>` into `PANOS_API_KEY`. The same endpoint works against 
 | `PANOS_TLS_VERIFY` | No | `true` / `false` / `1` / `0` / `yes` / `no`. Default: `true`. |
 | `PANOS_TLS_CA` | No | Path to a custom PEM CA bundle. Default: system trust store. |
 | `PANOS_FIREWALLS_CONFIG` | No | Override path for `firewalls.json`. Default: `~/.config/panos-mcp/firewalls.json`. |
+| `PANOS_ALLOW_SERIAL_CONNECTION` | No | `true` / `false` (default `false`). When on and the configured connection is a Panorama, reach any managed firewall by serial *through* Panorama — one key for the whole fleet. See [Serial-through-Panorama](#serial-through-panorama). |
 | `PANOS_AUDIT_LOG` | No | Path to a JSON-lines audit log. Every tool call is logged with sanitized args, success/error state, and timing. Disabled when unset. |
 | `PANOS_ENABLE_RAW_CONFIG` | No | Register `set_config` / `delete_config` (also requires `PANOS_MODE=admin`). Default: `false`. |
 | `PANOS_ENABLE_RAW_OPS` | No | Register `run_op_command` (also requires `PANOS_MODE=admin`). Default: `false`. |
@@ -78,7 +81,7 @@ The raw escape hatches are **off by default and gated twice**: they register onl
 **Option A — uv (recommended).** No install step: `uvx` fetches the package from PyPI on first run and caches it. Pin the version so upgrades are deliberate:
 
 ```bash
-uvx node804-panos-mcp==0.1.6
+uvx node804-panos-mcp==0.1.7
 ```
 
 **Option B — pip:**
@@ -112,7 +115,7 @@ Each option provides the `node804-panos-mcp` command and the `panos_mcp` Python 
   "mcpServers": {
     "PAN-OS": {
       "command": "uvx",
-      "args": ["node804-panos-mcp==0.1.6"],
+      "args": ["node804-panos-mcp==0.1.7"],
       "env": {
         "PANOS_HOST": "fw.example.com",
         "PANOS_API_KEY": "LUFRPT1xxx...",
@@ -134,7 +137,7 @@ claude mcp add node804-panos-mcp \
   -e PANOS_HOST=fw.example.com \
   -e PANOS_API_KEY=LUFRPT1xxx... \
   -e PANOS_MODE=read \
-  -- uvx node804-panos-mcp==0.1.6
+  -- uvx node804-panos-mcp==0.1.7
 ```
 
 Verify with `claude mcp list`.
@@ -242,6 +245,49 @@ API keys live in the OS keychain (macOS Keychain, Windows Credential Manager, Li
 
 In multi-firewall mode, every tool that talks to a firewall requires an explicit `firewall: <name>` argument — no default is picked. Call `list_firewalls` to see configured targets and whether `firewall` is required.
 
+## Serial-through-Panorama
+
+If you run Panorama, you don't have to enroll a key for every managed firewall. Set **`PANOS_ALLOW_SERIAL_CONNECTION=true`** and point the server at your Panorama (via `PANOS_HOST`/`PANOS_API_KEY` or a single `firewalls.json` entry). Any `firewall` argument that isn't a configured entry is then resolved against Panorama's live `show devices all` inventory — matched by **hostname or serial** — and the call is routed *through* Panorama using the device's serial as the API `target`. **One Panorama key reaches the whole managed fleet, with no second config file.**
+
+```jsonc
+// Claude settings — the only thing you configure is Panorama.
+{
+  "mcpServers": {
+    "PAN-OS": {
+      "command": "uvx",
+      "args": ["node804-panos-mcp==0.1.7"],
+      "env": {
+        "PANOS_HOST": "panorama.example.com",
+        "PANOS_API_KEY": "LUFRPT1xxx...",
+        "PANOS_ALLOW_SERIAL_CONNECTION": "true"
+      }
+    }
+  }
+}
+```
+
+Then ask your LLM about any managed device by hostname or serial (e.g. *"show the routing table on hq-edge-fw"*) and the server reaches it through Panorama.
+
+- **Off by default.** Without the flag, unknown `firewall` names return a "not found" error naming the flag — nothing routes through Panorama silently.
+- **Direct entries always win.** A `firewalls.json` entry (or `PANOS_HOST` fallback) with its own key connects straight to the device and is preferred over a managed device of the same name — so that box stays reachable even if Panorama is down. Add a direct entry only for firewalls Panorama doesn't manage, or ones you need reachable independently.
+- **Explicit serial entries** are also allowed in `firewalls.json` when you'd rather name devices yourself than rely on discovery:
+
+  ```json
+  {
+    "firewalls": [
+      { "name": "panorama", "host": "panorama.example.com" },
+      { "name": "hq-fw",     "serial": "010101010101", "via": "panorama" },
+      { "name": "branch-fw", "serial": "020202020202" }
+    ]
+  }
+  ```
+
+  Serial entries carry **no key of their own** — they borrow the Panorama connection's. Omit `via` to route through the default connection.
+- **Caveats.** Only devices Panorama manages *and* that are currently connected are reachable this way; disconnected devices return a clear error. Proxied calls run with the Panorama key's RBAC on the target, and if Panorama is unreachable, so is the whole fleet via this path.
+- **Log queries are not proxied.** PAN-OS log retrieval (`type=log` — the five `get_*_logs` tools) does **not** honor the serial `target` redirect the way config and op commands do: Panorama answers from its aggregated log database, so a query aimed at one managed device would return fleet-wide logs (masked per the *Panorama* admin role), not that device's local logs. Rather than return that misleading result, the log tools **refuse a serial-proxy target** and tell you to use a direct connection to the firewall instead. To read a specific device's own logs, add a direct `firewalls.json` entry (host + API key) for it; to query Panorama's aggregated logs on purpose, target the Panorama directly.
+
+`list_firewalls` reports `serial_connection` and, when enabled, a `managed_devices` inventory (hostname, serial, connected status) alongside the configured entries.
+
 ## Tools by category
 
 Each cell shows how many tools that category contributes at that RBAC tier. A `—` means none. The `Total` column sums across tiers; the bottom row matches the tool counts reported by `server_status`.
@@ -306,6 +352,7 @@ All are gated at `Mode.READ` — same tier as the underlying inventory reads.
 | "firewall is required" errors | Multi-firewall mode with no target | Pass `firewall: <name>`; run `list_firewalls` to see configured targets. |
 | `set_config` / `run_op_command` not available in admin mode | Raw escape hatches are off by default | Set `PANOS_ENABLE_RAW_CONFIG=true` / `PANOS_ENABLE_RAW_OPS=true` *and* `PANOS_MODE=admin`. |
 | A vsys-scoped query returns the wrong vsys's data | Tools default to `vsys1` | This release targets `vsys1`; for other virtual systems use `get_config_xpath` with an explicit vsys path until a `vsys` parameter lands. |
+| Log tools return source/dest IPs masked to a `/24` (e.g. `172.28.31.0/24`) instead of host addresses | The API account's admin role has **Show Full IP Addresses** disabled — PAN-OS masks logged IPs for that role. Not an MCP transformation. | In the Admin Role Profile → **Web UI** → **Privacy**, enable **Show Full IP Addresses** (and **Show User Names In Logs And Reports** for usernames) and commit. For a Panorama-authenticated key, a Panorama commit applies it. |
 
 ## Development
 
