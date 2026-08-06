@@ -118,7 +118,26 @@ SHAPE_ZONE = LeanShape(
 )
 
 SHAPE_ROUTE = LeanShape(
-    default_fields=("destination", "nexthop", "interface", "metric", "flags", "age"),
+    default_fields=(
+        "destination",
+        "nexthop",
+        "interface",
+        "metric",
+        "flags",
+        "age",
+        # Advanced Routing Engine only — absent on legacy virtual-router rows.
+        # ARE reports protocol and administrative distance as their own fields
+        # (legacy encodes protocol inside the ``flags`` glyphs and doesn't
+        # surface distance at all) and scopes every route to a VRF within a
+        # logical router. Distance belongs in the lean view alongside metric:
+        # route selection is longest-prefix, then distance, then metric, so
+        # omitting it makes "why did this route win?" unanswerable without a
+        # second verbose call.
+        "protocol",
+        "distance",
+        "vrf",
+        "logical_router",
+    ),
     name_field="destination",
 )
 
@@ -141,7 +160,19 @@ SHAPE_DNS_PROXY = LeanShape(
 )
 
 SHAPE_STATIC_ROUTE = LeanShape(
-    default_fields=("name", "template", "destination", "nexthop", "interface", "metric"),
+    default_fields=(
+        "name",
+        "template",
+        "destination",
+        "nexthop",
+        "interface",
+        "metric",
+        # ARE-only scoping. On a Panorama the template walk can return rows
+        # from both engines, so each row carries its own ``routing_engine``.
+        "vrf",
+        "logical_router",
+        "routing_engine",
+    ),
 )
 
 

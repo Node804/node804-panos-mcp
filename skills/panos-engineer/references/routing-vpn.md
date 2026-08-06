@@ -17,6 +17,39 @@ multiple VRs with separate route tables; inter-VR traffic needs explicit routes.
 When auditing, confirm which VR an interface/zone belongs to before reasoning
 about reachability.
 
+## Advanced Routing Engine (ARE) — read the `routing_engine` field
+
+PAN-OS 10.2+ firewalls can run the **Advanced Routing Engine**, which replaces
+virtual routers with **logical routers → VRFs**. Both route readers detect the
+engine and query the right stack, reporting `routing_engine`
+(`legacy` / `advanced`) on every firewall response. You don't need to do
+anything special — but read the field, because it changes how rows are scoped:
+
+- On ARE, `get_routing_table` rows add **`protocol`** (legacy hides this inside
+  the `flags` glyphs), **`vrf`**, and **`logical_router`**. A directly-connected
+  route reports `nexthop: "connected"`.
+- ARE `flags` come from FRR and use a **different alphabet** than legacy PAN-OS
+  route flags. Never write a flag-matching filter that assumes one engine.
+- On ARE, `get_static_routes` matches `virtual_router` against **VRF** names. If
+  the name matches no VRF, every VRF is returned (not an empty list), so check
+  the `vrf` field on the rows rather than assuming the filter applied.
+- ECMP fans out to one row per nexthop on both engines — the same prefix
+  appearing twice is expected, not a duplicate.
+
+Two cases still need care:
+
+- `add_static_route` / `delete_static_route` **refuse** on an ARE firewall.
+  Deliberate: a legacy VR write there commits successfully and the route never
+  enters the RIB. Direct the operator to the PAN-OS UI/CLI.
+- If ARE's response can't be parsed, the tool returns an **error**, never an
+  empty list. Report it as "couldn't read the routing table", never as "no
+  routes configured".
+
+On a **Panorama** target the top-level field is omitted — the engine is a
+per-template setting, so the appliance has no single answer. Instead the
+template walk reads *both* trees and tags each row with its own
+`routing_engine`, because a managed estate can legitimately be mixed.
+
 ## Which route wins
 
 Use `mcp__panos__test_routing_fib_lookup` (dataplane, per firewall) to see the

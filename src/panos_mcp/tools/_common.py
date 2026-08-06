@@ -19,6 +19,7 @@ server constructs one and passes it to every ``register_*_tools(ctx)`` call.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import os
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
@@ -584,6 +585,142 @@ def reject_serial_log_query(client: Any, operation: str) -> dict[str, Any] | Non
     return None
 
 
+# ── Routing engine detection (legacy Virtual Router vs Advanced Routing) ────
+# PAN-OS 10.2 introduced the Advanced Routing Engine (ARE), an FRRouting-based
+# stack that replaces the legacy Virtual Router. It is enabled per-device and
+# changes both the config tree and the operational commands:
+#
+#   legacy                              ARE
+#   /network/virtual-router             /network/logical-router → /vrf
+#   <show><routing><route/>             <show><advanced-routing><route/>
+#
+# The failure this guards against is silent: the *legacy* op command still
+# parses on an ARE box, walks an empty legacy RIB, and returns a well-formed
+# empty response. No error, nothing to catch — so a route reader reports
+# "total: 0" on a firewall with a fully populated ARE RIB, and an LLM caller
+# concludes the box has no routes. Detection therefore cannot be
+# try-the-command-and-catch; it has to read config state up front.
+
+_ENGINE_CACHE_ATTR = "_panos_mcp_routing_engine"
+
+LOCALHOST_DEVICE_XPATH = "/config/devices/entry[@name='localhost.localdomain']"
+
+ROUTING_ENGINE_ADVANCED = "advanced"
+ROUTING_ENGINE_LEGACY = "legacy"
+ROUTING_ENGINE_UNKNOWN = "unknown"
+
+# PAN-OS spells the enable flag ``advance-routing`` in the config tree (not
+# ``advanced-routing``, as the feature name and op commands do). Rather than
+# bet on one spelling, we read the whole ``deviceconfig/setting`` subtree in a
+# single call and accept either key.
+_ENGINE_FLAG_KEYS = ("advance-routing", "advanced-routing")
+
+
+def _setting_flag_enabled(result: dict[str, Any]) -> bool:
+    """True when ``deviceconfig/setting`` carries a truthy advanced-routing flag."""
+    section = result.get("setting", result)
+    if not isinstance(section, dict):
+        return False
+    for key in _ENGINE_FLAG_KEYS:
+        value = section.get(key)
+        if isinstance(value, str) and value.strip().lower() in ("yes", "true", "1"):
+            return True
+    return False
+
+
+def _has_logical_router(result: dict[str, Any]) -> bool:
+    """True when ``network/logical-router`` contains at least one entry."""
+    section = result.get("logical-router", result)
+    if not isinstance(section, dict):
+        return False
+    entries = section.get("entry")
+    return bool(entries) if not isinstance(entries, dict) else True
+
+
+async def detect_routing_engine(client: Any, *, timeout: float) -> str:
+    """Return which routing stack a firewall target runs.
+
+    One of :data:`ROUTING_ENGINE_ADVANCED`, :data:`ROUTING_ENGINE_LEGACY`, or
+    :data:`ROUTING_ENGINE_UNKNOWN`.
+
+    Two independent signals, checked in order:
+
+    1. the ``deviceconfig/setting`` advanced-routing flag — authoritative even
+       on an ARE box with zero routers configured;
+    2. the presence of ``network/logical-router`` entries — corroborates, and
+       covers the case where the flag lives at a path this version doesn't use.
+
+    A Panorama target returns ``unknown``: the routing engine is a per-device
+    (and, in a Panorama-managed estate, per-template) setting, so there is no
+    single answer for the appliance. Callers should omit the field rather than
+    report a guess.
+
+    The result is memoized on the client object. ``get_client`` caches clients
+    for the process lifetime, so a session pays for detection once per device.
+    Detection failures fall back to ``legacy`` — the pre-existing behavior —
+    so a probe that can't complete never makes a working firewall worse.
+    """
+    from panos.errors import PanDeviceError
+    from panos.panorama import Panorama
+
+    if isinstance(client, Panorama):
+        return ROUTING_ENGINE_UNKNOWN
+
+    cached = getattr(client, _ENGINE_CACHE_ATTR, None)
+    if isinstance(cached, str):
+        return cached
+
+    probes: tuple[tuple[str, Callable[[dict[str, Any]], bool]], ...] = (
+        (f"{LOCALHOST_DEVICE_XPATH}/deviceconfig/setting", _setting_flag_enabled),
+        (f"{LOCALHOST_DEVICE_XPATH}/network/logical-router", _has_logical_router),
+    )
+
+    engine = ROUTING_ENGINE_LEGACY
+    for xpath, is_advanced in probes:
+        try:
+            result = await run_blocking_timeout(timeout, config_xpath_to_dict, client, xpath)
+        except (TimeoutError, PanDeviceError):
+            # "No such node" (subtree absent) and slow/unreachable devices both
+            # land here — neither is evidence of ARE, so try the next signal.
+            continue
+        except Exception:
+            continue
+        if is_advanced(result):
+            engine = ROUTING_ENGINE_ADVANCED
+            break
+
+    with contextlib.suppress(AttributeError):  # slotted/frozen test double
+        setattr(client, _ENGINE_CACHE_ATTR, engine)
+    return engine
+
+
+def reject_are_vr_write(engine: str, operation: str, name: str) -> dict[str, Any] | None:
+    """Block a legacy virtual-router write against a firewall running ARE.
+
+    The worst failure in this area is not a misleading read — it's a silent
+    no-op write. ``network/virtual-router`` is a valid subtree to *set* on an
+    ARE box: the candidate config accepts it and the commit succeeds, but ARE
+    never reads it, so the route simply never enters the RIB. The operator is
+    told the change landed and it did not. Refuse instead.
+
+    Returns ``None`` on legacy/unknown so existing behavior is untouched.
+    """
+    if engine != ROUTING_ENGINE_ADVANCED:
+        return None
+    return {
+        "success": False,
+        "operation": operation,
+        "name": name,
+        "error": (
+            f"'{operation}' writes to network/virtual-router, but this firewall runs "
+            "the Advanced Routing Engine, which ignores that subtree — the commit "
+            "would report success and the route would never enter the RIB. "
+            "VRF-aware static route writes (network/logical-router) are not yet "
+            "supported by this tool; make this change in the PAN-OS UI or CLI."
+        ),
+    }
+
+
 async def gather_scoped_objects(
     client: Any, cls: Any, *, timeout: float
 ) -> tuple[list[dict[str, Any]], list[str]]:
@@ -834,10 +971,15 @@ async def run_blocking_timeout[T](
 
 
 __all__ = [
+    "LOCALHOST_DEVICE_XPATH",
+    "ROUTING_ENGINE_ADVANCED",
+    "ROUTING_ENGINE_LEGACY",
+    "ROUTING_ENGINE_UNKNOWN",
     "AttrFilter",
     "ToolContext",
     "check_renamed_attr_keys",
     "config_xpath_to_dict",
+    "detect_routing_engine",
     "element_to_dict",
     "emit_preflight_audit",
     "enrich_security_rule_dicts",
@@ -849,6 +991,7 @@ __all__ = [
     "panos_object_dicts",
     "read_timeout",
     "redirect_panorama_to_sibling",
+    "reject_are_vr_write",
     "reject_panorama_target",
     "reject_serial_log_query",
     "run_blocking",
