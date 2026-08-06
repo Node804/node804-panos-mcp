@@ -16,6 +16,16 @@ from panos.panorama import Panorama
 from panos_mcp.tools.security import _profiles_xpath, _security_profile_objects
 
 
+class _Xapi:
+    """Stand-in for pan-os-python's xapi: ``show(xpath=...)`` returns a dict."""
+
+    def __init__(self, show_fn: Any) -> None:
+        self._show_fn = show_fn
+
+    def show(self, xpath: str | None = None, **_kw: Any) -> Any:
+        return self._show_fn(xpath)
+
+
 class _FakeFirewall:
     """Minimal stand-in exposing the bits the aggregator touches."""
 
@@ -23,12 +33,13 @@ class _FakeFirewall:
 
     def __init__(self, profiles: dict[str, Any]) -> None:
         self._profiles = profiles
+        self.xapi = _Xapi(self._show)
 
     def xpath_root(self, root: Any, vsys: str) -> str:
         return f"/config/devices/entry/vsys/entry[@name='{vsys}']"
 
-    def op(self, cmd: str, **kwargs: Any) -> dict[str, Any]:
-        # op_to_dict passes a dict straight through; mirror the <result> body.
+    def _show(self, xpath: str | None) -> dict[str, Any]:
+        # config_xpath_to_dict returns a dict response straight through.
         return {"profiles": self._profiles}
 
 
@@ -80,7 +91,7 @@ def test_empty_profiles_returns_empty_list() -> None:
 
 def test_missing_profiles_node_returns_empty_list() -> None:
     class NoProfiles(_FakeFirewall):
-        def op(self, cmd: str, **kwargs: Any) -> dict[str, Any]:
+        def _show(self, xpath: str | None) -> dict[str, Any]:
             return {}
 
     assert _security_profile_objects(NoProfiles({})) == []
@@ -98,7 +109,7 @@ def test_no_such_node_xapi_error_returns_empty_list() -> None:
     from pan.xapi import PanXapiError
 
     class NoSuchNode(_FakeFirewall):
-        def op(self, cmd: str, **kwargs: Any) -> dict[str, Any]:
+        def _show(self, xpath: str | None) -> dict[str, Any]:
             raise PanXapiError("No such node")
 
     assert _security_profile_objects(NoSuchNode({})) == []
@@ -113,7 +124,7 @@ def test_unrelated_xapi_error_still_propagates() -> None:
     from pan.xapi import PanXapiError
 
     class AuthFailure(_FakeFirewall):
-        def op(self, cmd: str, **kwargs: Any) -> dict[str, Any]:
+        def _show(self, xpath: str | None) -> dict[str, Any]:
             raise PanXapiError("Invalid credentials")
 
     with pytest.raises(PanXapiError):

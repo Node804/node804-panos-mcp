@@ -37,7 +37,8 @@ from ..responses.schemas import (
 from ..responses.shapers import apply_shape
 from ._common import (
     ToolContext,
-    panos_object_dicts,
+    gather_scoped_objects,
+    read_timeout,
 )
 from ._common import (
     wrap_panos_error as _wrap_panos_error,
@@ -81,19 +82,29 @@ def register_objects_tools(ctx: ToolContext) -> None:
         pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
-        """Address objects (IP/netmask, IP range, FQDN)."""
+        """Address objects (IP/netmask, IP range, FQDN).
+
+        Scope-aware: on a firewall this reads vsys1; on a Panorama it walks
+        ``shared`` plus every device group, tagging each object with its
+        ``scope`` (so device-group objects aren't silently omitted).
+        """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        items = AddressObject.refreshall(client)
-        return apply_shape(
-            panos_object_dicts(items),
+        rows, timed_out = await gather_scoped_objects(
+            client, AddressObject, timeout=read_timeout()
+        )
+        out = apply_shape(
+            rows,
             shape=SHAPE_ADDRESS_OBJECT,
             verbose=verbose,
             fields=fields,
             pagination=pagination,
             pattern=pattern,
         )
+        if timed_out:
+            out["timed_out"] = timed_out
+        return out
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
     async def get_address_groups(
@@ -103,19 +114,28 @@ def register_objects_tools(ctx: ToolContext) -> None:
         pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
-        """Address groups (static and dynamic)."""
+        """Address groups (static and dynamic).
+
+        Scope-aware on Panorama (shared + every device group, tagged by
+        ``scope``); reads vsys1 on a firewall.
+        """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        items = AddressGroup.refreshall(client)
-        return apply_shape(
-            panos_object_dicts(items),
+        rows, timed_out = await gather_scoped_objects(
+            client, AddressGroup, timeout=read_timeout()
+        )
+        out = apply_shape(
+            rows,
             shape=SHAPE_ADDRESS_GROUP,
             verbose=verbose,
             fields=fields,
             pagination=pagination,
             pattern=pattern,
         )
+        if timed_out:
+            out["timed_out"] = timed_out
+        return out
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
     async def get_service_objects(
@@ -125,19 +145,28 @@ def register_objects_tools(ctx: ToolContext) -> None:
         pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
-        """TCP/UDP service objects (port and protocol)."""
+        """TCP/UDP service objects (port and protocol).
+
+        Scope-aware on Panorama (shared + every device group, tagged by
+        ``scope``); reads vsys1 on a firewall.
+        """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        items = ServiceObject.refreshall(client)
-        return apply_shape(
-            panos_object_dicts(items),
+        rows, timed_out = await gather_scoped_objects(
+            client, ServiceObject, timeout=read_timeout()
+        )
+        out = apply_shape(
+            rows,
             shape=SHAPE_SERVICE_OBJECT,
             verbose=verbose,
             fields=fields,
             pagination=pagination,
             pattern=pattern,
         )
+        if timed_out:
+            out["timed_out"] = timed_out
+        return out
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
     async def get_service_groups(
@@ -147,19 +176,28 @@ def register_objects_tools(ctx: ToolContext) -> None:
         pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
-        """Service groups containing multiple service objects."""
+        """Service groups containing multiple service objects.
+
+        Scope-aware on Panorama (shared + every device group, tagged by
+        ``scope``); reads vsys1 on a firewall.
+        """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        items = ServiceGroup.refreshall(client)
-        return apply_shape(
-            panos_object_dicts(items),
+        rows, timed_out = await gather_scoped_objects(
+            client, ServiceGroup, timeout=read_timeout()
+        )
+        out = apply_shape(
+            rows,
             shape=SHAPE_SERVICE_GROUP,
             verbose=verbose,
             fields=fields,
             pagination=pagination,
             pattern=pattern,
         )
+        if timed_out:
+            out["timed_out"] = timed_out
+        return out
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
     async def get_application_filters(
@@ -169,19 +207,28 @@ def register_objects_tools(ctx: ToolContext) -> None:
         pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
-        """Application filters used in security policy."""
+        """Application filters used in security policy.
+
+        Scope-aware on Panorama (shared + every device group, tagged by
+        ``scope``); reads vsys1 on a firewall.
+        """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        items = ApplicationFilter.refreshall(client)
-        return apply_shape(
-            panos_object_dicts(items),
+        rows, timed_out = await gather_scoped_objects(
+            client, ApplicationFilter, timeout=read_timeout()
+        )
+        out = apply_shape(
+            rows,
             shape=SHAPE_APPLICATION_FILTER,
             verbose=verbose,
             fields=fields,
             pagination=pagination,
             pattern=pattern,
         )
+        if timed_out:
+            out["timed_out"] = timed_out
+        return out
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
     async def get_tags(
@@ -191,19 +238,26 @@ def register_objects_tools(ctx: ToolContext) -> None:
         pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
-        """Tags used to label rules and objects."""
+        """Tags used to label rules and objects.
+
+        Scope-aware on Panorama (shared + every device group, tagged by
+        ``scope``); reads vsys1 on a firewall.
+        """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        items = Tag.refreshall(client)
-        return apply_shape(
-            panos_object_dicts(items),
+        rows, timed_out = await gather_scoped_objects(client, Tag, timeout=read_timeout())
+        out = apply_shape(
+            rows,
             shape=SHAPE_TAG,
             verbose=verbose,
             fields=fields,
             pagination=pagination,
             pattern=pattern,
         )
+        if timed_out:
+            out["timed_out"] = timed_out
+        return out
 
     # ── Address objects: CRUD (Mode.STANDARD) ───────────────────────────────
 

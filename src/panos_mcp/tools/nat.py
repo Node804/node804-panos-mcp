@@ -14,7 +14,13 @@ from panos.policies import NatRule, Rulebase
 
 from ..responses.schemas import SHAPE_NAT_RULE
 from ..responses.shapers import apply_shape
-from ._common import ToolContext, panos_object_dicts, wrap_panos_error, write_success
+from ._common import (
+    ToolContext,
+    panos_object_dicts,
+    redirect_panorama_to_sibling,
+    wrap_panos_error,
+    write_success,
+)
 from ._schemas import MemberList, MemberValue, PanosDescription, PanosName
 
 SnatType = Literal["dynamic-ip-and-port", "dynamic-ip", "static-ip"]
@@ -32,10 +38,24 @@ def register_nat_tools(ctx: ToolContext) -> None:
         pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
-        """NAT policy rules (source NAT, destination NAT, bidirectional)."""
+        """NAT policy rules (source NAT, destination NAT, bidirectional), firewall-scoped.
+
+        Reads the firewall's local NAT rulebase. On a Panorama target it returns
+        an error pointing to the device-group tools rather than an empty list.
+        """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
+        guard = redirect_panorama_to_sibling(
+            client,
+            "get_nat_rules",
+            use=(
+                "panorama_get_device_group_nat_rules (or panorama_get_pre_rules / "
+                "panorama_get_post_rules with rule_type='nat'), per device group"
+            ),
+        )
+        if guard is not None:
+            return guard
         rulebase = Rulebase()
         client.add(rulebase)
         rules = NatRule.refreshall(rulebase)

@@ -11,7 +11,11 @@ from typing import Any
 
 from node804_mcp_toolkit import AuditSink, Mode, describe_tls
 
-from ..config.firewalls import is_multi_firewall, list_firewall_entries
+from ..config.firewalls import (
+    is_multi_firewall,
+    list_firewall_entries,
+    serial_connection_enabled,
+)
 from ._common import ToolContext
 
 
@@ -45,6 +49,7 @@ def register_status_tools(ctx: ToolContext, *, audit_sink: AuditSink) -> None:
             "firewalls": {
                 "configured": list_firewall_entries(),
                 "multi_firewall": is_multi_firewall(),
+                "serial_connection": serial_connection_enabled(),
             },
         }
 

@@ -112,7 +112,9 @@ SHAPE_INTERFACE = LeanShape(
 )
 
 SHAPE_ZONE = LeanShape(
-    default_fields=("name", "network", "enable_user_identification"),
+    # ``template`` is populated only on Panorama (the source template name); on
+    # a firewall it's absent, so single-scope responses are unchanged.
+    default_fields=("name", "template", "network", "enable_user_identification"),
 )
 
 SHAPE_ROUTE = LeanShape(
@@ -126,7 +128,7 @@ SHAPE_ARP = LeanShape(
 )
 
 SHAPE_VLAN = LeanShape(
-    default_fields=("name", "interface", "virtual-interface"),
+    default_fields=("name", "template", "interface", "virtual-interface"),
 )
 
 SHAPE_DHCP_LEASE = LeanShape(
@@ -135,11 +137,11 @@ SHAPE_DHCP_LEASE = LeanShape(
 )
 
 SHAPE_DNS_PROXY = LeanShape(
-    default_fields=("name", "interface", "primary", "secondary", "domain"),
+    default_fields=("name", "template", "interface", "primary", "secondary", "domain"),
 )
 
 SHAPE_STATIC_ROUTE = LeanShape(
-    default_fields=("name", "destination", "nexthop", "interface", "metric"),
+    default_fields=("name", "template", "destination", "nexthop", "interface", "metric"),
 )
 
 
@@ -172,12 +174,15 @@ derived from — ``group``, the individual profile fields (``virus``,
 of ``.about()``."""
 
 SHAPE_PROFILE = LeanShape(
-    default_fields=("name", "description"),
+    # ``scope`` is populated only on Panorama (shared / device-group name); on a
+    # firewall the field is absent, so single-scope responses are unchanged.
+    default_fields=("name", "scope", "description"),
 )
 
 SHAPE_PROFILE_GROUP = LeanShape(
     default_fields=(
         "name",
+        "scope",
         "virus",
         "spyware",
         "vulnerability",
@@ -211,27 +216,27 @@ SHAPE_QOS_RULE = LeanShape(
 # --- Objects -------------------------------------------------------------
 
 SHAPE_ADDRESS_OBJECT = LeanShape(
-    default_fields=("name", "ip_netmask", "ip_range", "fqdn", "description", "tag"),
+    default_fields=("name", "scope", "ip_netmask", "ip_range", "fqdn", "description", "tag"),
 )
 
 SHAPE_ADDRESS_GROUP = LeanShape(
-    default_fields=("name", "static_value", "dynamic_value", "description", "tag"),
+    default_fields=("name", "scope", "static_value", "dynamic_value", "description", "tag"),
 )
 
 SHAPE_SERVICE_OBJECT = LeanShape(
-    default_fields=("name", "protocol", "source_port", "destination_port", "description"),
+    default_fields=("name", "scope", "protocol", "source_port", "destination_port", "description"),
 )
 
 SHAPE_SERVICE_GROUP = LeanShape(
-    default_fields=("name", "value", "tag"),
+    default_fields=("name", "scope", "value", "tag"),
 )
 
 SHAPE_APPLICATION_FILTER = LeanShape(
-    default_fields=("name", "category", "subcategory", "technology", "risk", "tag"),
+    default_fields=("name", "scope", "category", "subcategory", "technology", "risk", "tag"),
 )
 
 SHAPE_TAG = LeanShape(
-    default_fields=("name", "color", "comments"),
+    default_fields=("name", "scope", "color", "comments"),
 )
 
 
@@ -266,7 +271,7 @@ SHAPE_USERID_GROUP = LeanShape(
 )
 
 SHAPE_USERID_AGENT = LeanShape(
-    default_fields=("name", "host", "port", "enabled", "ldap_proxy"),
+    default_fields=("name", "template", "host", "port", "enabled", "ldap_proxy"),
 )
 
 
@@ -305,7 +310,14 @@ SHAPE_GP_USER = LeanShape(
 )
 
 SHAPE_GP_CONFIG = LeanShape(
-    default_fields=("name", "portal_address", "gateway_address", "tunnel_interface"),
+    default_fields=(
+        "name",
+        "template",
+        "kind",
+        "portal_address",
+        "gateway_address",
+        "tunnel_interface",
+    ),
 )
 
 
@@ -413,7 +425,10 @@ SHAPE_DECRYPTION_RULE = LeanShape(
 )
 
 SHAPE_DECRYPTION_PROFILE = LeanShape(
-    default_fields=("name", "description"),
+    # ``scope`` carries the source location ("shared", a device-group name, or
+    # "vsys1" on a firewall) so a Panorama caller can tell where each profile
+    # lives — kept in the lean default since it's identity-relevant, not noise.
+    default_fields=("name", "scope", "description"),
 )
 
 

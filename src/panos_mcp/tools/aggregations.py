@@ -47,7 +47,16 @@ from pydantic import Field
 from .._redact import redact_exception
 from ..responses.schemas import SHAPE_RULE_HIT_COUNT
 from ..responses.shapers import apply_shape
-from ._common import ToolContext, op_to_dict, rule_has_inspection
+from ._common import (
+    ToolContext,
+    gather_scoped_objects,
+    op_to_dict,
+    read_timeout,
+    redirect_panorama_to_sibling,
+    reject_panorama_target,
+    rule_has_inspection,
+    run_blocking_timeout,
+)
 
 HitCountRuleBase = Annotated[
     Literal["security", "nat", "pbf", "decryption", "application-override"],
@@ -328,10 +337,21 @@ def register_aggregation_tools(ctx: ToolContext) -> None:
         to know "how many allow/deny rules are there". Returns the total,
         a per-action breakdown, and the disabled count — typically <200
         tokens vs ~10K for the full rule dump.
+
+        Firewall-scoped (reads the local rulebase). On a Panorama target it
+        returns an error pointing to the device-group walker rather than a
+        misleading all-zero count.
         """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
+        guard = redirect_panorama_to_sibling(
+            client,
+            "count_rules_by_action",
+            use="panorama_count_rules_per_device_group (counts per device group)",
+        )
+        if guard is not None:
+            return guard
         rulebase = Rulebase()
         client.add(rulebase)
         rules = _rules_to_dicts(SecurityRule.refreshall(rulebase))
@@ -360,10 +380,21 @@ def register_aggregation_tools(ctx: ToolContext) -> None:
         to scope the search.
 
         Match is a case-insensitive substring on the rule's ``name`` field.
+
+        Firewall-scoped (searches the local rulebases). On a Panorama target it
+        returns an error pointing to the device-group walker rather than no
+        matches.
         """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
+        guard = redirect_panorama_to_sibling(
+            client,
+            "find_rule_by_name",
+            use="panorama_walk_all_rules with a pattern (searches every device group)",
+        )
+        if guard is not None:
+            return guard
 
         types_to_search = (
             set(rule_types) if rule_types else {"security", "nat", "pbf", "decryption"}
@@ -411,20 +442,27 @@ def register_aggregation_tools(ctx: ToolContext) -> None:
         and ``ip-wildcard`` types. Otherwise treats ``query`` as a
         case-insensitive name substring.
 
-        Each match is tagged with ``match_type``: ``"ip_membership"`` or
-        ``"name_substring"``.
+        Each match carries ``match_type`` (``"ip_membership"`` / ``"name_substring"``)
+        and, on a Panorama, a ``scope`` (``"shared"`` or the device-group name).
+        Scope-aware: searches vsys1 on a firewall, and ``shared`` + every device
+        group on a Panorama (so a match in a device group isn't missed).
         """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        objects = _rules_to_dicts(AddressObject.refreshall(client))
+        objects, timed_out = await gather_scoped_objects(
+            client, AddressObject, timeout=read_timeout()
+        )
         matches, strategy = _filter_address_objects_by_query(objects, query)
-        return {
+        out: dict[str, Any] = {
             "query": query,
             "strategy": strategy,
             "count": len(matches),
             "matches": matches,
         }
+        if timed_out:
+            out["timed_out"] = timed_out
+        return out
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
     async def summarize_security_policy(
@@ -440,10 +478,21 @@ def register_aggregation_tools(ctx: ToolContext) -> None:
 
         Replaces a 10K+-token full-rulebase dump with a single ~500-token
         snapshot.
+
+        Firewall-scoped (reads the local rulebase). On a Panorama target it
+        returns an error pointing to ``panorama_summarize_security_policy``
+        rather than a misleading empty summary.
         """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
+        guard = redirect_panorama_to_sibling(
+            client,
+            "summarize_security_policy",
+            use="panorama_summarize_security_policy (pass the device_group)",
+        )
+        if guard is not None:
+            return guard
         rulebase = Rulebase()
         client.add(rulebase)
         rules = _rules_to_dicts(SecurityRule.refreshall(rulebase))
@@ -496,8 +545,20 @@ def register_aggregation_tools(ctx: ToolContext) -> None:
         # module was imported via two different paths). If ``client`` truly
         # isn't a Panorama, ``DeviceGroup.refreshall`` will raise and the empty
         # result below surfaces a clean "device group not found" instead.
+        timeout_s = read_timeout()
+        timed_out: list[str] = []
         try:
-            device_groups = DeviceGroup.refreshall(client)
+            device_groups = await run_blocking_timeout(
+                timeout_s, DeviceGroup.refreshall, client
+            )
+        except TimeoutError:
+            return {
+                "error": (
+                    f"panorama_summarize_security_policy timed out after {timeout_s:g}s "
+                    "enumerating device groups; retry or check Panorama reachability."
+                ),
+                "device_group": device_group,
+            }
         except Exception as exc:
             return {
                 "error": (
@@ -513,14 +574,21 @@ def register_aggregation_tools(ctx: ToolContext) -> None:
                 "device_group": device_group,
             }
 
-        def _rules(parent: Any, rulebase_cls: Any) -> list[dict[str, Any]]:
+        async def _rules(parent: Any, rulebase_cls: Any, label: str) -> list[dict[str, Any]]:
             # Reuses pan-os-python's parent/child wiring: attaching a fresh
             # PreRulebase/PostRulebase to the parent gives the correct xpath
-            # for either the device-group or shared scope.
+            # for either the device-group or shared scope. The blocking
+            # refreshall runs off the loop under the per-call timeout so one
+            # stuck rulebase can't stall (or hang) the whole report.
             rb = rulebase_cls()
             parent.add(rb)
             try:
-                return _rules_to_dicts(SecurityRule.refreshall(rb))
+                rules = await run_blocking_timeout(timeout_s, SecurityRule.refreshall, rb)
+                return _rules_to_dicts(rules)
+            except TimeoutError:
+                # Skip this rulebase and note it — partial summary beats a hang.
+                timed_out.append(label)
+                return []
             except Exception:
                 # Don't let one rulebase failure (e.g. empty/missing) blank
                 # the whole report — record an empty list and continue.
@@ -533,7 +601,7 @@ def register_aggregation_tools(ctx: ToolContext) -> None:
             ("pre", dg, PreRulebase),
             ("post", dg, PostRulebase),
         ):
-            rules = _rules(parent, cls)
+            rules = await _rules(parent, cls, label)
             per_rulebase[label] = _summarize_rules(rules)
             combined.extend(rules)
 
@@ -542,16 +610,19 @@ def register_aggregation_tools(ctx: ToolContext) -> None:
                 ("shared_pre", PreRulebase),
                 ("shared_post", PostRulebase),
             ):
-                rules = _rules(client, cls)
+                rules = await _rules(client, cls, label)
                 per_rulebase[label] = _summarize_rules(rules)
                 combined.extend(rules)
 
-        return {
+        result: dict[str, Any] = {
             "device_group": device_group,
             "include_shared": include_shared,
             "summary": _summarize_rules(combined),
             "per_rulebase": per_rulebase,
         }
+        if timed_out:
+            result["timed_out"] = timed_out
+        return result
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
     async def count_objects_by_type(
@@ -562,12 +633,24 @@ def register_aggregation_tools(ctx: ToolContext) -> None:
         Quick "what's in this firewall" snapshot. For address and service
         objects, breaks down by the underlying type (ip-netmask vs fqdn,
         tcp vs udp).
+
+        Scope-aware: on a firewall this counts vsys1; on a Panorama it counts
+        across ``shared`` and every device group (so the inventory isn't just
+        the shared subset). A device group whose read times out is listed in
+        ``timed_out`` and excluded from the totals.
         """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
+        timeout_s = read_timeout()
+        timed_out: set[str] = set()
 
-        addrs = _rules_to_dicts(AddressObject.refreshall(client))
+        async def _gather(cls: Any) -> list[dict[str, Any]]:
+            rows, to = await gather_scoped_objects(client, cls, timeout=timeout_s)
+            timed_out.update(to)
+            return rows
+
+        addrs = await _gather(AddressObject)
         addr_types: dict[str, int] = {}
         for a in addrs:
             for key in ("ip_netmask", "ip_range", "fqdn", "ip_wildcard"):
@@ -575,21 +658,21 @@ def register_aggregation_tools(ctx: ToolContext) -> None:
                     addr_types[key.replace("_", "-")] = addr_types.get(key.replace("_", "-"), 0) + 1
                     break
 
-        groups = _rules_to_dicts(AddressGroup.refreshall(client))
+        groups = await _gather(AddressGroup)
         static_groups = sum(1 for g in groups if g.get("static_value"))
         dynamic_groups = sum(1 for g in groups if g.get("dynamic_value"))
 
-        svc = _rules_to_dicts(ServiceObject.refreshall(client))
+        svc = await _gather(ServiceObject)
         svc_by_proto: dict[str, int] = {}
         for s in svc:
             proto = s.get("protocol") or "unknown"
             svc_by_proto[proto] = svc_by_proto.get(proto, 0) + 1
 
-        svc_groups = ServiceGroup.refreshall(client)
-        tags = Tag.refreshall(client)
-        app_filters = ApplicationFilter.refreshall(client)
+        svc_groups = await _gather(ServiceGroup)
+        tags = await _gather(Tag)
+        app_filters = await _gather(ApplicationFilter)
 
-        return {
+        out: dict[str, Any] = {
             "address_objects": {"total": len(addrs), "by_type": addr_types},
             "address_groups": {
                 "total": len(groups),
@@ -601,6 +684,9 @@ def register_aggregation_tools(ctx: ToolContext) -> None:
             "tags": len(tags),
             "application_filters": len(app_filters),
         }
+        if timed_out:
+            out["timed_out"] = sorted(timed_out)
+        return out
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
     async def get_rule_hit_counts(
@@ -624,6 +710,9 @@ def register_aggregation_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
+        guard = reject_panorama_target(client, "get_rule_hit_counts")
+        if guard is not None:
+            return guard
         try:
             result = op_to_dict(client, _build_hit_count_cmd(vsys, rule_base))
         except PanDeviceError as exc:
@@ -665,6 +754,16 @@ def register_aggregation_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
+        guard = reject_panorama_target(client, "unused_rules")
+        if guard is not None:
+            # Re-shape into this tool's native envelope (it doesn't use the
+            # items/total/count list shape).
+            return {
+                "error": guard["error"],
+                "unused": [],
+                "total_rules": 0,
+                "unused_count": 0,
+            }
         try:
             result = op_to_dict(client, _build_hit_count_cmd(vsys, "security"))
         except PanDeviceError as exc:

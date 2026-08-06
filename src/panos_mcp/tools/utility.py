@@ -27,7 +27,7 @@ from ..responses.schemas import SHAPE_CONFIG_XPATH
 from ..responses.shapers import shape_single
 from ._common import (
     ToolContext,
-    build_running_config_xpath_cmd,
+    config_xpath_to_dict,
     element_to_dict,
     emit_preflight_audit,
     op_to_dict,
@@ -183,7 +183,7 @@ def register_utility_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        result = op_to_dict(client, build_running_config_xpath_cmd(xpath))
+        result = config_xpath_to_dict(client, xpath)
         return shape_single(result, shape=SHAPE_CONFIG_XPATH, verbose=verbose, fields=fields)
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)

@@ -19,6 +19,7 @@ server constructs one and passes it to every ``register_*_tools(ctx)`` call.
 from __future__ import annotations
 
 import asyncio
+import os
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import UTC
@@ -208,6 +209,34 @@ def op_to_dict(client: Any, cmd: str, *, cmd_xml: bool = False) -> dict[str, Any
     if isinstance(response, Element):
         result = response.find("./result")
         return element_to_dict(result)
+    return {}
+
+
+def config_xpath_to_dict(client: Any, xpath: str) -> dict[str, Any]:
+    """Read a running-config subtree by XPath and return ``<result>`` as a dict.
+
+    Uses the dedicated config xpath API (``xapi.show(xpath=...)``) rather than
+    wrapping the xpath in a ``<show><config><running><xpath>`` **op** command.
+    The op form is CLI-tokenized by PAN-OS, so a predicate value containing a
+    space — e.g. ``entry[@name='Lafayette Plant']`` — is truncated at the space
+    (``entry[@name='Lafayette``) and the device returns "No such node". The
+    xpath API passes the value as a structured parameter (the same path
+    ``refreshall`` uses), so names with spaces resolve correctly.
+
+    Mirrors :func:`op_to_dict`'s contract: returns the result subtree as a dict
+    (``{}`` when empty), and lets pan-os-python raise ``PanDeviceError`` on a
+    real failure. Tests can mock ``client.xapi.show`` to return a dict directly.
+    """
+    response = client.xapi.show(xpath=xpath)
+    # pan.xapi.show returns None and stashes the parsed <response> on
+    # ``element_root``; the test double returns a dict directly.
+    if isinstance(response, dict):
+        return response
+    root = getattr(client.xapi, "element_root", None)
+    if isinstance(root, Element):
+        return element_to_dict(root.find("./result"))
+    if isinstance(response, Element):
+        return element_to_dict(response.find("./result") or response)
     return {}
 
 
@@ -473,6 +502,273 @@ def wrap_panos_error(err: Exception, operation: str, name: str) -> dict[str, Any
     }
 
 
+def reject_panorama_target(client: Any, operation: str) -> dict[str, Any] | None:
+    """Error envelope when a per-firewall runtime tool is pointed at Panorama.
+
+    The dataplane/runtime read tools (interfaces, routing, ARP, DHCP leases,
+    IPSec tunnels, GlobalProtect users, User-ID mappings/groups, WildFire
+    status, rule hit counts) have no Panorama equivalent — Panorama has no
+    data plane, so these operational commands return an empty or error
+    response that reads, misleadingly, as "nothing configured". This guard
+    turns that into a clean, actionable error pointing the caller at a managed
+    firewall. Returns ``None`` when ``client`` is a Firewall so the caller
+    proceeds normally.
+
+    The shape mirrors the list-response envelope (``items``/``total``/
+    ``count``) the read tools return on success, with an ``error`` describing
+    the redirect — so a list-shaped tool stays schema-consistent whether the
+    call succeeds or is rejected here. Tools with a different response
+    envelope (single-record or custom) should write their own guard.
+
+    Note ``show system resources`` is deliberately NOT routed through this
+    guard: Panorama has its own CPU/memory and answers that command, so
+    ``get_system_resources`` works against either target.
+    """
+    from panos.panorama import Panorama
+
+    if isinstance(client, Panorama):
+        return {
+            "error": (
+                f"'{operation}' reads per-firewall runtime/dataplane state, which a "
+                "Panorama appliance does not have. Target a managed firewall with the "
+                "'firewall' parameter (use list_firewalls or "
+                "panorama_get_managed_devices to find one)."
+            ),
+            "items": [],
+            "total": 0,
+            "count": 0,
+        }
+    return None
+
+
+def reject_serial_log_query(client: Any, operation: str) -> dict[str, Any] | None:
+    """Error envelope when a log query is pointed at a serial-through-Panorama target.
+
+    PAN-OS log retrieval (``type=log``) does **not** honor the API ``target``
+    serial-redirect the way config and operational commands do. When a log
+    query is issued against a firewall reached *through* Panorama by serial,
+    Panorama answers it from its own **aggregated log database** instead of the
+    named device's local logs — so the caller silently gets fleet-wide logs
+    (and IPs masked per the *Panorama* admin role), not the device it asked
+    for. That reads as a valid, device-scoped result while being neither.
+
+    This guard detects the serial-proxy client (a ``Firewall`` whose parent is
+    a ``Panorama`` — the shape ``_proxied_firewall`` builds) and returns a
+    clean, actionable error. Returns ``None`` for a directly-connected
+    ``Firewall`` (its own local logs) and for a ``Panorama`` target (querying
+    Panorama's aggregated logs directly is legitimate and honest about what it
+    returns), so both proceed normally.
+
+    Shape mirrors the log-response envelope (``items``/``total``/``count``) so
+    the tool stays schema-consistent whether the call succeeds or is rejected.
+    """
+    from panos.firewall import Firewall
+    from panos.panorama import Panorama
+
+    if isinstance(client, Firewall) and isinstance(getattr(client, "parent", None), Panorama):
+        return {
+            "error": (
+                f"'{operation}' was pointed at a firewall reached through Panorama by "
+                "serial redirect, but PAN-OS log queries (type=log) ignore the serial "
+                "target — Panorama answers from its aggregated log database, so you would "
+                "get fleet-wide logs (masked by the Panorama admin role), not this "
+                "device's own logs. To read a specific firewall's local logs, configure a "
+                "direct connection to it (a firewalls.json entry with its host + API key) "
+                "instead of reaching it by serial through Panorama. To query Panorama's "
+                "aggregated logs on purpose, target the Panorama directly."
+            ),
+            "items": [],
+            "total": 0,
+            "count": 0,
+        }
+    return None
+
+
+async def gather_scoped_objects(
+    client: Any, cls: Any, *, timeout: float
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Read a modeled object type across every scope of the target, tagged by scope.
+
+    - **Firewall**: a single ``refreshall(client)`` (vsys). Rows are NOT
+      scope-tagged, so existing single-scope responses are unchanged.
+    - **Panorama**: ``shared`` (refreshall against the Panorama) plus **every
+      device group**, with each row tagged by a ``scope`` field (``"shared"``
+      or the device-group name). The previous ``refreshall(client)`` read only
+      shared and silently omitted every device group.
+
+    Each per-scope read is offloaded and bounded by ``timeout``; a scope that
+    times out is skipped and its label collected into ``timed_out`` so one
+    stuck device group can neither hang the call nor blank the result. Returns
+    ``(rows, timed_out)`` where ``rows`` are ``.about()`` dicts.
+    """
+    from panos.panorama import DeviceGroup, Panorama
+
+    if not isinstance(client, Panorama):
+        objs = await run_blocking_timeout(timeout, cls.refreshall, client)
+        return [o.about() for o in objs], []
+
+    rows: list[dict[str, Any]] = []
+    timed_out: list[str] = []
+    try:
+        dgs = await run_blocking_timeout(timeout, DeviceGroup.refreshall, client)
+    except TimeoutError:
+        return [], ["<device-group enumeration>"]
+    scopes: list[tuple[str, Any]] = [("shared", client)]
+    scopes.extend((dg.name, dg) for dg in dgs)
+    for label, parent in scopes:
+        try:
+            objs = await run_blocking_timeout(timeout, cls.refreshall, parent)
+        except TimeoutError:
+            timed_out.append(label)
+            continue
+        except Exception:
+            # The object type isn't valid in this scope — skip rather than fail
+            # the whole walk.
+            continue
+        for o in objs:
+            d = o.about()
+            d["scope"] = label
+            rows.append(d)
+    return rows, timed_out
+
+
+async def gather_template_objects(
+    client: Any, refresh_one: Callable[[Any], list[Any]], *, timeout: float
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Read template-scoped config across every Panorama template, tagged by source.
+
+    Network/device config (zones, VLANs, virtual routers, …) lives in
+    **templates** on a Panorama, not in a firewall-local tree — so the
+    firewall-scoped readers see nothing there. This walks every ``Template``
+    and reads via the supplied ``refresh_one(parent)`` callback (which knows how
+    to fetch its object type from a given parent), tagging each row with the
+    source ``template``.
+
+    - **Firewall**: ``refresh_one(client)`` once; rows are NOT tagged.
+    - **Panorama**: ``refresh_one(template)`` for every template, each row
+      tagged with a ``template`` field.
+
+    Template *stacks* aren't walked separately — their config comes from the
+    member templates, which are walked here. Each read is offloaded and bounded;
+    a template that times out is skipped and recorded in ``timed_out``. Returns
+    ``(rows, timed_out)`` of ``.about()`` dicts.
+    """
+    from panos.panorama import Panorama, Template
+
+    if not isinstance(client, Panorama):
+        objs = await run_blocking_timeout(timeout, refresh_one, client)
+        return [o.about() for o in objs], []
+
+    rows: list[dict[str, Any]] = []
+    timed_out: list[str] = []
+    try:
+        templates = await run_blocking_timeout(timeout, Template.refreshall, client)
+    except TimeoutError:
+        return [], ["<template enumeration>"]
+    for tmpl in templates:
+        try:
+            objs = await run_blocking_timeout(timeout, refresh_one, tmpl)
+        except TimeoutError:
+            timed_out.append(tmpl.name)
+            continue
+        except Exception:
+            continue
+        for o in objs:
+            d = o.about()
+            d["template"] = tmpl.name
+            rows.append(d)
+    return rows, timed_out
+
+
+async def gather_template_config(
+    client: Any, sub_xpath: str, *, timeout: float
+) -> tuple[list[tuple[str | None, dict[str, Any]]], list[str]]:
+    """Read an xpath config subtree across templates (Panorama) or locally (firewall).
+
+    For config types pan-os-python doesn't model (DNS proxy, GlobalProtect,
+    User-ID), reading must go through raw xpath. ``sub_xpath`` is the path
+    *below* the device node, e.g. ``"network/dns-proxy"`` or
+    ``"vsys/entry[@name='vsys1']/global-protect"``.
+
+    - **Firewall**: one fetch against the local device tree; returns
+      ``[(None, result)]``.
+    - **Panorama**: one fetch per template against that template's config tree;
+      returns ``[(template_name, result), ...]`` so the caller can tag entries
+      by source template.
+
+    Each fetch is offloaded and bounded by ``timeout``; a template that times
+    out is recorded in ``timed_out``, and PAN-OS "No such node" (subtree absent
+    in that scope) is skipped. Returns ``(results, timed_out)``.
+    """
+    from panos.errors import PanDeviceError
+    from panos.panorama import Panorama, Template
+
+    device = "/config/devices/entry[@name='localhost.localdomain']"
+
+    async def _fetch(xpath: str) -> dict[str, Any]:
+        return await run_blocking_timeout(timeout, config_xpath_to_dict, client, xpath)
+
+    if not isinstance(client, Panorama):
+        try:
+            result = await _fetch(f"{device}/{sub_xpath}")
+        except PanDeviceError as exc:
+            if "no such node" in str(exc).lower():
+                return [(None, {})], []
+            raise
+        return [(None, result)], []
+
+    results: list[tuple[str | None, dict[str, Any]]] = []
+    timed_out: list[str] = []
+    try:
+        templates = await run_blocking_timeout(timeout, Template.refreshall, client)
+    except TimeoutError:
+        return [], ["<template enumeration>"]
+    for tmpl in templates:
+        xpath = f"{device}/template/entry[@name='{tmpl.name}']{device}/{sub_xpath}"
+        try:
+            result = await _fetch(xpath)
+        except TimeoutError:
+            timed_out.append(tmpl.name)
+            continue
+        except PanDeviceError as exc:
+            if "no such node" in str(exc).lower():
+                continue
+            continue
+        results.append((tmpl.name, result))
+    return results, timed_out
+
+
+def redirect_panorama_to_sibling(client: Any, operation: str, *, use: str) -> dict[str, Any] | None:
+    """Steer a firewall-scoped *config* read to its Panorama sibling.
+
+    Distinct from :func:`reject_panorama_target` (which guards dataplane/runtime
+    tools that have no Panorama equivalent). The tools this guards *do* have a
+    Panorama equivalent, but the firewall-scoped version reads the **local
+    rulebase**, which is empty on a Panorama target — so it returns a
+    misleading "no rules" result. For an LLM that's worse than an error: it
+    reads as "nothing configured" and produces a confidently wrong audit (e.g.
+    "no SSL decryption in place"). This returns a clean error that *names the
+    correct tool* so the agent re-issues against the device-group-aware path.
+    Returns ``None`` on a Firewall so the call proceeds normally.
+
+    ``use`` is the human-facing instruction naming the sibling tool(s).
+    """
+    from panos.panorama import Panorama
+
+    if isinstance(client, Panorama):
+        return {
+            "error": (
+                f"'{operation}' is firewall-scoped — it reads the firewall-local "
+                "rulebase, which is empty on a Panorama target, so it would "
+                f"misleadingly report no rules. On a Panorama, use {use}."
+            ),
+            "items": [],
+            "total": 0,
+            "count": 0,
+        }
+    return None
+
+
 async def run_blocking[T](callable_fn: Callable[..., T], *args: Any, **kwargs: Any) -> T:
     """Run a synchronous pan-os-python call in a thread executor.
 
@@ -490,17 +786,73 @@ async def run_blocking[T](callable_fn: Callable[..., T], *args: Any, **kwargs: A
     return await loop.run_in_executor(None, lambda: callable_fn(*args, **kwargs))
 
 
+# Per-call bound for the multi-call read walkers (rule walker, count, policy
+# summary). A single rulebase/object refreshall should return in well under
+# this; one that hasn't is treated as a stuck sub-query and skipped rather than
+# stalling the whole walk. Kept below the client-level request timeout so an
+# abandoned worker thread is reclaimed soon after. Override via
+# ``PANOS_READ_TIMEOUT`` (seconds).
+_DEFAULT_READ_TIMEOUT = 30.0
+
+
+def read_timeout() -> float:
+    """Per-call read timeout in seconds for the bounded read walkers."""
+    raw = os.environ.get("PANOS_READ_TIMEOUT")
+    if raw:
+        try:
+            value = float(raw)
+            if value > 0:
+                return value
+        except ValueError:
+            pass
+    return _DEFAULT_READ_TIMEOUT
+
+
+async def run_blocking_timeout[T](
+    timeout_s: float, callable_fn: Callable[..., T], *args: Any, **kwargs: Any
+) -> T:
+    """Like :func:`run_blocking`, but abandon the wait after ``timeout_s``.
+
+    Some pan-os-python calls can block far longer than they should — a config
+    xpath read that never completes, a device that accepts the connection then
+    never answers — and pan-os-python's own per-request timeout is generous
+    (we cap it at the client level, but that bound is still tens of seconds).
+    For tools where a hang is a known failure mode, wrap the offloaded call
+    with a short, asyncio-enforced timeout so the tool returns a clean error
+    promptly instead of sitting until the client-level timeout fires.
+
+    Raises :class:`TimeoutError` (``asyncio.TimeoutError`` is an alias on
+    3.11+) when the call doesn't finish in time. The worker thread can't be
+    force-killed, so it keeps running until the call's own (lower, client-level)
+    timeout releases it; its result is then discarded. Keep ``timeout_s`` well
+    below the client-level request timeout so the orphaned thread is reclaimed
+    soon after.
+    """
+    loop = asyncio.get_running_loop()
+    fut = loop.run_in_executor(None, lambda: callable_fn(*args, **kwargs))
+    return await asyncio.wait_for(fut, timeout=timeout_s)
+
+
 __all__ = [
     "AttrFilter",
     "ToolContext",
     "check_renamed_attr_keys",
+    "config_xpath_to_dict",
     "element_to_dict",
     "emit_preflight_audit",
     "enrich_security_rule_dicts",
     "filter_by_attrs",
+    "gather_scoped_objects",
+    "gather_template_config",
+    "gather_template_objects",
     "op_to_dict",
     "panos_object_dicts",
+    "read_timeout",
+    "redirect_panorama_to_sibling",
+    "reject_panorama_target",
+    "reject_serial_log_query",
     "run_blocking",
+    "run_blocking_timeout",
     "wrap_panos_error",
     "write_success",
 ]

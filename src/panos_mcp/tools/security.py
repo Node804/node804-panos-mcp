@@ -39,12 +39,15 @@ from ..responses.shapers import apply_shape
 from ._common import (
     AttrFilter,
     ToolContext,
-    build_running_config_xpath_cmd,
     check_renamed_attr_keys,
+    config_xpath_to_dict,
     enrich_security_rule_dicts,
     filter_by_attrs,
-    op_to_dict,
+    gather_scoped_objects,
     panos_object_dicts,
+    read_timeout,
+    redirect_panorama_to_sibling,
+    run_blocking_timeout,
     wrap_panos_error,
     write_success,
 )
@@ -95,33 +98,10 @@ def _profiles_xpath(client: Any) -> str:
     return f"{client.xpath_root(Root.VSYS, vsys)}/profiles"
 
 
-def _security_profile_objects(client: Any) -> list[dict[str, Any]]:
-    """Aggregate the seven distinct security profile types into one list.
-
-    Reads the ``profiles`` config subtree once via the XML API and flattens
-    each known profile type into ``{name, description, type, ...}`` dicts.
-    """
-    xpath = _profiles_xpath(client)
-    cmd = build_running_config_xpath_cmd(xpath)
-    try:
-        result = op_to_dict(client, cmd)
-    except (PanDeviceError, PanXapiError) as exc:
-        # Panorama (and PAN-OS firewalls) don't materialize empty config
-        # subtrees, so when *nothing* is configured at this scope — e.g.
-        # security profiles only exist at a device group, never at Shared —
-        # the ``show config running xpath`` op returns
-        # ``<response status="error"><msg>No such node</msg></response>``
-        # and pan-python raises ``PanXapiError``. That's the same "empty"
-        # signal as a present-but-childless ``<profiles/>`` node; surface
-        # it as an empty list rather than letting it bubble up as a tool
-        # error that misleads the caller into thinking the call failed.
-        if "no such node" in str(exc).lower():
-            return []
-        raise
-    profiles = result.get("profiles")
+def _flatten_security_profiles(profiles: Any) -> list[dict[str, Any]]:
+    """Flatten a ``profiles`` config subtree into ``{name, type, ...}`` dicts."""
     if not isinstance(profiles, dict):
         return []
-
     out: list[dict[str, Any]] = []
     for type_name, xml_tag in _PROFILE_XML_TYPES:
         node = profiles.get(xml_tag)
@@ -141,6 +121,42 @@ def _security_profile_objects(client: Any) -> list[dict[str, Any]]:
             data["type"] = type_name
             out.append(data)
     return out
+
+
+def _security_profiles_at_xpath(client: Any, xpath: str) -> list[dict[str, Any]]:
+    """Read + flatten the security ``profiles`` subtree at a specific xpath.
+
+    Treats PAN-OS "No such node" (nothing configured at this scope) as an
+    empty list; re-raises other errors.
+    """
+    try:
+        result = config_xpath_to_dict(client, xpath)
+    except (PanDeviceError, PanXapiError) as exc:
+        # PAN-OS doesn't materialize empty config subtrees, so an absent
+        # ``profiles`` node returns ``<msg>No such node</msg>`` (raised by
+        # pan-python). That's the same "empty" signal as a present-but-childless
+        # node — surface it as [] rather than a misleading tool error.
+        if "no such node" in str(exc).lower():
+            return []
+        raise
+    return _flatten_security_profiles(result.get("profiles"))
+
+
+def _security_profile_objects(client: Any) -> list[dict[str, Any]]:
+    """Aggregate the seven security profile types at the target's default scope.
+
+    Firewall → vsys; Panorama → shared. (For a full Panorama walk across
+    device groups, ``get_security_profiles`` orchestrates per-scope reads.)
+    """
+    return _security_profiles_at_xpath(client, _profiles_xpath(client))
+
+
+def _dg_profiles_xpath(dg_name: str) -> str:
+    """Running-config xpath of a device group's security ``profiles`` subtree."""
+    return (
+        "/config/devices/entry[@name='localhost.localdomain']"
+        f"/device-group/entry[@name='{dg_name}']/profiles"
+    )
 
 
 def _move_rule_object(
@@ -208,6 +224,16 @@ def register_security_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
+        guard = redirect_panorama_to_sibling(
+            client,
+            "get_security_rules",
+            use=(
+                "panorama_get_pre_rules / panorama_get_post_rules with "
+                "rule_type='security' (per device group)"
+            ),
+        )
+        if guard is not None:
+            return guard
         rulebase = Rulebase()
         client.add(rulebase)
         rules = SecurityRule.refreshall(rulebase)
@@ -235,19 +261,62 @@ def register_security_tools(ctx: ToolContext) -> None:
         pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
-        """All security profiles (AV, anti-spyware, vulnerability, URL, etc.)."""
+        """All security profiles (AV, anti-spyware, vulnerability, URL, etc.).
+
+        Scope-aware: on a firewall this reads vsys1; on a Panorama it walks
+        ``shared`` plus every device group's profile tree, tagging each profile
+        with its ``scope`` so device-group profiles aren't silently omitted.
+        Each per-scope read is bounded; a scope that times out is skipped and
+        listed in ``timed_out``.
+        """
+        from panos.panorama import DeviceGroup, Panorama
+
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        items = _security_profile_objects(client)
-        return apply_shape(
-            items,
+        timeout_s = read_timeout()
+        rows: list[dict[str, Any]]
+        timed_out: list[str] = []
+        if isinstance(client, Panorama):
+            rows = []
+            try:
+                dgs = await run_blocking_timeout(timeout_s, DeviceGroup.refreshall, client)
+            except TimeoutError:
+                return {
+                    "error": (
+                        f"get_security_profiles timed out after {timeout_s:g}s "
+                        "enumerating device groups; retry or check reachability."
+                    ),
+                    "items": [],
+                    "total": 0,
+                    "count": 0,
+                }
+            targets = [("shared", "/config/shared/profiles")]
+            targets += [(dg.name, _dg_profiles_xpath(dg.name)) for dg in dgs]
+            for scope_label, xpath in targets:
+                try:
+                    profs = await run_blocking_timeout(
+                        timeout_s, _security_profiles_at_xpath, client, xpath
+                    )
+                except TimeoutError:
+                    timed_out.append(scope_label)
+                    continue
+                for p in profs:
+                    p["scope"] = scope_label
+                    rows.append(p)
+        else:
+            rows = await run_blocking_timeout(timeout_s, _security_profile_objects, client)
+        out = apply_shape(
+            rows,
             shape=SHAPE_PROFILE,
             verbose=verbose,
             fields=fields,
             pagination=pagination,
             pattern=pattern,
         )
+        if timed_out:
+            out["timed_out"] = timed_out
+        return out
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
     async def get_security_profile_groups(
@@ -257,21 +326,30 @@ def register_security_tools(ctx: ToolContext) -> None:
         pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
-        """Security profile groups that bundle multiple profiles for use in rules."""
+        """Security profile groups that bundle multiple profiles for use in rules.
+
+        Scope-aware on Panorama (shared + every device group, tagged by
+        ``scope``); reads vsys1 on a firewall.
+        """
         from panos.objects import SecurityProfileGroup
 
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        groups = SecurityProfileGroup.refreshall(client)
-        return apply_shape(
-            panos_object_dicts(groups),
+        rows, timed_out = await gather_scoped_objects(
+            client, SecurityProfileGroup, timeout=read_timeout()
+        )
+        out = apply_shape(
+            rows,
             shape=SHAPE_PROFILE_GROUP,
             verbose=verbose,
             fields=fields,
             pagination=pagination,
             pattern=pattern,
         )
+        if timed_out:
+            out["timed_out"] = timed_out
+        return out
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
     async def get_pbf_rules(
@@ -281,10 +359,24 @@ def register_security_tools(ctx: ToolContext) -> None:
         pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
-        """Policy-based forwarding rules."""
+        """Policy-based forwarding rules, firewall-scoped.
+
+        On a Panorama target this returns an error pointing to the device-group
+        tools rather than an empty list.
+        """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
+        guard = redirect_panorama_to_sibling(
+            client,
+            "get_pbf_rules",
+            use=(
+                "panorama_get_pre_rules / panorama_get_post_rules with "
+                "rule_type='pbf' (per device group)"
+            ),
+        )
+        if guard is not None:
+            return guard
         rulebase = Rulebase()
         client.add(rulebase)
         rules = PolicyBasedForwarding.refreshall(rulebase)
@@ -339,11 +431,28 @@ def register_security_tools(ctx: ToolContext) -> None:
         pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
-        """QoS policy rules. Read via xpath since pan-os-python doesn't model QoS."""
+        """QoS policy rules, firewall-scoped. Read via xpath since pan-os-python doesn't model QoS.
+
+        Reads the firewall's local QoS rulebase. On a Panorama target that path
+        doesn't exist (the raw query errors with "No such node"), so this
+        returns a clean error instead — there is no Panorama device-group QoS
+        tool; query a managed firewall directly or use get_config_xpath against
+        the device group's QoS rulebase.
+        """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        result = op_to_dict(client, build_running_config_xpath_cmd(QOS_RULES_XPATH))
+        guard = redirect_panorama_to_sibling(
+            client,
+            "get_qos_rules",
+            use=(
+                "a managed firewall (pass firewall=), or get_config_xpath against the "
+                "device group's QoS rulebase — QoS is not exposed as a Panorama tool"
+            ),
+        )
+        if guard is not None:
+            return guard
+        result = config_xpath_to_dict(client, QOS_RULES_XPATH)
         rules_section = result.get("rules", result) if isinstance(result, dict) else {}
         if isinstance(rules_section, dict) and "entry" in rules_section:
             entries_raw = rules_section["entry"]

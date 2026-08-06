@@ -14,6 +14,14 @@ For investigation patterns where you want to chunk through many logs,
 prefer multiple calls with different ``query`` time-range filters
 (e.g. ``( receive_time geq '2026/05/13 12:00:00' )``) over offset-based
 pagination.
+
+Serial-through-Panorama is **not** supported for log queries. Unlike config
+and operational commands, PAN-OS log retrieval (``type=log``) ignores the API
+``target`` serial-redirect: Panorama answers from its aggregated log database,
+so a query aimed at one managed device silently returns fleet-wide logs (masked
+by the Panorama admin role) rather than that device's local logs. Every log
+tool therefore runs :func:`reject_serial_log_query` first and refuses a
+serial-proxy target with guidance to use a direct connection instead.
 """
 
 from __future__ import annotations
@@ -31,7 +39,7 @@ from ..responses.schemas import (
     SHAPE_URL_LOG,
 )
 from ..responses.shapers import LeanShape, apply_shape
-from ._common import ToolContext, element_to_dict
+from ._common import ToolContext, element_to_dict, reject_serial_log_query
 
 NLogsParam = Annotated[
     int,
@@ -129,6 +137,9 @@ def register_logs_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
+        guard = reject_serial_log_query(client, "get_traffic_logs")
+        if guard is not None:
+            return guard
         raw = await _run_log_query(client, "traffic", nlogs, query)
         if "error" in raw:
             return raw
@@ -147,6 +158,9 @@ def register_logs_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
+        guard = reject_serial_log_query(client, "get_threat_logs")
+        if guard is not None:
+            return guard
         raw = await _run_log_query(client, "threat", nlogs, query)
         if "error" in raw:
             return raw
@@ -165,6 +179,9 @@ def register_logs_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
+        guard = reject_serial_log_query(client, "get_system_logs")
+        if guard is not None:
+            return guard
         raw = await _run_log_query(client, "system", nlogs, query)
         if "error" in raw:
             return raw
@@ -183,6 +200,9 @@ def register_logs_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
+        guard = reject_serial_log_query(client, "get_config_logs")
+        if guard is not None:
+            return guard
         raw = await _run_log_query(client, "config", nlogs, query)
         if "error" in raw:
             return raw
@@ -201,6 +221,9 @@ def register_logs_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
+        guard = reject_serial_log_query(client, "get_url_filter_logs")
+        if guard is not None:
+            return guard
         raw = await _run_log_query(client, "url", nlogs, query)
         if "error" in raw:
             return raw

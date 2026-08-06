@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from node804_mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFlag
+from panos.panorama import Panorama
 
 from ..responses.schemas import (
     SHAPE_AV_VERSION,
@@ -42,6 +43,15 @@ def register_threat_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
+        if isinstance(client, Panorama):
+            return {
+                "error": (
+                    "'get_wildfire_status' reads the per-firewall WildFire cloud "
+                    "connection, which a Panorama appliance does not maintain. Target "
+                    "a managed firewall with the 'firewall' parameter (use "
+                    "list_firewalls or panorama_get_managed_devices to find one)."
+                )
+            }
         result = op_to_dict(client, "<show><wildfire><status></status></wildfire></show>")
         return shape_single(result, shape=SHAPE_WILDFIRE, verbose=verbose, fields=fields)
 

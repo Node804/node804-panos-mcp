@@ -470,28 +470,28 @@ class TestGetConfigXpathSecurity:
                 adapter.validate_python(bad)
 
     @pytest.mark.asyncio
-    async def test_xpath_value_is_xml_escaped_in_command(
+    async def test_xpath_read_uses_structured_xpath_api(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        # Even though the schema rejects '<', the command builder escapes the
-        # value as defense-in-depth. Verify quotes survive and the wrapper is
-        # well-formed for a legitimate predicate xpath.
-        _patch_fw(monkeypatch, _fake_fw_class(op_return={"network": {}}))
+        # The config read goes through the structured xpath API
+        # (``xapi.show(xpath=...)``), NOT an op command. This both avoids any
+        # op-envelope injection surface and — critically — passes the predicate
+        # value as a parameter, so a name containing a space (e.g. "Lafayette
+        # Plant") survives intact instead of being CLI-tokenized by PAN-OS.
+        _patch_fw(monkeypatch, _fake_fw_class())
         _seed_firewall()
         ctx, mcp, _ = _make_ctx(Mode.READ)
         register_utility_tools(ctx)
 
-        await _call(
-            mcp,
-            "get_config_xpath",
-            xpath="/config/devices/entry[@name='localhost.localdomain']/network",
-            firewall="fw1",
-        )
-        sent = client_module._CLIENTS["fw1"].op_calls[0]
-        assert sent.startswith("<show><config><running><xpath>/config/")
-        assert sent.endswith("</xpath></running></config></show>")
-        # Quote preserved (valid in XML text), no stray '<' inside the value.
-        assert "entry[@name='localhost.localdomain']" in sent
+        xpath = "/config/devices/entry[@name='Lafayette Plant']/network"
+        await _call(mcp, "get_config_xpath", xpath=xpath, firewall="fw1")
+
+        client = client_module._CLIENTS["fw1"]
+        client.xapi.show.assert_called_once()
+        # The space-containing predicate is passed verbatim as the xpath param.
+        assert client.xapi.show.call_args.kwargs["xpath"] == xpath
+        # No op command was used for the config read.
+        assert client.op_calls == []
 
     @pytest.mark.asyncio
     async def test_protected_subtree_read_refused(self, monkeypatch: pytest.MonkeyPatch) -> None:

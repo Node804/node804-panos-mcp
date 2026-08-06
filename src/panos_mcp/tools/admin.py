@@ -9,7 +9,12 @@ from panos.device import Administrator, AuthenticationProfile
 
 from ..responses.schemas import SHAPE_ADMIN, SHAPE_ADMIN_ROLE, SHAPE_AUTH_PROFILE
 from ..responses.shapers import apply_shape
-from ._common import ToolContext, op_to_dict, panos_object_dicts
+from ._common import (
+    ToolContext,
+    op_to_dict,
+    panos_object_dicts,
+    redirect_panorama_to_sibling,
+)
 
 
 def register_admin_tools(ctx: ToolContext) -> None:
@@ -45,10 +50,20 @@ def register_admin_tools(ctx: ToolContext) -> None:
         pagination: Pagination = Pagination(),
         pattern: Pattern = None,
     ) -> dict[str, Any]:
-        """Administrator role definitions and their permission sets."""
+        """Administrator role definitions and their permission sets (firewall-scoped).
+
+        Reads the firewall's vsys1 admin-role tree. On a Panorama target that
+        path doesn't exist (the raw query errors), so this returns a redirect to
+        ``panorama_get_admin_roles`` instead of a confusing error.
+        """
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
+        guard = redirect_panorama_to_sibling(
+            client, "get_admin_roles", use="panorama_get_admin_roles"
+        )
+        if guard is not None:
+            return guard
         # pan-os-python doesn't model admin-role directly; fall back to op-style
         # config read via show.
         result = op_to_dict(
