@@ -509,3 +509,102 @@ class TestWalkAllRules:
         )
         assert result["count"] == 50
         assert result["total"] == 250
+
+
+class TestWalkerTimeoutIsolation:
+    """A stuck sub-query must be skipped (recorded in ``timed_out``), not hang.
+
+    We give one rule-type's ``refreshall`` an indefinite block and set the
+    per-call read timeout to a fraction of a second, so the walker abandons
+    that combo quickly and returns the rules it could read.
+    """
+
+    def _wire_with_one_blocking_type(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        *,
+        blocking_cls: type,
+        release: Any,
+        good: dict[tuple[type, str, str], list[Any]],
+    ) -> Panorama:
+        pano = Panorama("h", "u", "p")
+        dgs = [DeviceGroup("DG-1")]
+        monkeypatch.setattr("panos_mcp.tools._common.get_client", lambda *a, **k: pano)
+        monkeypatch.setattr(DeviceGroup, "refreshall", staticmethod(lambda *a, **k: dgs))
+
+        def _dispatch(cls: type) -> staticmethod:
+            def _refresh(parent: Any, *_a: Any, **_kw: Any) -> list[Any]:
+                if cls is blocking_cls:
+                    release.wait(timeout=10)  # simulate a never-answering query
+                    return []
+                gp = parent.parent
+                dg_name = gp.name if isinstance(gp, DeviceGroup) else "<shared>"
+                rb = "pre" if isinstance(parent, PreRulebase) else "post"
+                return good.get((cls, dg_name, rb), [])
+
+            return staticmethod(_refresh)
+
+        for cls in (SecurityRule, NatRule, PolicyBasedForwarding, DecryptionRule):
+            monkeypatch.setattr(cls, "refreshall", _dispatch(cls))
+        return pano
+
+    @pytest.mark.asyncio
+    async def test_walk_skips_stuck_subquery_and_reports_it(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import threading
+
+        monkeypatch.setenv("PANOS_READ_TIMEOUT", "0.2")
+        release = threading.Event()
+        self._wire_with_one_blocking_type(
+            monkeypatch,
+            blocking_cls=NatRule,
+            release=release,
+            good={(SecurityRule, "DG-1", "pre"): [_FakeObj(name="sec-1", action="allow")]},
+        )
+        _seed()
+        ctx, mcp = _make_ctx()
+        register_panorama_tools(ctx)
+
+        try:
+            result = await _call(
+                mcp,
+                "panorama_walk_all_rules",
+                firewall="pano",
+                rule_types=["security", "nat"],
+            )
+        finally:
+            release.set()
+
+        # Security rules still came back; the stuck NAT sub-queries were skipped.
+        names = {i["name"] for i in result["items"]}
+        assert "sec-1" in names
+        assert "timed_out" in result
+        stuck_types = {entry["rule_type"] for entry in result["timed_out"]}
+        assert stuck_types == {"nat"}
+
+    @pytest.mark.asyncio
+    async def test_count_reports_timed_out(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import threading
+
+        monkeypatch.setenv("PANOS_READ_TIMEOUT", "0.2")
+        release = threading.Event()
+        self._wire_with_one_blocking_type(
+            monkeypatch, blocking_cls=NatRule, release=release, good={}
+        )
+        _seed()
+        ctx, mcp = _make_ctx()
+        register_panorama_tools(ctx)
+
+        try:
+            result = await _call(
+                mcp,
+                "panorama_count_rules_per_device_group",
+                firewall="pano",
+                rule_types=["security", "nat"],
+            )
+        finally:
+            release.set()
+
+        assert "timed_out" in result
+        assert {e["rule_type"] for e in result["timed_out"]} == {"nat"}

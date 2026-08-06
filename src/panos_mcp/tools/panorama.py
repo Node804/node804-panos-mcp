@@ -18,9 +18,11 @@ from panos.errors import PanDeviceError
 from panos.objects import (
     AddressGroup,
     AddressObject,
+    ApplicationFilter,
     SecurityProfileGroup,
     ServiceGroup,
     ServiceObject,
+    Tag,
 )
 from panos.panorama import (
     DeviceGroup,
@@ -39,6 +41,8 @@ from panos.policies import (
 from ..responses.schemas import (
     SHAPE_ADDRESS_GROUP,
     SHAPE_ADDRESS_OBJECT,
+    SHAPE_ADMIN_ROLE,
+    SHAPE_APPLICATION_FILTER,
     SHAPE_COLLECTOR_GROUP,
     SHAPE_COMMIT_JOB,
     SHAPE_DECRYPTION_RULE,
@@ -53,6 +57,7 @@ from ..responses.schemas import (
     SHAPE_SECURITY_RULE,
     SHAPE_SERVICE_GROUP,
     SHAPE_SERVICE_OBJECT,
+    SHAPE_TAG,
     SHAPE_TEMPLATE,
     SHAPE_TEMPLATE_STACK,
 )
@@ -60,12 +65,14 @@ from ..responses.shapers import apply_shape
 from ._common import (
     AttrFilter,
     ToolContext,
-    build_running_config_xpath_cmd,
     check_renamed_attr_keys,
+    config_xpath_to_dict,
     enrich_security_rule_dicts,
     filter_by_attrs,
     op_to_dict,
     panos_object_dicts,
+    read_timeout,
+    run_blocking_timeout,
     wrap_panos_error,
     write_success,
 )
@@ -73,7 +80,16 @@ from ._schemas import MemberList, MemberValue, PanosDescription, PanosName
 
 
 def _entries(result: Any, *keys: str) -> list[dict[str, Any]]:
-    """Walk a nested op result and return the entry list."""
+    """Walk a nested op result and return the entry list.
+
+    A missing key along the path resolves to ``{}`` (via ``.get(k, {})``), so a
+    result that lacks the requested subtree — or an errored read that came back
+    as ``{}`` — ends the walk on an **empty** dict. That must return ``[]`` (no
+    entries), not ``[{}]``: returning a phantom empty entry made empty/errored
+    reads look like "1 item" to callers (e.g. ``panorama_get_admin_roles``
+    reporting a role on a Panorama whose admin-role tree is actually absent).
+    Only a *non-empty* dict is a real single entry.
+    """
     cursor: Any = result
     for k in keys:
         if not isinstance(cursor, dict):
@@ -81,7 +97,7 @@ def _entries(result: Any, *keys: str) -> list[dict[str, Any]]:
         cursor = cursor.get(k, {})
     if isinstance(cursor, list):
         return [c for c in cursor if isinstance(c, dict)]
-    if isinstance(cursor, dict):
+    if isinstance(cursor, dict) and cursor:
         return [cursor]
     return []
 
@@ -147,16 +163,157 @@ def _walk_dg_hierarchy(result: dict[str, Any]) -> list[dict[str, Any]]:
     return out
 
 
-def _find_dg(client: Any, name: str) -> DeviceGroup | None:
-    """Look up a device group by name on a Panorama target."""
-    for dg in DeviceGroup.refreshall(client):
+def _read_timeout_error(what: str) -> dict[str, Any]:
+    """Standard list-envelope error for a bounded read that timed out."""
+    return {
+        "error": (
+            f"Timed out after {read_timeout():g}s {what}. The Panorama did not "
+            "answer in time; retry, or narrow the request (e.g. a single device "
+            "group / rule type)."
+        ),
+        "items": [],
+        "total": 0,
+        "count": 0,
+    }
+
+
+async def _find_dg(client: Any, name: str) -> DeviceGroup | None:
+    """Look up a device group by name on a Panorama target.
+
+    The ``DeviceGroup.refreshall`` enumeration is a blocking pan-os-python
+    call; it runs off the event loop under the bounded read timeout so a stuck
+    Panorama can't freeze the server. A timeout propagates to the caller as
+    ``TimeoutError`` (callers surface it as a clean error).
+    """
+    dgs = await run_blocking_timeout(read_timeout(), DeviceGroup.refreshall, client)
+    for dg in dgs:
         if dg.name == name:
             return dg
     return None
 
 
+async def _list_device_group_rules(
+    client: Any,
+    device_group: str,
+    rb_kind: str,
+    rule_type: str,
+    attrs: AttrFilter,
+    *,
+    verbose: bool,
+    fields: FieldsList,
+    pagination: Pagination,
+    pattern: Pattern,
+) -> dict[str, Any]:
+    """Shared body for the per-DG pre/post rule list tools.
+
+    Parametric over ``rule_type`` via :data:`_RULE_TYPE_REGISTRY` so a single
+    device group can surface security, NAT, PBF, or decryption rules through one
+    ``refreshall`` against the requested rulebase. The ``refreshall`` is run
+    off the event loop under the bounded read timeout (the same treatment
+    ``panorama_walk_all_rules`` uses for its per-(DG, rulebase, type) reads), so
+    a stuck rulebase returns a clean timeout error instead of hanging.
+
+    Security rules get the inspection/log-setting enrichment; the other types
+    pass through unenriched (their registry ``enrich`` hook is ``None``). Each
+    type is projected by its own lean shape from the registry.
+    """
+    spec = _RULE_TYPE_REGISTRY.get(rule_type)
+    if spec is None:
+        return {
+            "error": f"Unknown rule_type: {rule_type!r}. Valid: {list(_RULE_TYPE_REGISTRY)}.",
+            "items": [],
+            "total": 0,
+            "count": 0,
+        }
+    try:
+        dg = await _find_dg(client, device_group)
+    except TimeoutError:
+        return _read_timeout_error(f"enumerating device groups for '{device_group}'")
+    if dg is None:
+        return {
+            "error": f"Device group '{device_group}' not found.",
+            "items": [],
+            "total": 0,
+            "count": 0,
+        }
+    rb = PreRulebase() if rb_kind == "pre" else PostRulebase()
+    dg.add(rb)
+    try:
+        rules = await run_blocking_timeout(read_timeout(), spec["cls"].refreshall, rb)
+    except TimeoutError:
+        return _read_timeout_error(
+            f"reading {rb_kind} {rule_type} rules in device group '{device_group}'"
+        )
+    dicts = panos_object_dicts(rules)
+    enrich = spec["enrich"]
+    if enrich is not None:
+        dicts = enrich(dicts)
+    filtered = filter_by_attrs(dicts, attrs)
+    return apply_shape(
+        filtered,
+        shape=spec["shape"],
+        verbose=verbose,
+        fields=fields,
+        pagination=pagination,
+        pattern=pattern,
+    )
+
+
+async def _list_scope_objects(
+    client: Any,
+    device_group: str | None,
+    cls: Any,
+    shape: Any,
+    *,
+    verbose: bool,
+    fields: FieldsList,
+    pagination: Pagination,
+    pattern: Pattern,
+) -> dict[str, Any]:
+    """Shared body for the per-scope object/profile readers.
+
+    pan-os-python models these object types as children of either a
+    :class:`DeviceGroup` or the Panorama itself (shared scope), so reading
+    them is a plain ``refreshall`` against the chosen parent:
+
+      - ``device_group`` set  → that device group's objects.
+      - ``device_group`` None → Panorama shared objects.
+
+    This is the object-side counterpart to :func:`_list_device_group_rules`
+    and gives Panorama-only operators the same per-scope object visibility the
+    firewall ``get_*`` tools give for vsys1.
+    """
+    if device_group is not None:
+        try:
+            parent = await _find_dg(client, device_group)
+        except TimeoutError:
+            return _read_timeout_error(f"enumerating device groups for '{device_group}'")
+        if parent is None:
+            return {
+                "error": f"Device group '{device_group}' not found.",
+                "items": [],
+                "total": 0,
+                "count": 0,
+            }
+    else:
+        parent = client
+    try:
+        objects = await run_blocking_timeout(read_timeout(), cls.refreshall, parent)
+    except TimeoutError:
+        scope = f"device group '{device_group}'" if device_group else "shared scope"
+        return _read_timeout_error(f"reading objects in {scope}")
+    return apply_shape(
+        panos_object_dicts(objects),
+        shape=shape,
+        verbose=verbose,
+        fields=fields,
+        pagination=pagination,
+        pattern=pattern,
+    )
+
+
 def register_panorama_tools(ctx: ToolContext) -> None:
-    """Register the 20 Panorama read tools against ``ctx.mcp``."""
+    """Register the Panorama read tools against ``ctx.mcp``."""
 
     # --- Managed devices & device groups ---
 
@@ -416,11 +573,190 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             pattern=pattern,
         )
 
+    # --- Shared objects (gap-fill: tags, application filters) ---
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def panorama_get_shared_tags(
+        firewall: str | None = None,
+        verbose: VerboseFlag = False,
+        fields: FieldsList = None,
+        pagination: Pagination = Pagination(),
+        pattern: Pattern = None,
+    ) -> dict[str, Any]:
+        """Tags defined at the Panorama shared level.
+
+        Panorama sibling of ``get_tags``. (pan-os-python models ``Tag`` as a
+        shared/vsys child, not a device-group child, so device-group-local
+        tags are read via ``get_config_xpath`` rather than a dedicated tool.)
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        return await _list_scope_objects(
+            client, None, Tag, SHAPE_TAG,
+            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+        )
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def panorama_get_shared_application_filters(
+        firewall: str | None = None,
+        verbose: VerboseFlag = False,
+        fields: FieldsList = None,
+        pagination: Pagination = Pagination(),
+        pattern: Pattern = None,
+    ) -> dict[str, Any]:
+        """Application filters defined at the Panorama shared level.
+
+        Panorama sibling of ``get_application_filters``.
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        return await _list_scope_objects(
+            client, None, ApplicationFilter, SHAPE_APPLICATION_FILTER,
+            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+        )
+
+    # --- Device-group objects (per-DG counterparts to the firewall get_* tools) ---
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def panorama_get_device_group_address_objects(
+        device_group: str,
+        firewall: str | None = None,
+        verbose: VerboseFlag = False,
+        fields: FieldsList = None,
+        pagination: Pagination = Pagination(),
+        pattern: Pattern = None,
+    ) -> dict[str, Any]:
+        """Address objects defined in a Panorama device group.
+
+        Per-DG counterpart to ``get_address_objects``; for Panorama-level
+        shared objects use ``panorama_get_shared_address_objects``.
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        return await _list_scope_objects(
+            client, device_group, AddressObject, SHAPE_ADDRESS_OBJECT,
+            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+        )
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def panorama_get_device_group_address_groups(
+        device_group: str,
+        firewall: str | None = None,
+        verbose: VerboseFlag = False,
+        fields: FieldsList = None,
+        pagination: Pagination = Pagination(),
+        pattern: Pattern = None,
+    ) -> dict[str, Any]:
+        """Address groups defined in a Panorama device group.
+
+        Per-DG counterpart to ``get_address_groups``; shared groups via
+        ``panorama_get_shared_address_groups``.
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        return await _list_scope_objects(
+            client, device_group, AddressGroup, SHAPE_ADDRESS_GROUP,
+            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+        )
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def panorama_get_device_group_service_objects(
+        device_group: str,
+        firewall: str | None = None,
+        verbose: VerboseFlag = False,
+        fields: FieldsList = None,
+        pagination: Pagination = Pagination(),
+        pattern: Pattern = None,
+    ) -> dict[str, Any]:
+        """Service objects defined in a Panorama device group.
+
+        Per-DG counterpart to ``get_service_objects``; shared via
+        ``panorama_get_shared_service_objects``.
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        return await _list_scope_objects(
+            client, device_group, ServiceObject, SHAPE_SERVICE_OBJECT,
+            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+        )
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def panorama_get_device_group_service_groups(
+        device_group: str,
+        firewall: str | None = None,
+        verbose: VerboseFlag = False,
+        fields: FieldsList = None,
+        pagination: Pagination = Pagination(),
+        pattern: Pattern = None,
+    ) -> dict[str, Any]:
+        """Service groups defined in a Panorama device group.
+
+        Per-DG counterpart to ``get_service_groups``; shared via
+        ``panorama_get_shared_service_groups``.
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        return await _list_scope_objects(
+            client, device_group, ServiceGroup, SHAPE_SERVICE_GROUP,
+            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+        )
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def panorama_get_device_group_application_filters(
+        device_group: str,
+        firewall: str | None = None,
+        verbose: VerboseFlag = False,
+        fields: FieldsList = None,
+        pagination: Pagination = Pagination(),
+        pattern: Pattern = None,
+    ) -> dict[str, Any]:
+        """Application filters defined in a Panorama device group.
+
+        Per-DG counterpart to ``get_application_filters``; shared via
+        ``panorama_get_shared_application_filters``.
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        return await _list_scope_objects(
+            client, device_group, ApplicationFilter, SHAPE_APPLICATION_FILTER,
+            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+        )
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def panorama_get_device_group_profile_groups(
+        device_group: str,
+        firewall: str | None = None,
+        verbose: VerboseFlag = False,
+        fields: FieldsList = None,
+        pagination: Pagination = Pagination(),
+        pattern: Pattern = None,
+    ) -> dict[str, Any]:
+        """Security profile groups defined in a Panorama device group.
+
+        Per-DG counterpart to ``get_security_profile_groups``; shared via
+        ``panorama_get_shared_profile_groups``.
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        return await _list_scope_objects(
+            client, device_group, SecurityProfileGroup, SHAPE_PROFILE_GROUP,
+            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+        )
+
     # --- Pre/Post rules ---
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
     async def panorama_get_pre_rules(
         device_group: str,
+        rule_type: RuleType = "security",
         firewall: str | None = None,
         verbose: VerboseFlag = False,
         fields: FieldsList = None,
@@ -429,6 +765,16 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         attrs: AttrFilter = None,
     ) -> dict[str, Any]:
         """Pre-rules in a Panorama device group (pushed before local rules).
+
+        ``rule_type`` selects the rulebase to read: ``"security"`` (default),
+        ``"nat"``, ``"pbf"``, or ``"decryption"`` (SSL decryption / SSL Forward
+        Proxy / inbound inspection policy). For decryption rules on a Panorama,
+        this per-DG path and ``panorama_walk_all_rules`` read the same data and
+        are both off-loop + bounded — use this for a single device group's
+        rulebase, and ``panorama_walk_all_rules`` to sweep decryption rules
+        across many device groups in one call. (The firewall-scoped
+        ``get_decryption_rules`` is the wrong tool against a Panorama — it can't
+        see device-group rules.)
 
         See ``get_security_rules`` for ``attrs`` semantics — same filter
         primitive applies here, scoped to the DG's pre-rulebase.
@@ -439,22 +785,12 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        dg = _find_dg(client, device_group)
-        if dg is None:
-            return {
-                "error": f"Device group '{device_group}' not found.",
-                "items": [],
-                "total": 0,
-                "count": 0,
-            }
-        prerb = PreRulebase()
-        dg.add(prerb)
-        rules = SecurityRule.refreshall(prerb)
-        enriched = enrich_security_rule_dicts(panos_object_dicts(rules))
-        filtered = filter_by_attrs(enriched, attrs)
-        return apply_shape(
-            filtered,
-            shape=SHAPE_SECURITY_RULE,
+        return await _list_device_group_rules(
+            client,
+            device_group,
+            "pre",
+            rule_type,
+            attrs,
             verbose=verbose,
             fields=fields,
             pagination=pagination,
@@ -464,6 +800,7 @@ def register_panorama_tools(ctx: ToolContext) -> None:
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
     async def panorama_get_post_rules(
         device_group: str,
+        rule_type: RuleType = "security",
         firewall: str | None = None,
         verbose: VerboseFlag = False,
         fields: FieldsList = None,
@@ -472,6 +809,16 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         attrs: AttrFilter = None,
     ) -> dict[str, Any]:
         """Post-rules in a Panorama device group (pushed after local rules).
+
+        ``rule_type`` selects the rulebase to read: ``"security"`` (default),
+        ``"nat"``, ``"pbf"``, or ``"decryption"`` (SSL decryption / SSL Forward
+        Proxy / inbound inspection policy). For decryption rules on a Panorama,
+        this per-DG path and ``panorama_walk_all_rules`` read the same data and
+        are both off-loop + bounded — use this for a single device group's
+        rulebase, and ``panorama_walk_all_rules`` to sweep decryption rules
+        across many device groups in one call. (The firewall-scoped
+        ``get_decryption_rules`` is the wrong tool against a Panorama — it can't
+        see device-group rules.)
 
         See ``get_security_rules`` for ``attrs`` semantics — same filter
         primitive applies here, scoped to the DG's post-rulebase.
@@ -482,22 +829,12 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        dg = _find_dg(client, device_group)
-        if dg is None:
-            return {
-                "error": f"Device group '{device_group}' not found.",
-                "items": [],
-                "total": 0,
-                "count": 0,
-            }
-        postrb = PostRulebase()
-        dg.add(postrb)
-        rules = SecurityRule.refreshall(postrb)
-        enriched = enrich_security_rule_dicts(panos_object_dicts(rules))
-        filtered = filter_by_attrs(enriched, attrs)
-        return apply_shape(
-            filtered,
-            shape=SHAPE_SECURITY_RULE,
+        return await _list_device_group_rules(
+            client,
+            device_group,
+            "post",
+            rule_type,
+            attrs,
             verbose=verbose,
             fields=fields,
             pagination=pagination,
@@ -518,7 +855,10 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        dg = _find_dg(client, device_group)
+        try:
+            dg = await _find_dg(client, device_group)
+        except TimeoutError:
+            return _read_timeout_error(f"enumerating device groups for '{device_group}'")
         if dg is None:
             return {
                 "error": f"Device group '{device_group}' not found.",
@@ -528,7 +868,12 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             }
         rb = PreRulebase() if rulebase == "pre" else PostRulebase()
         dg.add(rb)
-        rules = NatRule.refreshall(rb)
+        try:
+            rules = await run_blocking_timeout(read_timeout(), NatRule.refreshall, rb)
+        except TimeoutError:
+            return _read_timeout_error(
+                f"reading {rulebase} NAT rules in device group '{device_group}'"
+            )
         return apply_shape(
             panos_object_dicts(rules),
             shape=SHAPE_NAT_RULE,
@@ -580,26 +925,46 @@ def register_panorama_tools(ctx: ToolContext) -> None:
                 "totals": {},
             }
 
-        def _count(parent: Any, type_name: str) -> int:
+        timeout_s = read_timeout()
+        timed_out: list[dict[str, str]] = []
+
+        async def _count(parent: Any, type_name: str, dg_name: str, rb_label: str) -> int:
             cls = _RULE_TYPE_REGISTRY[type_name]["cls"]
             try:
-                return len(cls.refreshall(parent))
+                return len(await run_blocking_timeout(timeout_s, cls.refreshall, parent))
+            except TimeoutError:
+                # A stuck sub-query: record what was skipped and move on so one
+                # rulebase doesn't stall the whole count. The count is omitted
+                # (not zeroed) — see ``timed_out`` to tell "skipped" from "0".
+                timed_out.append(
+                    {"device_group": dg_name, "rulebase": rb_label, "rule_type": type_name}
+                )
+                return 0
             except Exception:
                 # Don't let one bad rulebase nuke the whole walk — record 0
                 # and move on. PAN-OS occasionally returns an empty/missing
                 # node that pan-os-python raises on.
                 return 0
 
+        try:
+            all_dgs = await run_blocking_timeout(timeout_s, DeviceGroup.refreshall, client)
+        except TimeoutError:
+            return {
+                "error": _read_timeout_error("enumerating device groups")["error"],
+                "per_device_group": {},
+                "totals": {},
+            }
+
         per_device_group: dict[str, dict[str, dict[str, int]]] = {}
         totals: dict[str, int] = {t: 0 for t in types}
-        for dg in DeviceGroup.refreshall(client):
+        for dg in all_dgs:
             dg_counts: dict[str, dict[str, int]] = {}
             for rb_label, rb_cls in (("pre", PreRulebase), ("post", PostRulebase)):
                 rb = rb_cls()
                 dg.add(rb)
                 by_type: dict[str, int] = {}
                 for t in types:
-                    n = _count(rb, t)
+                    n = await _count(rb, t, dg.name, rb_label)
                     by_type[t] = n
                     totals[t] += n
                 dg_counts[rb_label] = by_type
@@ -617,11 +982,13 @@ def register_panorama_tools(ctx: ToolContext) -> None:
                 client.add(rb)
                 by_type = {}
                 for t in types:
-                    n = _count(rb, t)
+                    n = await _count(rb, t, "<shared>", rb_label)
                     by_type[t] = n
                     totals[t] += n
                 shared[rb_label] = by_type
             out["shared"] = shared
+        if timed_out:
+            out["timed_out"] = timed_out
         return out
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -682,7 +1049,13 @@ def register_panorama_tools(ctx: ToolContext) -> None:
                 "count": 0,
             }
 
-        all_dgs = DeviceGroup.refreshall(client)
+        timeout_s = read_timeout()
+        timed_out: list[dict[str, str]] = []
+
+        try:
+            all_dgs = await run_blocking_timeout(timeout_s, DeviceGroup.refreshall, client)
+        except TimeoutError:
+            return _read_timeout_error("enumerating device groups")
         if device_groups:
             wanted = set(device_groups)
             scoped = [d for d in all_dgs if d.name in wanted]
@@ -697,14 +1070,22 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         else:
             scoped = list(all_dgs)
 
-        def _materialize(
+        async def _materialize(
             parent: Any, type_name: str, dg_name: str, rb_label: str
         ) -> list[dict[str, Any]]:
             spec = _RULE_TYPE_REGISTRY[type_name]
             cls = spec["cls"]
             enrich = spec["enrich"]
             try:
-                rules = cls.refreshall(parent)
+                rules = await run_blocking_timeout(timeout_s, cls.refreshall, parent)
+            except TimeoutError:
+                # A stuck (device_group, rulebase, rule_type) sub-query — skip it
+                # and record what was skipped so the caller gets partial results
+                # plus an explicit note rather than a hang or a silent gap.
+                timed_out.append(
+                    {"device_group": dg_name, "rulebase": rb_label, "rule_type": type_name}
+                )
+                return []
             except Exception:
                 return []
             dicts = panos_object_dicts(rules)
@@ -726,13 +1107,13 @@ def register_panorama_tools(ctx: ToolContext) -> None:
                 rb = rb_cls()
                 dg.add(rb)
                 for t in types:
-                    combined.extend(_materialize(rb, t, dg.name, rb_label))
+                    combined.extend(await _materialize(rb, t, dg.name, rb_label))
         if include_shared:
             for rb_label, rb_cls in (("pre", PreRulebase), ("post", PostRulebase)):
                 rb = rb_cls()
                 client.add(rb)
                 for t in types:
-                    combined.extend(_materialize(rb, t, "<shared>", rb_label))
+                    combined.extend(await _materialize(rb, t, "<shared>", rb_label))
 
         # Filter before shaping (same ordering as per-DG tools) so callers
         # can use ``attrs`` to scope on verbose-only fields like ``source``.
@@ -769,7 +1150,7 @@ def register_panorama_tools(ctx: ToolContext) -> None:
 
         shaped_items = paginate(projected, pagination.limit, pagination.offset)
 
-        return {
+        result: dict[str, Any] = {
             "scope": {
                 "device_groups": [d.name for d in scoped],
                 "rule_types": types,
@@ -779,6 +1160,11 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             "count": len(shaped_items),
             "items": shaped_items,
         }
+        if timed_out:
+            # Partial result: these (device_group, rulebase, rule_type) combos
+            # didn't answer within the per-call timeout and were skipped.
+            result["timed_out"] = timed_out
+        return result
 
     # --- Log collectors ---
 
@@ -824,7 +1210,7 @@ def register_panorama_tools(ctx: ToolContext) -> None:
             return client
         xpath = "/config/devices/entry[@name='localhost.localdomain']/log-collector-group"
         try:
-            result = op_to_dict(client, build_running_config_xpath_cmd(xpath))
+            result = config_xpath_to_dict(client, xpath)
         except PanDeviceError:
             # "No such node" when no collector groups are configured.
             result = {}
@@ -954,6 +1340,47 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         from ..responses.shapers import shape_single
 
         return shape_single(result, shape=SHAPE_HA_STATUS, verbose=verbose, fields=fields)
+
+    # --- Panorama-level admin roles ---
+
+    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
+    async def panorama_get_admin_roles(
+        firewall: str | None = None,
+        verbose: VerboseFlag = False,
+        fields: FieldsList = None,
+        pagination: Pagination = Pagination(),
+        pattern: Pattern = None,
+    ) -> dict[str, Any]:
+        """Admin role definitions at the Panorama level.
+
+        Panorama sibling of ``get_admin_roles``. Panorama keeps admin roles in
+        the device-level ``admin-role`` tree (not under a vsys), so the
+        per-firewall tool's vsys1 xpath misses them — this reads the
+        Panorama-scoped path instead.
+
+        Note: ``get_admins`` already works against a Panorama target —
+        pan-os-python's ``Administrator`` model reads the appliance's own admin
+        accounts whether it's a Firewall or Panorama — so there's no separate
+        ``panorama_get_admins`` tool.
+        """
+        client = ctx.resolve(firewall)
+        if isinstance(client, dict):
+            return client
+        xpath = "/config/devices/entry[@name='localhost.localdomain']/admin-role"
+        try:
+            result = config_xpath_to_dict(client, xpath)
+        except PanDeviceError:
+            # "No such node" when no Panorama-level admin roles are defined.
+            result = {}
+        items = _entries(result, "admin-role", "entry")
+        return apply_shape(
+            items,
+            shape=SHAPE_ADMIN_ROLE,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
+        )
 
     # ── Panorama pre/post rule CRUD (Mode.FULL) ─────────────────────────────
 
