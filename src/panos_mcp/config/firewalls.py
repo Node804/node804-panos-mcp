@@ -11,15 +11,30 @@ Two configuration sources, in priority order:
 2. ``PANOS_HOST`` + ``PANOS_API_KEY`` env vars — single-firewall fallback
    used when no JSON file is present.
 
+An entry can be either:
+
+* a **direct** target — ``host`` (+ key in the keychain), connected to
+  straight over its own management interface; or
+* a **serial-proxy** target — ``serial`` (+ optional ``via`` naming which
+  Panorama to route through), reached *through* Panorama using the device's
+  serial as the ``target`` of each API call. Serial-proxy entries carry no
+  key of their own — they borrow the Panorama connection's key.
+
+Serial proxying (both explicit ``serial`` entries and dynamic discovery of
+Panorama-managed devices in :mod:`panos_mcp.client`) is gated behind the
+``PANOS_ALLOW_SERIAL_CONNECTION`` env flag; off by default. Direct entries
+always take precedence and always work regardless of the flag.
+
 The file is always written with mode ``0o600`` on POSIX (best-effort on
 Windows) so plaintext fallback keys aren't world-readable.
 
 Public API:
     load_firewall_config()              # initialize on startup
-    resolve_firewall(name=None)         # look up a target
+    resolve_firewall(name=None)         # look up a configured target
     is_multi_firewall()                 # True when >1 entry configured
-    list_firewall_entries()             # name+host pairs (never keys)
+    list_firewall_entries()             # name/host/serial view (never keys)
     save_firewall_entry(entry)          # write a new/updated entry
+    serial_connection_enabled()         # PANOS_ALLOW_SERIAL_CONNECTION flag
 """
 
 from __future__ import annotations
@@ -33,10 +48,16 @@ from pathlib import Path
 from typing import Final
 
 import keyring
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 KEYRING_SERVICE: Final = "panos-mcp"
 """Service name used for OS keychain entries."""
+
+SERIAL_CONNECTION_ENV: Final = "PANOS_ALLOW_SERIAL_CONNECTION"
+"""Env flag gating serial-proxy connections through Panorama. Off by default."""
+
+_TRUTHY: Final = frozenset({"true", "1", "yes", "on"})
+"""Accepted truthy spellings for boolean env flags (mirrors the toolkit's TLS parsing)."""
 
 
 _PANOS_NAME_REGEX = re.compile(r"^[A-Za-z0-9._\- ]+$")
@@ -44,35 +65,62 @@ _PANOS_NAME_REGEX = re.compile(r"^[A-Za-z0-9._\- ]+$")
 PAN-OS itself accepts for object/firewall identifiers."""
 
 
+def serial_connection_enabled() -> bool:
+    """True when ``PANOS_ALLOW_SERIAL_CONNECTION`` is set to a truthy value.
+
+    Read at call time (not cached) so tests and a mid-session env change take
+    effect immediately, consistent with the other ``PANOS_*`` runtime flags.
+    """
+    return os.environ.get(SERIAL_CONNECTION_ENV, "").strip().lower() in _TRUTHY
+
+
 class FirewallEntry(BaseModel):
     """In-memory representation of a configured firewall target.
 
-    The ``api_key`` field is populated only when the entry has been resolved
-    against the keychain (or env-var fallback). Persisted JSON entries
-    contain only ``name`` and ``host``.
+    Two shapes:
+
+    * **direct** — ``host`` set (+ ``api_key`` populated once resolved against
+      the keychain or env-var fallback). Connects straight to the device.
+    * **serial-proxy** — ``serial`` set and ``host`` unset; reached through a
+      Panorama (named by ``via``, or the default connection when ``via`` is
+      ``None``) via the device's serial. Carries no ``api_key`` of its own.
+
+    Persisted JSON entries contain only ``name`` + (``host`` | ``serial`` +
+    optional ``via``) — never keys.
     """
 
     name: str = Field(min_length=1, max_length=63)
-    host: str = Field(min_length=1)
+    host: str | None = None
+    serial: str | None = None
+    via: str | None = None
     api_key: str | None = None
 
     model_config = ConfigDict(frozen=True)
 
-    @field_validator("name")
+    @property
+    def is_proxy(self) -> bool:
+        """True when this entry is reached through Panorama via serial redirect."""
+        return self.serial is not None and self.host is None
+
+    @field_validator("name", "via")
     @classmethod
-    def _validate_name(cls, v: str) -> str:
+    def _validate_name(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
         if not _PANOS_NAME_REGEX.match(v):
             raise ValueError(
-                "Firewall name must contain only letters, digits, dot, "
+                "Firewall name/via must contain only letters, digits, dot, "
                 "underscore, hyphen, or space."
             )
         return v
 
     @field_validator("host")
     @classmethod
-    def _normalize_host(cls, v: str) -> str:
+    def _normalize_host(cls, v: str | None) -> str | None:
         # Strip http(s):// prefix and trailing slashes — keeps the API
         # client's URL construction simple and predictable.
+        if v is None:
+            return None
         cleaned = v.strip()
         cleaned = re.sub(r"^https?://", "", cleaned, flags=re.IGNORECASE)
         cleaned = cleaned.rstrip("/")
@@ -80,12 +128,36 @@ class FirewallEntry(BaseModel):
             raise ValueError("Firewall host cannot be empty after normalization.")
         return cleaned
 
+    @field_validator("serial")
+    @classmethod
+    def _strip_serial(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        cleaned = v.strip()
+        if not cleaned:
+            raise ValueError("Firewall serial cannot be empty.")
+        return cleaned
+
+    @model_validator(mode="after")
+    def _require_host_or_serial(self) -> FirewallEntry:
+        if self.host is None and self.serial is None:
+            raise ValueError("Firewall entry must set either 'host' (direct) or 'serial' (proxy).")
+        return self
+
 
 class _FileEntry(BaseModel):
-    """Schema of a single entry as stored in firewalls.json on disk."""
+    """Schema of a single entry as stored in firewalls.json on disk.
+
+    ``host`` and ``serial`` are both optional at the file layer — a direct
+    entry sets ``host``, a serial-proxy entry sets ``serial`` (+ optional
+    ``via``). Validation that exactly one is present happens when the entry is
+    promoted to a :class:`FirewallEntry`.
+    """
 
     name: str
-    host: str
+    host: str | None = None
+    serial: str | None = None
+    via: str | None = None
     api_key: str | None = None  # legacy; auto-migrated to keychain on load
 
     model_config = ConfigDict(extra="ignore")
@@ -133,7 +205,9 @@ def load_firewall_config() -> None:
     file_entries = [
         _FileEntry(
             name=e.name,
-            host=_normalize_host_str(e.host),
+            host=_normalize_host_str(e.host) if e.host is not None else None,
+            serial=e.serial.strip() if e.serial else None,
+            via=e.via,
             api_key=e.api_key,
         )
         for e in parsed.firewalls
@@ -141,14 +215,16 @@ def load_firewall_config() -> None:
 
     # Auto-migrate any plaintext api_keys to the keychain. Mirrors the TS
     # fork's behavior so users transitioning between implementations don't
-    # need to re-enroll keys.
+    # need to re-enroll keys. Serial-proxy entries have no key of their own,
+    # so they never participate in migration — but they must survive the
+    # rewrite, so ``_file_record`` reserializes their serial/via too.
     to_migrate = [e for e in file_entries if e.api_key]
     if to_migrate and _keyring_available():
         try:
             for e in to_migrate:
                 assert e.api_key is not None
                 keyring.set_password(KEYRING_SERVICE, e.name, e.api_key)
-            cleaned = {"firewalls": [{"name": e.name, "host": e.host} for e in file_entries]}
+            cleaned = {"firewalls": [_file_record(e) for e in file_entries]}
             _write_restricted(path, json.dumps(cleaned, indent=2) + "\n")
             print(
                 f"[panos-mcp] Migrated {len(to_migrate)} API key(s) to system keychain",
@@ -157,7 +233,8 @@ def load_firewall_config() -> None:
             # After migration, plaintext keys are gone from the file and the
             # keychain holds the authoritative copies.
             file_entries = [
-                _FileEntry(name=e.name, host=e.host, api_key=None) for e in file_entries
+                _FileEntry(name=e.name, host=e.host, serial=e.serial, via=e.via, api_key=None)
+                for e in file_entries
             ]
         except Exception as err:
             # Redact in case the underlying keyring backend echoed a key
@@ -172,6 +249,14 @@ def load_firewall_config() -> None:
 
     resolved: list[FirewallEntry] = []
     for fe in file_entries:
+        # Serial-proxy entries carry no key — they borrow Panorama's. Keep them
+        # regardless of the flag; client.py enforces the gate at connect time
+        # so a disabled flag surfaces one clear error instead of silently
+        # dropping the target here.
+        if fe.serial and fe.host is None:
+            resolved.append(FirewallEntry(name=fe.name, serial=fe.serial, via=fe.via))
+            continue
+
         api_key = fe.api_key  # plaintext fallback for headless servers
         if _keyring_available():
             kc = keyring.get_password(KEYRING_SERVICE, fe.name)
@@ -190,10 +275,13 @@ def load_firewall_config() -> None:
 
 
 def resolve_firewall(name: str | None = None) -> FirewallEntry | None:
-    """Resolve a firewall target.
+    """Resolve a *configured* firewall target (direct or serial-proxy).
 
     Resolution order:
-      1. If ``name`` is given, return that entry (or None when not found).
+      1. If ``name`` is given, return that configured entry (or None when not
+         found). Note: dynamic discovery of a Panorama-managed device that is
+         *not* a configured entry happens in :mod:`panos_mcp.client`, which has
+         the live Panorama connection — this function only sees the registry.
       2. Else if exactly one entry is configured, return it.
       3. Else fall back to ``PANOS_HOST`` + ``PANOS_API_KEY`` env vars.
       4. Else return None.
@@ -232,8 +320,38 @@ def is_multi_firewall() -> bool:
 
 
 def list_firewall_entries() -> list[dict[str, str]]:
-    """Return ``{name, host}`` pairs for every configured entry. Never returns keys."""
-    return [{"name": e.name, "host": e.host} for e in _entries]
+    """Return a key-free view of every configured entry.
+
+    Direct entries carry ``host``; serial-proxy entries carry ``serial`` (and
+    ``via`` when they route through a named Panorama rather than the default
+    connection). Never returns API keys.
+    """
+    out: list[dict[str, str]] = []
+    for e in _entries:
+        record: dict[str, str] = {"name": e.name}
+        if e.host is not None:
+            record["host"] = e.host
+        if e.serial is not None:
+            # Proxy entries self-identify via serial; direct entries keep the
+            # original {name, host} shape so existing consumers are unaffected.
+            record["serial"] = e.serial
+            record["connection"] = "panorama-serial"
+            if e.via is not None:
+                record["via"] = e.via
+        out.append(record)
+    return out
+
+
+def _file_record(entry: FirewallEntry | _FileEntry) -> dict[str, str]:
+    """Serialize an entry to its on-disk form: name + host|serial(+via). Never keys."""
+    record: dict[str, str] = {"name": entry.name}
+    if entry.host is not None:
+        record["host"] = entry.host
+    if entry.serial is not None:
+        record["serial"] = entry.serial
+        if entry.via is not None:
+            record["via"] = entry.via
+    return record
 
 
 def save_firewall_entry(entry: FirewallEntry) -> None:
@@ -243,7 +361,9 @@ def save_firewall_entry(entry: FirewallEntry) -> None:
     to the JSON file with a stderr warning. The file is written with mode
     ``0o600``.
     """
-    assert entry.api_key, "save_firewall_entry requires api_key on the entry"
+    assert entry.is_proxy or entry.api_key, (
+        "save_firewall_entry requires api_key on a direct entry (serial-proxy entries need none)"
+    )
 
     path = get_config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -255,16 +375,21 @@ def save_firewall_entry(entry: FirewallEntry) -> None:
         if not isinstance(config.get("firewalls"), list):
             config = {"firewalls": []}
 
-    if _keyring_available():
+    new_record: dict[str, str | None]
+    if entry.is_proxy:
+        # No key to store — a serial-proxy entry borrows Panorama's key.
+        new_record = dict(_file_record(entry))
+    elif _keyring_available():
+        assert entry.api_key is not None
         keyring.set_password(KEYRING_SERVICE, entry.name, entry.api_key)
-        new_record: dict[str, str | None] = {"name": entry.name, "host": entry.host}
+        new_record = dict(_file_record(entry))
     else:
         print(
             "[panos-mcp] WARNING: keychain unavailable; storing api_key in plaintext "
             f"in {path}. File will be chmod'd to 0o600.",
             file=sys.stderr,
         )
-        new_record = {"name": entry.name, "host": entry.host, "api_key": entry.api_key}
+        new_record = {**_file_record(entry), "api_key": entry.api_key}
 
     firewalls = config["firewalls"]
     for i, existing in enumerate(firewalls):
@@ -326,6 +451,7 @@ def _write_restricted(path: Path, content: str) -> None:
 
 __all__ = [
     "KEYRING_SERVICE",
+    "SERIAL_CONNECTION_ENV",
     "FirewallEntry",
     "get_config_path",
     "is_multi_firewall",
@@ -333,4 +459,5 @@ __all__ = [
     "load_firewall_config",
     "resolve_firewall",
     "save_firewall_entry",
+    "serial_connection_enabled",
 ]

@@ -19,9 +19,19 @@ def _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Any:
     monkeypatch.setenv("PANOS_FIREWALLS_CONFIG", str(tmp_path / "firewalls.json"))
     monkeypatch.delenv("PANOS_HOST", raising=False)
     monkeypatch.delenv("PANOS_API_KEY", raising=False)
-    # Stub out the network call that _build_client makes for auto-detection.
+    # Stub out the two network calls _build_client can make for auto-detection:
+    # ``show_system_info`` (the class-neutral model probe) and, for a confirmed
+    # firewall, ``refresh_system_info`` (which fully populates the Firewall).
+    # Default the probe to a firewall model so unrelated tests get a Firewall.
     from panos.base import PanDevice
 
+    monkeypatch.setattr(
+        PanDevice,
+        "show_system_info",
+        lambda self: {
+            "system": {"model": "PA-460", "sw-version": "11.1.0", "serial": "0123456789"}
+        },
+    )
     monkeypatch.setattr(
         PanDevice,
         "refresh_system_info",
@@ -89,6 +99,15 @@ class TestTlsPlumbing:
                 self.hostname = kwargs.get("hostname")
                 self.api_key = kwargs.get("api_key")
 
+            def show_system_info(self) -> dict[str, Any]:
+                return {
+                    "system": {
+                        "model": "PA-460",
+                        "sw-version": "11.1.0",
+                        "serial": "0123456789",
+                    }
+                }
+
             def refresh_system_info(self) -> tuple[str, str, str]:
                 return ("11.1.0", "PA-460", "0123456789")
 
@@ -105,6 +124,15 @@ class TestTlsPlumbing:
                 captured.update(kwargs)
                 self.hostname = kwargs.get("hostname")
                 self.api_key = kwargs.get("api_key")
+
+            def show_system_info(self) -> dict[str, Any]:
+                return {
+                    "system": {
+                        "model": "PA-460",
+                        "sw-version": "11.1.0",
+                        "serial": "0123456789",
+                    }
+                }
 
             def refresh_system_info(self) -> tuple[str, str, str]:
                 return ("11.1.0", "PA-460", "0123456789")
@@ -127,6 +155,15 @@ class TestTlsPlumbing:
                 self.hostname = kwargs.get("hostname")
                 self.api_key = kwargs.get("api_key")
 
+            def show_system_info(self) -> dict[str, Any]:
+                return {
+                    "system": {
+                        "model": "PA-460",
+                        "sw-version": "11.1.0",
+                        "serial": "0123456789",
+                    }
+                }
+
             def refresh_system_info(self) -> tuple[str, str, str]:
                 return ("11.1.0", "PA-460", "0123456789")
 
@@ -145,10 +182,13 @@ class TestAutoDetection:
         from panos.base import PanDevice
         from panos.panorama import Panorama as RealPanorama
 
+        # A Panorama's ``show system info`` has no ``multi-vsys``/``app-version``.
+        # The probe must read the model from this dict WITHOUT the Firewall
+        # subclass parsing that would raise KeyError on those absent fields.
         monkeypatch.setattr(
             PanDevice,
-            "refresh_system_info",
-            lambda self: ("11.2.0", "Panorama", "0123456789"),
+            "show_system_info",
+            lambda self: {"system": {"model": "Panorama", "sw-version": "11.2.0"}},
         )
         _seed("pan1", "10.0.0.1", "k")
         c = get_client("pan1", tls=TlsConfig())
@@ -162,11 +202,43 @@ class TestAutoDetection:
 
         monkeypatch.setattr(
             PanDevice,
-            "refresh_system_info",
-            lambda self: ("11.2.0", "M-200", "0123456789"),
+            "show_system_info",
+            lambda self: {"system": {"model": "M-200", "sw-version": "11.2.0"}},
         )
         _seed("pan2", "10.0.0.2", "k")
         c = get_client("pan2", tls=TlsConfig())
+        assert isinstance(c, RealPanorama)
+
+    def test_panorama_detected_when_firewall_refresh_would_raise(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Regression: a Panorama must be detected via the class-neutral probe.
+
+        The old code probed device type by calling ``refresh_system_info()`` on
+        a ``Firewall`` object. ``Firewall._save_system_info`` reads firewall-only
+        fields (``multi-vsys``, ``app-version``) that a Panorama's
+        ``show system info`` does not return, so that call raised
+        ``KeyError: 'multi-vsys'`` *before* the model was inspected — and the
+        Panorama was silently cached as a ``Firewall``, breaking every
+        ``isinstance(client, Panorama)`` guard. Here ``refresh_system_info`` is
+        wired to raise exactly that KeyError; detection must still return a
+        Panorama because it reads the model from ``show_system_info`` instead.
+        """
+        from panos.base import PanDevice
+        from panos.panorama import Panorama as RealPanorama
+
+        monkeypatch.setattr(
+            PanDevice,
+            "show_system_info",
+            lambda self: {"system": {"model": "Panorama", "sw-version": "11.2.10-h3"}},
+        )
+
+        def _boom(self: Any) -> Any:
+            raise KeyError("multi-vsys")
+
+        monkeypatch.setattr(PanDevice, "refresh_system_info", _boom)
+        _seed("pan1", "10.0.0.1", "k")
+        c = get_client("pan1", tls=TlsConfig())
         assert isinstance(c, RealPanorama)
 
     def test_firewall_model_returns_firewall_instance(self) -> None:
@@ -182,12 +254,61 @@ class TestAutoDetection:
 
         monkeypatch.setattr(
             PanDevice,
-            "refresh_system_info",
+            "show_system_info",
             lambda self: (_ for _ in ()).throw(ConnectionError("unreachable")),
         )
         _seed("fw1", "10.0.0.1", "k")
         c = get_client("fw1", tls=TlsConfig())
         assert isinstance(c, RealFirewall)
+
+
+class TestRequestTimeout:
+    """A bounded per-request timeout must be applied before the xapi is built.
+
+    pan-os-python defaults to 1200s (20 min) per request and builds the xapi
+    lazily from ``client.timeout`` on first use — so the cap has to be set at
+    construction or a stuck call hangs the whole MCP process.
+    """
+
+    def test_default_timeout_applied_and_propagates_to_xapi(self) -> None:
+        _seed("fw1", "10.0.0.1", "k")
+        c = get_client("fw1", tls=TlsConfig())
+        assert not isinstance(c, ResolveError)
+        assert c.timeout == 60
+        # Propagation is the part that actually matters — the xapi is what
+        # makes the HTTP call, and it only inherits a timeout set before it
+        # was built.
+        assert c.xapi.timeout == 60
+
+    def test_env_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("PANOS_API_TIMEOUT", "15")
+        _seed("fw1", "10.0.0.1", "k")
+        c = get_client("fw1", tls=TlsConfig())
+        assert not isinstance(c, ResolveError)
+        assert c.timeout == 15
+        assert c.xapi.timeout == 15
+
+    def test_invalid_env_falls_back_to_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("PANOS_API_TIMEOUT", "not-a-number")
+        _seed("fw1", "10.0.0.1", "k")
+        c = get_client("fw1", tls=TlsConfig())
+        assert not isinstance(c, ResolveError)
+        assert c.timeout == 60
+
+    def test_panorama_target_also_bounded(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from panos.base import PanDevice
+        from panos.panorama import Panorama as RealPanorama
+
+        monkeypatch.setattr(
+            PanDevice,
+            "show_system_info",
+            lambda self: {"system": {"model": "Panorama", "sw-version": "11.2.0"}},
+        )
+        _seed("pan1", "10.0.0.1", "k")
+        c = get_client("pan1", tls=TlsConfig())
+        assert isinstance(c, RealPanorama)
+        assert c.timeout == 60
+        assert c.xapi.timeout == 60
 
 
 class TestProbeClient:
