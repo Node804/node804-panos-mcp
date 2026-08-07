@@ -91,9 +91,7 @@ def register_objects_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        rows, timed_out = await gather_scoped_objects(
-            client, AddressObject, timeout=read_timeout()
-        )
+        rows, timed_out = await gather_scoped_objects(client, AddressObject, timeout=read_timeout())
         out = apply_shape(
             rows,
             shape=SHAPE_ADDRESS_OBJECT,
@@ -122,9 +120,7 @@ def register_objects_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        rows, timed_out = await gather_scoped_objects(
-            client, AddressGroup, timeout=read_timeout()
-        )
+        rows, timed_out = await gather_scoped_objects(client, AddressGroup, timeout=read_timeout())
         out = apply_shape(
             rows,
             shape=SHAPE_ADDRESS_GROUP,
@@ -153,9 +149,7 @@ def register_objects_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        rows, timed_out = await gather_scoped_objects(
-            client, ServiceObject, timeout=read_timeout()
-        )
+        rows, timed_out = await gather_scoped_objects(client, ServiceObject, timeout=read_timeout())
         out = apply_shape(
             rows,
             shape=SHAPE_SERVICE_OBJECT,
@@ -184,9 +178,7 @@ def register_objects_tools(ctx: ToolContext) -> None:
         client = ctx.resolve(firewall)
         if isinstance(client, dict):
             return client
-        rows, timed_out = await gather_scoped_objects(
-            client, ServiceGroup, timeout=read_timeout()
-        )
+        rows, timed_out = await gather_scoped_objects(client, ServiceGroup, timeout=read_timeout())
         out = apply_shape(
             rows,
             shape=SHAPE_SERVICE_GROUP,

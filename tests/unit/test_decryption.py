@@ -1,11 +1,11 @@
 """Coverage for the two decryption read paths that pan-os-python can't model.
 
-  - ``get_decryption_profiles`` — ``DecryptionProfile`` isn't in the
-    pan-os-python object model in any release, so the tool reads the running
-    config via xpath (vsys1 + shared) and merges the two trees.
-  - ``panorama_get_pre_rules`` / ``panorama_get_post_rules`` with
-    ``rule_type="decryption"`` — the reliable per-DG path for decryption rules
-    in a Panorama device group (the bulk walker can stall on large policies).
+- ``get_decryption_profiles`` — ``DecryptionProfile`` isn't in the
+  pan-os-python object model in any release, so the tool reads the running
+  config via xpath (vsys1 + shared) and merges the two trees.
+- ``panorama_get_pre_rules`` / ``panorama_get_post_rules`` with
+  ``rule_type="decryption"`` — the reliable per-DG path for decryption rules
+  in a Panorama device group (the bulk walker can stall on large policies).
 """
 
 from __future__ import annotations
@@ -315,9 +315,7 @@ class TestGetDecryptionProfiles:
                 return {"decryption": {"entry": {"@_name": "fwd-proxy-A"}}}
             if "device-group/entry[@name='DG-B']" in xpath:
                 return {
-                    "decryption": {
-                        "entry": [{"@_name": "fwd-proxy-B"}, {"@_name": "inbound-B"}]
-                    }
+                    "decryption": {"entry": [{"@_name": "fwd-proxy-B"}, {"@_name": "inbound-B"}]}
                 }
             # shared and DG-empty have nothing.
             raise PanDeviceError("No such node")
@@ -576,9 +574,7 @@ class TestPanoramaObjectReaders:
         ctx, mcp = _make_ctx()
         register_panorama_tools(ctx)
 
-        result = await _call(
-            mcp, "panorama_get_device_group_address_objects", device_group="dg"
-        )
+        result = await _call(mcp, "panorama_get_device_group_address_objects", device_group="dg")
 
         names = {i["name"] for i in result["items"]}
         assert names == {"web-srv", "db-srv"}  # shared-only NOT included
@@ -611,9 +607,7 @@ class TestPanoramaObjectReaders:
         ctx, mcp = _make_ctx()
         register_panorama_tools(ctx)
 
-        result = await _call(
-            mcp, "panorama_get_device_group_service_objects", device_group="ghost"
-        )
+        result = await _call(mcp, "panorama_get_device_group_service_objects", device_group="ghost")
 
         assert "error" in result
         assert "ghost" in result["error"]

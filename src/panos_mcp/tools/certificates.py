@@ -57,6 +57,7 @@ def _profile_fetch_timeout() -> float:
             pass
     return _DEFAULT_PROFILE_FETCH_TIMEOUT
 
+
 # pan-os-python does not model decryption profiles in any release — the object
 # simply isn't in ``panos.objects`` — so we read them straight from the running
 # config. Where they live depends on the target:
@@ -275,9 +276,7 @@ def register_certificates_tools(ctx: ToolContext) -> None:
         errors: list[dict[str, str]] = []
         for scope_label, xpath in targets:
             try:
-                result = await run_blocking_timeout(
-                    timeout_s, config_xpath_to_dict, client, xpath
-                )
+                result = await run_blocking_timeout(timeout_s, config_xpath_to_dict, client, xpath)
             except TimeoutError:
                 # Skip this scope and record it — partial results beat a hang.
                 timed_out.append(scope_label)

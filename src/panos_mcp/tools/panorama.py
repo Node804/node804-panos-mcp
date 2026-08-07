@@ -593,8 +593,14 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         if isinstance(client, dict):
             return client
         return await _list_scope_objects(
-            client, None, Tag, SHAPE_TAG,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            client,
+            None,
+            Tag,
+            SHAPE_TAG,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -613,8 +619,14 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         if isinstance(client, dict):
             return client
         return await _list_scope_objects(
-            client, None, ApplicationFilter, SHAPE_APPLICATION_FILTER,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            client,
+            None,
+            ApplicationFilter,
+            SHAPE_APPLICATION_FILTER,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     # --- Device-group objects (per-DG counterparts to the firewall get_* tools) ---
@@ -637,8 +649,14 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         if isinstance(client, dict):
             return client
         return await _list_scope_objects(
-            client, device_group, AddressObject, SHAPE_ADDRESS_OBJECT,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            client,
+            device_group,
+            AddressObject,
+            SHAPE_ADDRESS_OBJECT,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -659,8 +677,14 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         if isinstance(client, dict):
             return client
         return await _list_scope_objects(
-            client, device_group, AddressGroup, SHAPE_ADDRESS_GROUP,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            client,
+            device_group,
+            AddressGroup,
+            SHAPE_ADDRESS_GROUP,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -681,8 +705,14 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         if isinstance(client, dict):
             return client
         return await _list_scope_objects(
-            client, device_group, ServiceObject, SHAPE_SERVICE_OBJECT,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            client,
+            device_group,
+            ServiceObject,
+            SHAPE_SERVICE_OBJECT,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -703,8 +733,14 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         if isinstance(client, dict):
             return client
         return await _list_scope_objects(
-            client, device_group, ServiceGroup, SHAPE_SERVICE_GROUP,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            client,
+            device_group,
+            ServiceGroup,
+            SHAPE_SERVICE_GROUP,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -725,8 +761,14 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         if isinstance(client, dict):
             return client
         return await _list_scope_objects(
-            client, device_group, ApplicationFilter, SHAPE_APPLICATION_FILTER,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            client,
+            device_group,
+            ApplicationFilter,
+            SHAPE_APPLICATION_FILTER,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     @ctx.gate.tool(ctx.mcp, required=Mode.READ)
@@ -747,8 +789,14 @@ def register_panorama_tools(ctx: ToolContext) -> None:
         if isinstance(client, dict):
             return client
         return await _list_scope_objects(
-            client, device_group, SecurityProfileGroup, SHAPE_PROFILE_GROUP,
-            verbose=verbose, fields=fields, pagination=pagination, pattern=pattern,
+            client,
+            device_group,
+            SecurityProfileGroup,
+            SHAPE_PROFILE_GROUP,
+            verbose=verbose,
+            fields=fields,
+            pagination=pagination,
+            pattern=pattern,
         )
 
     # --- Pre/Post rules ---

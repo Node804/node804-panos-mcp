@@ -94,9 +94,7 @@ class TestScopeAwareObjectReaders:
         assert result["total"] == 3
 
     @pytest.mark.asyncio
-    async def test_firewall_unchanged_no_scope_tag(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_firewall_unchanged_no_scope_tag(self, monkeypatch: pytest.MonkeyPatch) -> None:
         class FakeFw:
             def __init__(self, **kwargs: Any) -> None:
                 self.hostname = "fw1"

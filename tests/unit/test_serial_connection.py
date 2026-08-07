@@ -50,7 +50,9 @@ def _reset(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Any:
     monkeypatch.setattr(
         PanDevice,
         "show_system_info",
-        lambda self: {"system": {"model": "Panorama", "sw-version": "11.2.0", "serial": "PANO-SERIAL"}},
+        lambda self: {
+            "system": {"model": "Panorama", "sw-version": "11.2.0", "serial": "PANO-SERIAL"}
+        },
     )
     monkeypatch.setattr(
         PanDevice,
@@ -264,8 +266,12 @@ class TestDirectBeatsProxy:
         # reads the model from ``show_system_info``.
         def _detect_info(self: Any) -> dict[str, Any]:
             if getattr(self, "hostname", None) == "10.0.0.9":
-                return {"system": {"model": "PA-460", "sw-version": "11.1.0", "serial": "DIRECTSER"}}
-            return {"system": {"model": "Panorama", "sw-version": "11.2.0", "serial": "PANO-SERIAL"}}
+                return {
+                    "system": {"model": "PA-460", "sw-version": "11.1.0", "serial": "DIRECTSER"}
+                }
+            return {
+                "system": {"model": "Panorama", "sw-version": "11.2.0", "serial": "PANO-SERIAL"}
+            }
 
         def _detect(self: Any) -> tuple[str, str, str]:
             if getattr(self, "hostname", None) == "10.0.0.9":

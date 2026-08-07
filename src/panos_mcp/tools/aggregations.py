@@ -548,9 +548,7 @@ def register_aggregation_tools(ctx: ToolContext) -> None:
         timeout_s = read_timeout()
         timed_out: list[str] = []
         try:
-            device_groups = await run_blocking_timeout(
-                timeout_s, DeviceGroup.refreshall, client
-            )
+            device_groups = await run_blocking_timeout(timeout_s, DeviceGroup.refreshall, client)
         except TimeoutError:
             return {
                 "error": (

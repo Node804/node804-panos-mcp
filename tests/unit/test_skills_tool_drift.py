@@ -49,6 +49,5 @@ def test_every_skill_tool_reference_is_registered() -> None:
             unknown[str(rel)] = missing
 
     assert not unknown, (
-        "skill files reference tools that are not registered "
-        f"(renamed or removed?): {unknown}"
+        f"skill files reference tools that are not registered (renamed or removed?): {unknown}"
     )
