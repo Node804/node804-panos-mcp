@@ -1,0 +1,19 @@
+# Pre-commit hooks for local development.
+#
+#   pip install -e ".[dev]"   # installs pre-commit + ruff
+#   pre-commit install        # activates the git hook
+#
+# The ruff rev MUST match the pinned ruff in pyproject.toml [dev] so local,
+# pre-commit, and CI all format identically. Bump both together.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.13
+    hooks:
+      # Lint (mirrors CI's `ruff check .`); --fix so fixable issues are
+      # corrected in place before the commit.
+      - id: ruff
+        args: [--fix]
+      # Format check (mirrors CI's `ruff format --check .`). The hook
+      # reformats in place; a reformatted file blocks the commit so the
+      # change gets re-staged and reviewed.
+      - id: ruff-format
