@@ -84,7 +84,7 @@ The raw escape hatches are **off by default and gated twice**: they register onl
 **Option A — uv (recommended).** No install step: `uvx` fetches the package from PyPI on first run and caches it. Pin the version so upgrades are deliberate:
 
 ```bash
-uvx node804-panos-mcp==0.1.8
+uvx node804-panos-mcp==0.2.0
 ```
 
 **Option B — pip:**
@@ -105,6 +105,51 @@ Each option provides the `node804-panos-mcp` command and the `panos_mcp` Python 
 
 > Until `node804-mcp-toolkit` is published to PyPI, install it from source first: `pip install git+https://github.com/Node804/node804-mcp-toolkit.git`
 
+### Quick setup (wizard)
+
+After a pip install, the fastest way to get configured is the bundled wizard:
+
+```bash
+node804-panos-mcp-setup
+```
+
+> **If `node804-panos-mcp-setup` isn't found**, the console script isn't on your `PATH` (common with a pip `--user` install or a venv that isn't active). Use the module form instead — it's identical and works for every subcommand below:
+> ```bash
+> python -m panos_mcp.setup
+> ```
+> Use the full interpreter path if `python` isn't the one you installed into, e.g. `C:\Python313\python.exe -m panos_mcp.setup`.
+
+It walks through, in order:
+
+1. a `firewalls.json` entry (name + host) at `~/.config/panos-mcp/firewalls.json`;
+2. your **API key**, stored in the OS keychain (Windows Credential Manager / macOS Keychain / Linux Secret Service) — never written to disk in plaintext;
+3. an interactive prompt to wire up **Claude Desktop** (backs up the config first; writes a server entry with *no* host or key in it — both resolve from steps 1–2); and
+4. installing the **`panos-engineer` skill** — copied into `~/.claude/skills` for Claude Code, and zipped for upload to Claude Desktop / claude.ai.
+
+Each AI client is a separate yes/no question, so you can set up only what you use. Non-interactive install (e.g. for scripted rollout):
+
+```bash
+PANOS_SETUP_API_KEY=LUFRPT1xxx... node804-panos-mcp-setup \
+  --name panorama --host panorama.example.com --mode read \
+  --serial --claude --skill --yes
+```
+
+Run `node804-panos-mcp-setup --help` (or `python -m panos_mcp.setup --help`) for every flag. The manual equivalents are documented in the client sections below.
+
+The wizard is **modify-aware**: when `firewalls.json` already has entries it lists them and lets you skip straight to the client/skill steps, so re-running it never forces you to re-enter a firewall. It also exposes subcommands for day-to-day changes:
+
+```bash
+# Upgrade just the skill (after pip install -U node804-panos-mcp)
+node804-panos-mcp-setup skill
+
+# Manage firewalls.json without the full wizard
+node804-panos-mcp-setup firewall list
+node804-panos-mcp-setup firewall add --name branch --host branch.example.com
+node804-panos-mcp-setup firewall remove --name branch
+```
+
+`firewall add` with an existing name updates that entry (keeping the stored key unless you change it); `firewall remove` deletes both the entry and its keychain key.
+
 ### Claude Desktop
 
 1. Open your Claude Desktop config file:
@@ -124,7 +169,7 @@ Each option provides the `node804-panos-mcp` command and the `panos_mcp` Python 
   "mcpServers": {
     "PAN-OS": {
       "command": "uvx",
-      "args": ["node804-panos-mcp==0.1.8"],
+      "args": ["node804-panos-mcp==0.2.0"],
       "env": {
         "PANOS_HOST": "fw.example.com",
         "PANOS_API_KEY": "LUFRPT1xxx...",
@@ -140,7 +185,7 @@ Each option provides the `node804-panos-mcp` command and the `panos_mcp` Python 
 **Option B — pip.** Install the package first, then point Claude Desktop at the Python interpreter you installed it into:
 
 ```bash
-pip install node804-panos-mcp==0.1.8
+pip install node804-panos-mcp==0.2.0
 ```
 
 ```json
@@ -178,7 +223,7 @@ claude mcp add node804-panos-mcp \
   -e PANOS_HOST=fw.example.com \
   -e PANOS_API_KEY=LUFRPT1xxx... \
   -e PANOS_MODE=read \
-  -- uvx node804-panos-mcp==0.1.8
+  -- uvx node804-panos-mcp==0.2.0
 ```
 
 Verify with `claude mcp list`.
@@ -203,7 +248,7 @@ Copy-Item -Recurse skills\panos-engineer "$env:USERPROFILE\.claude\skills\"
 | **Name** | `PAN-OS` |
 | **Type** | `STDIO` |
 | **Command to launch** | `uvx` (or the full path from `where uvx` / `which uvx` if the app can't find it) |
-| **Arguments** | `node804-panos-mcp==0.1.8` |
+| **Arguments** | `node804-panos-mcp==0.2.0` |
 | **Environment variables** | `PANOS_HOST`, `PANOS_API_KEY`, `PANOS_MODE`, plus any optional ones from [Environment Variables](#environment-variables) |
 
 For a pip install, set **Command to launch** to the full path of your Python interpreter and add two arguments: `-m` and `panos_mcp`. Put each argument in its own box (**+ Add argument**), not space-separated in one.
@@ -219,7 +264,7 @@ codex mcp add panos \
   --env PANOS_HOST=fw.example.com \
   --env PANOS_API_KEY=LUFRPT1xxx... \
   --env PANOS_MODE=read \
-  -- uvx node804-panos-mcp==0.1.8
+  -- uvx node804-panos-mcp==0.2.0
 ```
 
 Or add it to `~/.codex/config.toml` by hand:
@@ -227,7 +272,7 @@ Or add it to `~/.codex/config.toml` by hand:
 ```toml
 [mcp_servers.panos]
 command = "uvx"
-args = ["node804-panos-mcp==0.1.8"]
+args = ["node804-panos-mcp==0.2.0"]
 
 [mcp_servers.panos.env]
 PANOS_HOST = "fw.example.com"
@@ -350,7 +395,7 @@ If you run Panorama, you don't have to enroll a key for every managed firewall. 
   "mcpServers": {
     "PAN-OS": {
       "command": "uvx",
-      "args": ["node804-panos-mcp==0.1.8"],
+      "args": ["node804-panos-mcp==0.2.0"],
       "env": {
         "PANOS_HOST": "panorama.example.com",
         "PANOS_API_KEY": "LUFRPT1xxx...",

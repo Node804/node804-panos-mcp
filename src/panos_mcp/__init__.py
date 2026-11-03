@@ -31,4 +31,4 @@ if "distutils" not in _sys.modules:
         # setuptools manually.
         pass
 
-__version__ = "0.1.8"
+__version__ = "0.2.0"
