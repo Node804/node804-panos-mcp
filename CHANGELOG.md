@@ -7,6 +7,33 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-11-03
+
+### Added — `node804-panos-mcp-setup` install wizard
+
+A bundled setup wizard that configures the server end to end, so a new install
+no longer means hand-editing JSON. Run `node804-panos-mcp-setup` (or
+`python -m panos_mcp.setup` if the console script isn't on `PATH`).
+
+- **Secure by default** — stores the API key in the OS keychain (Windows
+  Credential Manager / macOS Keychain / Linux Secret Service) and writes only
+  `name` + `host` to `firewalls.json`. The key is read with `getpass` and never
+  echoed or written to a plaintext config.
+- **Per-client, extensible** — each AI client is its own yes/no question (Claude
+  Desktop today; new clients are a single `AgentSetup` entry). The Claude Desktop
+  step backs up the config first and writes a server entry with no host or key in
+  it (both resolve from the keychain + `firewalls.json`).
+- **Skill install** — the `panos-engineer` skill is bundled into the wheel and
+  installed by the wizard: copied into `~/.claude/skills` for Claude Code and
+  zipped for Claude Desktop / claude.ai upload.
+- **Subcommands** — `skill` (install/upgrade the skill only, e.g. after
+  `pip install -U`), and `firewall list` / `add` / `remove` to manage
+  `firewalls.json` without the full wizard. The wizard is modify-aware: it lists
+  existing entries and lets you skip the firewall step on a re-run.
+- Non-interactive mode via flags + `PANOS_SETUP_API_KEY` for scripted rollout.
+- New `remove_firewall_entry()` in the firewall registry (deletes the entry and
+  its keychain key).
+
 ## [0.1.8] — 2026-11-03
 
 ### Documentation

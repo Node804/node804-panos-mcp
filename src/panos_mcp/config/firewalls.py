@@ -407,6 +407,33 @@ def save_firewall_entry(entry: FirewallEntry) -> None:
     _entries.append(entry)
 
 
+def remove_firewall_entry(name: str) -> bool:
+    """Remove an entry from firewalls.json and delete its keychain key.
+
+    Returns True when an entry named ``name`` was found and removed, False when
+    no such entry existed. The keychain key is best-effort deleted either way.
+    """
+    path = get_config_path()
+    removed = False
+    with suppress(OSError, json.JSONDecodeError):
+        config = json.loads(path.read_text(encoding="utf-8"))
+        firewalls = config.get("firewalls", [])
+        if isinstance(firewalls, list):
+            kept = [e for e in firewalls if e.get("name") != name]
+            if len(kept) != len(firewalls):
+                removed = True
+                config["firewalls"] = kept
+                _write_restricted(path, json.dumps(config, indent=2) + "\n")
+
+    if _keyring_available():
+        with suppress(Exception):
+            keyring.delete_password(KEYRING_SERVICE, name)
+
+    global _entries
+    _entries = [e for e in _entries if e.name != name]
+    return removed
+
+
 # --- Internals --------------------------------------------------------------
 
 
@@ -457,6 +484,7 @@ __all__ = [
     "is_multi_firewall",
     "list_firewall_entries",
     "load_firewall_config",
+    "remove_firewall_entry",
     "resolve_firewall",
     "save_firewall_entry",
     "serial_connection_enabled",
