@@ -7,6 +7,21 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.8] — 2026-11-03
+
+### Documentation
+
+Documentation-only release to refresh the PyPI project page.
+
+- **README** — the Claude Desktop setup now shows both `uvx` and `pip` configs
+  as parallel options (previously a one-line pip aside). Added a **ChatGPT**
+  section (ChatGPT desktop app custom-MCP form, the web stdio-bridge caveat, and
+  OpenAI Codex CLI / `config.toml` setup). The skill install is now inlined under
+  each client (Claude Desktop, Claude Code, ChatGPT/Codex) instead of a separate
+  trailing section, so configuring the server and installing the `panos-engineer`
+  skill read as one task per client.
+- No code changes; the server behaves identically to 0.1.7.
+
 ## [0.1.7] — 2026-08-06
 
 ### Fixed — Advanced Routing Engine firewalls silently reported zero routes (P0)

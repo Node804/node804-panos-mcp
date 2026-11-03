@@ -14,6 +14,9 @@ A token-efficient [MCP](https://modelcontextprotocol.io/) server for **Palo Alto
 
 **137 tools** across system, diagnostics/troubleshooting, network, security, objects, NAT, user-ID, admin, VPN, Panorama, logs, threat, certificates, licenses, utility, and aggregation surfaces.
 
+## PanOS Engineer Skill
+
+The repo also ships a skill, [`skills/panos-engineer/SKILL.md`](skills/panos-engineer/SKILL.md), that teaches the model how to work with PAN-OS and Panorama through these tools: which summary/count tool to reach for before dumping an inventory, how firewall-vs-Panorama targeting and the redirect guards work, policy/NAT/decryption audit patterns, and connectivity, routing, and VPN troubleshooting. The server works without it, but the model makes fewer calls and fewer mistakes with it.
 ## Permission Modes
 
 | Mode | Tools | Description |
@@ -81,7 +84,7 @@ The raw escape hatches are **off by default and gated twice**: they register onl
 **Option A — uv (recommended).** No install step: `uvx` fetches the package from PyPI on first run and caches it. Pin the version so upgrades are deliberate:
 
 ```bash
-uvx node804-panos-mcp==0.1.7
+uvx node804-panos-mcp==0.1.8
 ```
 
 **Option B — pip:**
@@ -108,14 +111,20 @@ Each option provides the `node804-panos-mcp` command and the `panos_mcp` Python 
    - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
    - **Mac:** `~/Library/Application Support/Claude/claude_desktop_config.json`
 
-2. Add the server under `mcpServers` (create the file if it doesn't exist):
+   Or open it from Claude Desktop: **Settings → Developer → Edit Config**.
+
+2. Add a `PAN-OS` entry under `mcpServers` (create the file if it doesn't exist), using **one** of the options below. Every value in `env` must be a string.
+
+3. Restart Claude Desktop — the server starts automatically when Claude needs it. It starts in **read-only mode** by default; raise `PANOS_MODE` to enable writes.
+
+**Option A — uvx (recommended).** Nothing to install beyond `uv`. The package is fetched from PyPI on first launch and cached; change the pinned version to upgrade.
 
 ```json
 {
   "mcpServers": {
     "PAN-OS": {
       "command": "uvx",
-      "args": ["node804-panos-mcp==0.1.7"],
+      "args": ["node804-panos-mcp==0.1.8"],
       "env": {
         "PANOS_HOST": "fw.example.com",
         "PANOS_API_KEY": "LUFRPT1xxx...",
@@ -126,9 +135,41 @@ Each option provides the `node804-panos-mcp` command and the `panos_mcp` Python 
 }
 ```
 
-If you installed with pip instead of uv, use `"command": "python"` with `"args": ["-m", "panos_mcp"]`.
+> Claude Desktop does not always inherit your shell's `PATH`. If it reports that `uvx` can't be found, use the full path to the executable: run `where uvx` (Windows) or `which uvx` (macOS) and put the result in `command`, e.g. `"C:\\Users\\you\\.local\\bin\\uvx.exe"` or `"/Users/you/.local/bin/uvx"`.
 
-3. Restart Claude Desktop — the server starts automatically when Claude needs it. It starts in **read-only mode** by default; raise `PANOS_MODE` to enable writes.
+**Option B — pip.** Install the package first, then point Claude Desktop at the Python interpreter you installed it into:
+
+```bash
+pip install node804-panos-mcp==0.1.8
+```
+
+```json
+{
+  "mcpServers": {
+    "PAN-OS": {
+      "command": "python",
+      "args": ["-m", "panos_mcp"],
+      "env": {
+        "PANOS_HOST": "fw.example.com",
+        "PANOS_API_KEY": "LUFRPT1xxx...",
+        "PANOS_MODE": "read"
+      }
+    }
+  }
+}
+```
+
+Use the full path to the interpreter if `python` on Claude Desktop's `PATH` isn't the one that has the package (common with virtual environments, the Windows Store Python, or multiple installs). Find it with `python -c "import sys; print(sys.executable)"`. Alternatively, set `"command"` to the full path of the `node804-panos-mcp` script pip installed (in the interpreter's `Scripts\` folder on Windows or `bin/` on macOS) and drop `args`.
+
+To upgrade a pip install: `pip install -U node804-panos-mcp`, then restart Claude Desktop.
+
+**Install the skill.** Zip the `panos-engineer` folder (the zip must contain `panos-engineer/SKILL.md`) and upload it under **Settings → Capabilities → Skills** (skills must be enabled for your plan or organization):
+
+```powershell
+Compress-Archive -Path skills\panos-engineer -DestinationPath panos-engineer-skill.zip
+```
+
+After upgrading the server, update the skill too — it describes tool behavior for the matching version.
 
 ### Claude Code (CLI)
 
@@ -137,10 +178,64 @@ claude mcp add node804-panos-mcp \
   -e PANOS_HOST=fw.example.com \
   -e PANOS_API_KEY=LUFRPT1xxx... \
   -e PANOS_MODE=read \
-  -- uvx node804-panos-mcp==0.1.7
+  -- uvx node804-panos-mcp==0.1.8
 ```
 
 Verify with `claude mcp list`.
+
+**Install the skill.** Copy the [`panos-engineer`](skills/panos-engineer/SKILL.md) folder into your personal skills directory — or into `.claude/skills/` inside a project to scope it there:
+
+```bash
+mkdir -p ~/.claude/skills && cp -r skills/panos-engineer ~/.claude/skills/
+```
+
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\skills" | Out-Null
+Copy-Item -Recurse skills\panos-engineer "$env:USERPROFILE\.claude\skills\"
+```
+
+### ChatGPT
+
+**ChatGPT desktop app (recommended).** The desktop app can launch local stdio servers directly, the same way Claude Desktop does. Open the app's **Connect to a custom MCP** form (Developer mode / custom connectors in settings) and fill it in:
+
+| Field | Value |
+|-------|-------|
+| **Name** | `PAN-OS` |
+| **Type** | `STDIO` |
+| **Command to launch** | `uvx` (or the full path from `where uvx` / `which uvx` if the app can't find it) |
+| **Arguments** | `node804-panos-mcp==0.1.8` |
+| **Environment variables** | `PANOS_HOST`, `PANOS_API_KEY`, `PANOS_MODE`, plus any optional ones from [Environment Variables](#environment-variables) |
+
+For a pip install, set **Command to launch** to the full path of your Python interpreter and add two arguments: `-m` and `panos_mcp`. Put each argument in its own box (**+ Add argument**), not space-separated in one.
+
+If the variables are already set in your user environment, you can list their names under **Environment variable passthrough** instead of typing the values into the form.
+
+**ChatGPT on the web.** chatgpt.com can only reach **remote** MCP servers over HTTPS, so it cannot launch this stdio server. You'd need a stdio-to-HTTP bridge such as [mcp-proxy](https://github.com/sparfenyuk/mcp-proxy) plus a public HTTPS tunnel. That bridge has **no authentication**: anyone who learns the URL can use every tool in your mode with *your* PAN-OS API key — and the default `read` mode still exposes your entire firewall configuration and logs. Use the desktop app instead unless you can put real authentication (e.g. Cloudflare Access) in front of it, and keep it in `read` mode.
+
+**OpenAI Codex (CLI / IDE extension)** does support local stdio servers, so no bridge is needed:
+
+```bash
+codex mcp add panos \
+  --env PANOS_HOST=fw.example.com \
+  --env PANOS_API_KEY=LUFRPT1xxx... \
+  --env PANOS_MODE=read \
+  -- uvx node804-panos-mcp==0.1.8
+```
+
+Or add it to `~/.codex/config.toml` by hand:
+
+```toml
+[mcp_servers.panos]
+command = "uvx"
+args = ["node804-panos-mcp==0.1.8"]
+
+[mcp_servers.panos.env]
+PANOS_HOST = "fw.example.com"
+PANOS_API_KEY = "LUFRPT1xxx..."
+PANOS_MODE = "read"
+```
+
+**Install the skill.** Codex reads skills from `~/.codex/skills/`, so copy the [`panos-engineer`](skills/panos-engineer/SKILL.md) folder there. In the ChatGPT app, paste the body of `SKILL.md` (everything below the `---` front matter) into a Project's instructions or your custom instructions.
 
 ### Verifying It Works
 
@@ -255,7 +350,7 @@ If you run Panorama, you don't have to enroll a key for every managed firewall. 
   "mcpServers": {
     "PAN-OS": {
       "command": "uvx",
-      "args": ["node804-panos-mcp==0.1.7"],
+      "args": ["node804-panos-mcp==0.1.8"],
       "env": {
         "PANOS_HOST": "panorama.example.com",
         "PANOS_API_KEY": "LUFRPT1xxx...",
